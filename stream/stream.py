@@ -18,11 +18,27 @@ class Stream:
         self._iterable = Iterator.map(self._iterable, mapper)
         return self
 
-    def reduce(self, accumulator, identity):
-        result = identity
-        for i in self._iterable:
-            result = accumulator(result, i)
-        return result
+    def flat_map(self, mapper):
+        self._iterable = Iterator.flat_map(self._iterable, mapper)
+        return self
 
+    def for_each(self, function):
+        return Iterator.for_each(self._iterable, function)
+
+    def reduce(self, accumulator, identity):
+        return Iterator.reduce(self._iterable, accumulator, identity)
+
+    # ### collectors ###
     def to_list(self):
         return list(self._iterable)
+
+    def to_tuple(self):
+        return tuple(self._iterable)
+
+    def to_set(self):
+        return set(self._iterable)
+
+    # TODO: should this be inside Iterator?
+    # TODO: add logic for resolving duplicate/existing keys -> pass another lambda
+    def to_dict(self, function):
+        return Iterator.to_dict(self._iterable, function)

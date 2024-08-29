@@ -1,3 +1,6 @@
+from collections.abc import Iterable
+
+
 class Iterator:
     @staticmethod
     def filter(iterable, predicate):
@@ -11,10 +14,25 @@ class Iterator:
             yield mapper(i)
 
     @staticmethod
+    def filter_map(iterable, mapper):
+        for i in iterable:
+            if i:
+                yield mapper(i)
+
+    @staticmethod
     def flat_map(iterable, mapper):
         for i in iterable:
+            # TODO: should throw if j is not iterable?
             for j in mapper(i):
                 yield j
+
+    @staticmethod
+    def flatten(iterable):
+        for i in iterable:
+            if isinstance(i, str) or not isinstance(i, Iterable):
+                yield i
+            else:
+                yield from Iterator.flatten(i)
 
     @staticmethod
     def reduce(iterable, accumulator, identity):
@@ -42,6 +60,12 @@ class Iterator:
             if i not in elements:
                 elements.add(i)
                 yield i
+
+    @staticmethod
+    def sorted(iterable, key, reverse):
+        # TODO: sort() or sorted()
+        for i in sorted(iterable, key=key, reverse=reverse):
+            yield i
 
     # ### ###
     @staticmethod

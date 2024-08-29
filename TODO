@@ -1,4 +1,6 @@
 - Stream.builder (?)
 - reduce returns Optional -> to handle emtpy streams?
-- add function in to_dict to resolve duplicate keys
+- add function in to_dict to resolve duplicate keys -> also in collect() with dict
 - add combiner in reduce
+- add filter_map (Rust-like)
+- and_then, or_else, or_throw, catch (after map -> see Amnis)

@@ -27,8 +27,16 @@ class Stream:
         self._iterable = Iterator.map(self._iterable, mapper)
         return self
 
+    def filter_map(self, predicate):
+        self._iterable = Iterator.filter_map(self._iterable, predicate)
+        return self
+
     def flat_map(self, mapper):
         self._iterable = Iterator.flat_map(self._iterable, mapper)
+        return self
+
+    def flatten(self):
+        self._iterable = Iterator.flatten(self._iterable)
         return self
 
     def for_each(self, function):
@@ -43,6 +51,12 @@ class Stream:
 
     def count(self):
         return len(tuple(self._iterable))
+
+    # TODO: NB force user to explicitly write reverse as kwarg
+    # rename key to comparator?
+    def sorted(self, key=None, *, reverse=False):
+        self._iterable = Iterator.sorted(self._iterable, key, reverse)
+        return self
 
     # ### collectors ###
     def collect(self, collection_type, dict_func=None):

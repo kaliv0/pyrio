@@ -4,8 +4,12 @@ from contextlib import redirect_stdout
 from stream.stream import Stream
 
 
+def test_stream():
+    assert Stream([1, 2, 3])._iterable == [1, 2, 3]
+
+
 def test_stream_of():
-    assert Stream.of(1, 2, 3).map(lambda x: x + 1).to_list() == [2, 3, 4]
+    assert Stream.of(1, 2, 3)._iterable == (1, 2, 3)
 
 
 def test_filter():
@@ -15,7 +19,16 @@ def test_filter():
 def test_map():
     # TODO: in two tests
     assert Stream([1, 2, 3]).map(str).to_list() == ["1", "2", "3"]
+
+
+def test_map_lambda():
     assert Stream([1, 2, 3]).map(lambda x: x + 5).to_list() == [6, 7, 8]
+
+
+def test_filter_map():
+    assert Stream.of(None, "foo", "", "bar").filter_map(str.upper).to_list() == ["FOO", "BAR"]
+    # TODO: should we skip zeros?
+    assert Stream([0, 1, 2]).filter_map(lambda x: x + 10).to_list() == [11, 12]
 
 
 def test_reduce():
@@ -37,16 +50,72 @@ def test_for_each():
     assert f.getvalue() == "# ## ### #### "
 
 
+# ### flat ###
 def test_flat_map():
     assert Stream([[1, 2], [3, 4], [5]]).flat_map(lambda x: Stream(x)).to_list() == [1, 2, 3, 4, 5]
 
 
+def test_flatten():
+    assert Stream([[1, 2], [3, 4], [5]]).flatten().to_list() == [1, 2, 3, 4, 5]
+
+
+def test_flatten_empty():
+    assert Stream([[], [1, 2]]).flatten().to_list() == [1, 2]
+
+
+def test_flatten_no_nested_levels():
+    assert Stream([1, 2]).flatten().to_list() == [1, 2]
+
+
+def test_flatten_multiple_levels():
+    assert Stream([1, 2]).flatten().to_list() == [1, 2]
+    assert Stream([[[1, 2], [3, 4]], [5, 6], [7]]).flatten().to_list() == [1, 2, 3, 4, 5, 6, 7]
+
+
+def test_flatten_strings():
+    assert Stream([["abc"], "x", "y", "z"]).flatten().to_list() == ["abc", "x", "y", "z"]
+
+
+# ### ###
 def test_distinct():
     assert Stream([1, 1, 2, 2, 2, 3]).distinct().to_list() == [1, 2, 3]
 
 
 def test_count():
     assert Stream([1, 2, 3, 4]).filter(lambda x: x % 2 == 0).count() == 2
+
+
+# ### ###
+def test_sorted():
+    assert Stream.of(3, 5, 2, 1).map(lambda x: x * 10).sorted().to_list() == [10, 20, 30, 50]
+
+
+def test_sorted_reverse():
+    assert Stream.of(3, 5, 2, 1).map(lambda x: x * 10).sorted(reverse=True).to_list() == [50, 30, 20, 10]
+
+
+def test_sorted_comparator_function():
+    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sorted(lambda x: x[1]).to_list() == [
+        ("1", 10),
+        ("2", 20),
+        ("3", 30),
+        ("5", 50),
+    ]
+
+
+def test_sorted_comparator_and_reverse():
+    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sorted(lambda x: x[1], reverse=True).to_list() == [
+        ("5", 50),
+        ("3", 30),
+        ("2", 20),
+        ("1", 10),
+    ]
+
+
+def test_complex_pipeline():
+    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sorted(lambda x: x[1], reverse=True).to_dict(
+        lambda x: (x[0], x[1])
+    ) == {"5": 50, "3": 30, "2": 20, "1": 10}
 
 
 # ### ###

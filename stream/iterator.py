@@ -18,8 +18,15 @@ class Iterator:
 
     @staticmethod
     def reduce(iterable, accumulator, identity):
-        # TODO: identity should be optional etc
-        for i in iterable:
+        if len(iterable) == 0:  # TODO:?
+            return identity
+
+        idx = 0
+        if identity is None:
+            identity = iterable[0]
+            idx = 1
+
+        for i in iterable[idx:]:
             identity = accumulator(identity, i)
         return identity
 
@@ -29,10 +36,14 @@ class Iterator:
             function(i)
 
     @staticmethod
+    def distinct(iterable):
+        elements = set()
+        for i in iterable:
+            if i not in elements:
+                elements.add(i)
+                yield i
+
+    # ### ###
+    @staticmethod
     def to_dict(iterable, function):
-        # result = dict()
-        # for i in iterable:
-        #     k, v = function(i)
-        #     result[k] = v
-        # return result
         return {k: v for k, v in (function(i) for i in iterable)}

@@ -1,1 +1,4 @@
-- Stream(), Stream.of(), Stream.builder (?)
+- Stream.builder (?)
+- reduce returns Optional -> to handle emtpy streams?
+- add function in to_dict to resolve duplicate keys
+- add combiner in reduce

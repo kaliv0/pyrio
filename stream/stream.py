@@ -3,12 +3,18 @@ from stream.iterator import Iterator
 
 class Stream:
     def __init__(self, iterable):
+        """creates Stream from a collection"""
         self._iterable = iterable
 
     def __iter__(self):
         return iter(self._iterable)
 
     # TODO: add __eq__
+
+    @staticmethod
+    def of(*iterable):
+        """creates Stream from args"""
+        return Stream(iterable)
 
     def filter(self, predicate):
         self._iterable = Iterator.filter(self._iterable, predicate)
@@ -25,8 +31,12 @@ class Stream:
     def for_each(self, function):
         return Iterator.for_each(self._iterable, function)
 
-    def reduce(self, accumulator, identity):
+    def reduce(self, accumulator, identity=None):
         return Iterator.reduce(self._iterable, accumulator, identity)
+
+    def distinct(self):
+        self._iterable = Iterator.distinct(self._iterable)
+        return self
 
     # ### collectors ###
     def to_list(self):
@@ -39,6 +49,5 @@ class Stream:
         return set(self._iterable)
 
     # TODO: should this be inside Iterator?
-    # TODO: add logic for resolving duplicate/existing keys -> pass another lambda
     def to_dict(self, function):
         return Iterator.to_dict(self._iterable, function)

@@ -9,7 +9,10 @@ class Stream:
     def __iter__(self):
         return iter(self._iterable)
 
-    # TODO: add __eq__
+    def __eq__(self, other):
+        # FIXME: don't use sets, (1, 2, 3) and (1, 1, 2, 3) are not equal
+        return self.to_set() == other.to_set()
+        # return hash(self._iterable) == hash(other._iterable)
 
     @staticmethod
     def of(*iterable):

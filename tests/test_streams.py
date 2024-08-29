@@ -43,6 +43,11 @@ def test_distinct():
     assert Stream([1, 1, 2, 2, 2, 3]).distinct().to_list() == [1, 2, 3]
 
 
+# TODO: ???
+def test_eq():
+    assert Stream.of(1, 2, 3) == Stream.of(3, 2, 1)
+
+
 # ### collectors ###
 def test_to_list():
     result = Stream((1, 2, 3)).to_list()

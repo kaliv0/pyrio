@@ -1,3 +1,4 @@
+import builtins
 from stream.iterator import Iterator
 
 
@@ -12,7 +13,6 @@ class Stream:
     def __eq__(self, other):
         # FIXME: don't use sets, (1, 2, 3) and (1, 1, 2, 3) are not equal
         return self.to_set() == other.to_set()
-        # return hash(self._iterable) == hash(other._iterable)
 
     @staticmethod
     def of(*iterable):
@@ -41,7 +41,27 @@ class Stream:
         self._iterable = Iterator.distinct(self._iterable)
         return self
 
+    def count(self):
+        return len(tuple(self._iterable))
+
     # ### collectors ###
+    def collect(self, collection_type, dict_func=None):
+        # TODO: refactor without builtins
+        match collection_type:
+            case builtins.tuple:
+                return self.to_tuple()
+            case builtins.list:
+                return self.to_list()
+            case builtins.set:
+                return self.to_set()
+            case builtins.dict:
+                if dict_func is None:
+                    # TODO: tests for exceptions, change messages
+                    raise ValueError("missing creational function")
+                return self.to_dict(dict_func)
+            case _:
+                raise ValueError("invalid collection type")
+
     def to_list(self):
         return list(self._iterable)
 

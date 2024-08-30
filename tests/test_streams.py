@@ -192,7 +192,7 @@ def test_to_dict():
 
 
 def test_collect():
-    assert Stream([1, 2, 3]).to_tuple() == (1, 2, 3)
-    assert Stream.of(1, 2, 3).to_list() == [1, 2, 3]
+    assert Stream([1, 2, 3]).collect(tuple) == (1, 2, 3)
+    assert Stream.of(1, 2, 3).collect(list) == [1, 2, 3]
     assert Stream.of(1, 1, 2, 2, 2, 3).collect(set) == {1, 2, 3}
     assert Stream.of(1, 2, 3, 4).collect(dict, lambda x: (str(x), x * 10)) == {"1": 10, "2": 20, "3": 30, "4": 40}

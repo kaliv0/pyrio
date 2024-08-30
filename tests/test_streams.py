@@ -24,6 +24,10 @@ def test_iterate_skip():
     assert Stream.iterate(0, lambda x: x + 1).skip(5).limit(5).to_list() == [5, 6, 7, 8, 9]
 
 
+def test_generate():
+    assert Stream.generate(lambda: 42).limit(3).to_list() == [42, 42, 42]
+
+
 def test_filter():
     assert Stream([1, 2, 3, 4, 5, 6]).filter(lambda x: x % 2 == 0).to_list() == [2, 4, 6]
 
@@ -134,9 +138,7 @@ def test_sorted_reverse():
 
 
 def test_sorted_comparator_function():
-    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sorted(
-        lambda x: x[1]
-    ).to_list() == [
+    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sorted(lambda x: x[1]).to_list() == [
         ("1", 10),
         ("2", 20),
         ("3", 30),
@@ -156,9 +158,9 @@ def test_sorted_comparator_and_reverse():
 
 
 def test_complex_pipeline():
-    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sorted(
-        lambda x: x[1], reverse=True
-    ).to_dict(lambda x: (x[0], x[1])) == {"5": 50, "3": 30, "2": 20, "1": 10}
+    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sorted(lambda x: x[1], reverse=True).to_dict(
+        lambda x: (x[0], x[1])
+    ) == {"5": 50, "3": 30, "2": 20, "1": 10}
 
 
 # ### ###

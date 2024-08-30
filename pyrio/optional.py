@@ -18,9 +18,7 @@ class Optional:
 
     def get(self):
         if self.is_empty():
-            raise ValueError(
-                "optional is empty"
-            )  # TODO: should we raise when getting from empty optional?
+            raise ValueError("optional is empty")  # TODO: should we raise when getting from empty optional?
         return self._element
 
     def is_present(self):

@@ -61,6 +61,11 @@ class Iterator:
             seed = mapper(seed)
 
     @staticmethod
+    def generate(supplier):
+        while True:
+            yield supplier()
+
+    @staticmethod
     def distinct(iterable):
         elements = set()
         for i in iterable:

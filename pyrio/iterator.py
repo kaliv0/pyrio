@@ -1,6 +1,3 @@
-from collections.abc import Iterable
-
-
 class Iterator:
     @staticmethod
     def filter(iterable, predicate):
@@ -28,6 +25,8 @@ class Iterator:
 
     @staticmethod
     def flatten(iterable):
+        from collections.abc import Iterable
+
         for i in iterable:
             if isinstance(i, str) or not isinstance(i, Iterable):
                 yield i
@@ -124,6 +123,6 @@ class Iterator:
             yield i
 
     # ### ###
-    @staticmethod
-    def to_dict(iterable, function):
-        return {k: v for k, v in (function(i) for i in iterable)}
+    # @staticmethod
+    # def to_dict(iterable, function):
+    #     return {k: v for k, v in (function(i) for i in iterable)}

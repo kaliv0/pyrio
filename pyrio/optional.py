@@ -33,7 +33,7 @@ class Optional:
 
     def if_present_or_else(self, action, empty_action):
         if self.is_present():
-            action(self.get()) # TODO: do we need return here?
+            action(self.get())  # TODO: do we need return here?
         else:
             empty_action()
 

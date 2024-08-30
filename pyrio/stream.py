@@ -1,10 +1,7 @@
-import builtins
-
 from pyrio.decorator import pre_call, validate_stream
 from pyrio.iterator import Iterator
 
 
-# ### ### #
 @pre_call(validate_stream)
 class Stream:
     def __init__(self, iterable):
@@ -16,7 +13,7 @@ class Stream:
         return iter(self._iterable)
 
     def __eq__(self, other):
-        # FIXME: don't use sets, (1, 2, 3) and (1, 1, 2, 3) are not equal
+        # FIXME: don't use sets
         return self.to_set() == other.to_set()
 
     @staticmethod
@@ -114,6 +111,8 @@ class Stream:
 
     # ### collectors ###
     def collect(self, collection_type, dict_supplier=None):
+        import builtins
+
         # TODO: refactor without builtins
         match collection_type:
             case builtins.tuple:
@@ -145,4 +144,5 @@ class Stream:
     # TODO: should this be inside Iterator?
     def to_dict(self, function):
         self._is_consumed = True
-        return Iterator.to_dict(self._iterable, function)
+        # return Iterator.to_dict(self._iterable, function)
+        return {k: v for k, v in (function(i) for i in self._iterable)}

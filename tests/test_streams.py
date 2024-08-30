@@ -29,7 +29,6 @@ def test_filter():
 
 
 def test_map():
-    # TODO: in two tests
     assert Stream([1, 2, 3]).map(str).to_list() == ["1", "2", "3"]
 
 
@@ -106,7 +105,6 @@ def test_flatten_no_nested_levels():
 
 
 def test_flatten_multiple_levels():
-    assert Stream([1, 2]).flatten().to_list() == [1, 2]
     assert Stream([[[1, 2], [3, 4]], [5, 6], [7]]).flatten().to_list() == [1, 2, 3, 4, 5, 6, 7]
 
 

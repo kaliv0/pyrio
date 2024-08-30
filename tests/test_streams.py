@@ -4,6 +4,7 @@ from contextlib import redirect_stdout
 import pytest
 
 from pyrio import Stream
+from pyrio.decorator import IllegalStateError
 
 
 def test_stream():
@@ -142,7 +143,7 @@ def test_sum_empty_collection():
 def test_sum_non_number_elements():
     with pytest.raises(ValueError) as e:
         Stream.of("a", "b").sum()
-    assert str(e.value) == "cannot apply sum on non-number elements"
+    assert str(e.value) == "Cannot apply sum on non-number elements"
 
 
 def test_take_while():
@@ -210,6 +211,19 @@ def test_complex_pipeline():
     assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sorted(lambda x: x[1], reverse=True).to_dict(
         lambda x: (x[0], x[1])
     ) == {"5": 50, "3": 30, "2": 20, "1": 10}
+
+
+def test_reusing_stream():
+    stream = Stream.of(1, 2, 3)
+    assert stream._is_consumed is False
+
+    result = stream.map(str).to_list()
+    assert result == ["1", "2", "3"]
+    assert stream._is_consumed is True
+
+    with pytest.raises(IllegalStateError) as e:
+        stream.map(lambda x: x * 10).to_list()
+    assert str(e.value) == "Stream object already consumed"
 
 
 # ### ###

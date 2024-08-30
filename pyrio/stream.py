@@ -1,11 +1,16 @@
 import builtins
+
+from pyrio.decorator import pre_call, validate_stream
 from pyrio.iterator import Iterator
 
 
+# ### ### #
+@pre_call(validate_stream)
 class Stream:
     def __init__(self, iterable):
         """creates Stream from a collection"""
         self._iterable = iterable
+        self._is_consumed = False
 
     def __iter__(self):
         return iter(self._iterable)
@@ -55,9 +60,11 @@ class Stream:
         return self
 
     def for_each(self, function):
+        self._is_consumed = True
         return Iterator.for_each(self._iterable, function)
 
     def reduce(self, accumulator, identity=None):
+        self._is_consumed = True
         # TODO: put identity as first arg- no default value?
         return Iterator.reduce(self._iterable, accumulator, identity)
 
@@ -66,26 +73,28 @@ class Stream:
         return self
 
     def count(self):
+        self._is_consumed = True
         return len(tuple(self._iterable))
 
     def sum(self):
+        self._is_consumed = True
         # TODO: move logic to Iterator?
         if len(self._iterable) == 0:
             return 0
         if any(isinstance(x, (int | float | None)) for x in self._iterable) is False:
-            raise ValueError("cannot apply sum on non-number elements")
+            raise ValueError("Cannot apply sum on non-number elements")
         return sum(self._iterable)
 
     def skip(self, count):
         # TODO: check here or in iterator?
         if count < 0:
-            raise ValueError("skip count cannot be negative")
+            raise ValueError("Skip count cannot be negative")
         self._iterable = Iterator.skip(self._iterable, count)
         return self
 
     def limit(self, count):
         if count < 0:
-            raise ValueError("limit count cannot be negative")
+            raise ValueError("Limit count cannot be negative")
         self._iterable = Iterator.limit(self._iterable, count)
         return self
 
@@ -104,7 +113,7 @@ class Stream:
         return self
 
     # ### collectors ###
-    def collect(self, collection_type, dict_func=None):
+    def collect(self, collection_type, dict_supplier=None):
         # TODO: refactor without builtins
         match collection_type:
             case builtins.tuple:
@@ -114,22 +123,26 @@ class Stream:
             case builtins.set:
                 return self.to_set()
             case builtins.dict:
-                if dict_func is None:
+                if dict_supplier is None:
                     # TODO: tests for exceptions, change messages
-                    raise ValueError("missing creational function")
-                return self.to_dict(dict_func)
+                    raise ValueError("Missing dict_supplier")
+                return self.to_dict(dict_supplier)
             case _:
-                raise ValueError("invalid collection type")
+                raise ValueError("Invalid collection type")
 
     def to_list(self):
+        self._is_consumed = True
         return list(self._iterable)
 
     def to_tuple(self):
+        self._is_consumed = True
         return tuple(self._iterable)
 
     def to_set(self):
+        self._is_consumed = True
         return set(self._iterable)
 
     # TODO: should this be inside Iterator?
     def to_dict(self, function):
+        self._is_consumed = True
         return Iterator.to_dict(self._iterable, function)

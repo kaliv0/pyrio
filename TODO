@@ -4,3 +4,5 @@
 - add combiner in reduce
 - add filter_map (Rust-like)
 - and_then, or_else, or_throw, catch (after map -> see Amnis)
+- throw IllegalStateException: stream has already been operated upon or closed
+- rename 'function' arg to 'operator'?

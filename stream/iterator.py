@@ -36,6 +36,7 @@ class Iterator:
 
     @staticmethod
     def reduce(iterable, accumulator, identity):
+        # TODO: put identity as first arg- no default value?
         if len(iterable) == 0:  # TODO:?
             return identity
 
@@ -54,12 +55,37 @@ class Iterator:
             function(i)
 
     @staticmethod
+    def iterate(seed, mapper):
+        while True:
+            yield seed
+            seed = mapper(seed)
+
+    @staticmethod
     def distinct(iterable):
         elements = set()
         for i in iterable:
             if i not in elements:
                 elements.add(i)
                 yield i
+
+    @staticmethod
+    def skip(iterable, count):
+        for i in iterable:
+            if count > 0:
+                count -= 1
+            else:
+                yield i
+
+    @staticmethod
+    def limit(iterable, count):
+        # TODO: check here or in stream?
+        # if count < 0:
+        #     raise ValueError("limit count cannot be negative")
+        for i in iterable:
+            if count == 0:
+                break
+            yield i
+            count -= 1
 
     @staticmethod
     def sorted(iterable, key, reverse):

@@ -12,6 +12,18 @@ def test_stream_of():
     assert Stream.of(1, 2, 3)._iterable == (1, 2, 3)
 
 
+def test_empty_stream():
+    assert Stream.empty().count() == 0
+
+
+def test_iterate():
+    assert Stream.iterate(0, lambda x: x + 1).limit(5).to_list() == [0, 1, 2, 3, 4]
+
+
+def test_iterate_skip():
+    assert Stream.iterate(0, lambda x: x + 1).skip(5).limit(5).to_list() == [5, 6, 7, 8, 9]
+
+
 def test_filter():
     assert Stream([1, 2, 3, 4, 5, 6]).filter(lambda x: x % 2 == 0).to_list() == [2, 4, 6]
 
@@ -48,6 +60,32 @@ def test_for_each():
     with redirect_stdout(f):
         Stream([1, 2, 3, 4]).for_each(lambda x: print(f"{'#' * x} ", end=""))
     assert f.getvalue() == "# ## ### #### "
+
+
+# ### skip ###
+def test_skip():
+    assert Stream([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).skip(7).to_tuple() == (8, 9, 10)
+
+
+def test_skip_empty():
+    assert Stream.empty().skip(3).to_tuple() == ()
+
+
+def test_skip_bigger_than_stream_count():
+    assert Stream([1, 2]).skip(5).to_tuple() == ()
+
+
+# ### limit ###
+def test_limit():
+    assert Stream([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).limit(3).to_tuple() == (1, 2, 3)
+
+
+def test_limit_empty():
+    assert Stream.empty().limit(3).to_tuple() == ()
+
+
+def test_limit_bigger_than_stream_count():
+    assert Stream([1, 2]).limit(5).to_tuple() == (1, 2)
 
 
 # ### flat ###

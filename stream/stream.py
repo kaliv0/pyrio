@@ -19,6 +19,16 @@ class Stream:
         """creates Stream from args"""
         return Stream(iterable)
 
+    @staticmethod
+    def empty():
+        return Stream([])
+
+    # TODO: rename seed to identity?
+    @staticmethod
+    def iterate(seed, function):
+        """creates infinite stream"""
+        return Stream(Iterator.iterate(seed, function))
+
     def filter(self, predicate):
         self._iterable = Iterator.filter(self._iterable, predicate)
         return self
@@ -43,6 +53,7 @@ class Stream:
         return Iterator.for_each(self._iterable, function)
 
     def reduce(self, accumulator, identity=None):
+        # TODO: put identity as first arg- no default value?
         return Iterator.reduce(self._iterable, accumulator, identity)
 
     def distinct(self):
@@ -51,6 +62,19 @@ class Stream:
 
     def count(self):
         return len(tuple(self._iterable))
+
+    def skip(self, count):
+        # TODO: check here or in stream?
+        if count < 0:
+            raise ValueError("skip count cannot be negative")
+        self._iterable = Iterator.skip(self._iterable, count)
+        return self
+
+    def limit(self, count):
+        if count < 0:
+            raise ValueError("limit count cannot be negative")
+        self._iterable = Iterator.limit(self._iterable, count)
+        return self
 
     # TODO: NB force user to explicitly write reverse as kwarg
     # rename key to comparator?

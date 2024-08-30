@@ -2,7 +2,8 @@
 - reduce returns Optional -> to handle emtpy streams?
 - add function in to_dict to resolve duplicate keys -> also in collect() with dict
 - add combiner in reduce
-- add filter_map (Rust-like)
+- filter_map (Rust-like) should only filter None?
+    -> pass bool to skip all Falsy values???
 - and_then, or_else, or_throw, catch (after map -> see Amnis)
 - throw IllegalStateException: stream has already been operated upon or closed
 - rename 'function' arg to 'operator'?

@@ -1,7 +1,7 @@
 import io
 from contextlib import redirect_stdout
 
-from stream.stream import Stream
+from pyrio import Stream
 
 
 def test_stream():
@@ -37,9 +37,7 @@ def test_map_lambda():
 
 
 def test_filter_map():
-    assert Stream.of(None, "foo", "", "bar").filter_map(str.upper).to_list() == ["FOO", "BAR"]
-    # TODO: should we skip zeros?
-    assert Stream([0, 1, 2]).filter_map(lambda x: x + 10).to_list() == [11, 12]
+    assert Stream.of(None, "foo", "bar").filter_map(str.upper).to_list() == ["FOO", "BAR"]
 
 
 def test_reduce():
@@ -127,11 +125,18 @@ def test_sorted():
 
 
 def test_sorted_reverse():
-    assert Stream.of(3, 5, 2, 1).map(lambda x: x * 10).sorted(reverse=True).to_list() == [50, 30, 20, 10]
+    assert Stream.of(3, 5, 2, 1).map(lambda x: x * 10).sorted(reverse=True).to_list() == [
+        50,
+        30,
+        20,
+        10,
+    ]
 
 
 def test_sorted_comparator_function():
-    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sorted(lambda x: x[1]).to_list() == [
+    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sorted(
+        lambda x: x[1]
+    ).to_list() == [
         ("1", 10),
         ("2", 20),
         ("3", 30),
@@ -140,7 +145,9 @@ def test_sorted_comparator_function():
 
 
 def test_sorted_comparator_and_reverse():
-    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sorted(lambda x: x[1], reverse=True).to_list() == [
+    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sorted(
+        lambda x: x[1], reverse=True
+    ).to_list() == [
         ("5", 50),
         ("3", 30),
         ("2", 20),
@@ -149,9 +156,9 @@ def test_sorted_comparator_and_reverse():
 
 
 def test_complex_pipeline():
-    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sorted(lambda x: x[1], reverse=True).to_dict(
-        lambda x: (x[0], x[1])
-    ) == {"5": 50, "3": 30, "2": 20, "1": 10}
+    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sorted(
+        lambda x: x[1], reverse=True
+    ).to_dict(lambda x: (x[0], x[1])) == {"5": 50, "3": 30, "2": 20, "1": 10}
 
 
 # ### ###
@@ -193,4 +200,9 @@ def test_collect():
     assert Stream([1, 2, 3]).collect(tuple) == (1, 2, 3)
     assert Stream.of(1, 2, 3).collect(list) == [1, 2, 3]
     assert Stream.of(1, 1, 2, 2, 2, 3).collect(set) == {1, 2, 3}
-    assert Stream.of(1, 2, 3, 4).collect(dict, lambda x: (str(x), x * 10)) == {"1": 10, "2": 20, "3": 30, "4": 40}
+    assert Stream.of(1, 2, 3, 4).collect(dict, lambda x: (str(x), x * 10)) == {
+        "1": 10,
+        "2": 20,
+        "3": 30,
+        "4": 40,
+    }

@@ -16,7 +16,7 @@ class Iterator:
     @staticmethod
     def filter_map(iterable, mapper):
         for i in iterable:
-            if i:
+            if i is not None:
                 yield mapper(i)
 
     @staticmethod
@@ -78,7 +78,7 @@ class Iterator:
 
     @staticmethod
     def limit(iterable, count):
-        # TODO: check here or in stream?
+        # TODO: check here or in pyrio?
         # if count < 0:
         #     raise ValueError("limit count cannot be negative")
         for i in iterable:

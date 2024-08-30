@@ -1,5 +1,5 @@
 import builtins
-from stream.iterator import Iterator
+from pyrio.iterator import Iterator
 
 
 class Stream:
@@ -26,7 +26,7 @@ class Stream:
     # TODO: rename seed to identity?
     @staticmethod
     def iterate(seed, function):
-        """creates infinite stream"""
+        """creates infinite pyrio"""
         return Stream(Iterator.iterate(seed, function))
 
     def filter(self, predicate):
@@ -64,7 +64,7 @@ class Stream:
         return len(tuple(self._iterable))
 
     def skip(self, count):
-        # TODO: check here or in stream?
+        # TODO: check here or in pyrio?
         if count < 0:
             raise ValueError("skip count cannot be negative")
         self._iterable = Iterator.skip(self._iterable, count)

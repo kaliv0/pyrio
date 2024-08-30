@@ -10,7 +10,7 @@
 
 ------------------------
 - concat
-- take_while, drop_while
+- drop_while
 - peek
 - any_match, all_match, none_match
 - find_first, find_any

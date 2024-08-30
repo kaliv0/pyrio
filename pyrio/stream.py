@@ -93,6 +93,10 @@ class Stream:
         self._iterable = Iterator.take_while(self._iterable, predicate)
         return self
 
+    def drop_while(self, predicate):
+        self._iterable = Iterator.drop_while(self._iterable, predicate)
+        return self
+
     # TODO: NB force user to explicitly write reverse as kwarg
     # rename key to comparator?
     def sorted(self, key=None, *, reverse=False):

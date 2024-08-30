@@ -100,6 +100,24 @@ class Iterator:
             yield i
 
     @staticmethod
+    def drop_while(iterable, predicate):
+        # is_dropped = True
+        # for i in iterable:
+        #     if not predicate(i):
+        #         is_dropped = False
+        #     if not is_dropped:
+        #         yield i
+
+        idx = -1
+        for i in iterable:
+            idx += 1
+            if not predicate(i):
+                break
+
+        for j in iterable[idx:]:
+            yield j
+
+    @staticmethod
     def sorted(iterable, key, reverse):
         # TODO: sort() or sorted()
         for i in sorted(iterable, key=key, reverse=reverse):

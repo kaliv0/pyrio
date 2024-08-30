@@ -146,9 +146,30 @@ def test_sum_non_number_elements():
 
 
 def test_take_while():
-    assert Stream.of("adam", "aman", "ahmad", "hamid", "muhammad").take_while(
+    assert Stream.of("adam", "aman", "ahmad", "hamid", "muhammad", "aladdin").take_while(
         lambda x: x[0] == "a"
     ).to_list() == ["adam", "aman", "ahmad"]
+
+
+def test_take_while_no_elements():
+    assert (
+        Stream.of("adam", "aman", "ahmad", "hamid", "muhammad", "aladdin")
+        .take_while(lambda x: x[0] == "xyz")
+        .to_list()
+        == []
+    )
+
+
+def test_drop_while():
+    assert Stream.of("adam", "aman", "ahmad", "hamid", "muhammad", "aladdin").drop_while(
+        lambda x: x[0] == "a"
+    ).to_list() == ["hamid", "muhammad", "aladdin"]
+
+
+def test_drop_while_no_elements():
+    assert Stream.of("adam", "aman", "ahmad", "hamid", "muhammad", "aladdin").drop_while(
+        lambda x: x[0] == "xyz"
+    ).to_list() == ["adam", "aman", "ahmad", "hamid", "muhammad", "aladdin"]
 
 
 # ### ###

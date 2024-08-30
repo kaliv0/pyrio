@@ -68,6 +68,14 @@ class Stream:
     def count(self):
         return len(tuple(self._iterable))
 
+    def sum(self):
+        # TODO: move logic to Iterator?
+        if len(self._iterable) == 0:
+            return 0
+        if any(isinstance(x, (int | float | None)) for x in self._iterable) is False:
+            raise ValueError("cannot apply sum on non-number elements")
+        return sum(self._iterable)
+
     def skip(self, count):
         # TODO: check here or in iterator?
         if count < 0:
@@ -79,6 +87,10 @@ class Stream:
         if count < 0:
             raise ValueError("limit count cannot be negative")
         self._iterable = Iterator.limit(self._iterable, count)
+        return self
+
+    def take_while(self, predicate):
+        self._iterable = Iterator.take_while(self._iterable, predicate)
         return self
 
     # TODO: NB force user to explicitly write reverse as kwarg

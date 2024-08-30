@@ -1,6 +1,8 @@
 import io
 from contextlib import redirect_stdout
 
+import pytest
+
 from pyrio import Stream
 
 
@@ -121,6 +123,32 @@ def test_distinct():
 
 def test_count():
     assert Stream([1, 2, 3, 4]).filter(lambda x: x % 2 == 0).count() == 2
+
+
+def test_count_empty_collection():
+    assert Stream([]).count() == 0
+    assert Stream.empty().count() == 0
+
+
+def test_sum():
+    assert Stream.of(1, 2, 3, 4).sum() == 10
+
+
+def test_sum_empty_collection():
+    assert Stream([]).sum() == 0
+    assert Stream.empty().count() == 0
+
+
+def test_sum_non_number_elements():
+    with pytest.raises(ValueError) as e:
+        Stream.of("a", "b").sum()
+    assert str(e.value) == "cannot apply sum on non-number elements"
+
+
+def test_take_while():
+    assert Stream.of("adam", "aman", "ahmad", "hamid", "muhammad").take_while(
+        lambda x: x[0] == "a"
+    ).to_list() == ["adam", "aman", "ahmad"]
 
 
 # ### ###

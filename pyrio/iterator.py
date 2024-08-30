@@ -93,6 +93,13 @@ class Iterator:
             count -= 1
 
     @staticmethod
+    def take_while(iterable, predicate):
+        for i in iterable:
+            if not predicate(i):
+                break
+            yield i
+
+    @staticmethod
     def sorted(iterable, key, reverse):
         # TODO: sort() or sorted()
         for i in sorted(iterable, key=key, reverse=reverse):

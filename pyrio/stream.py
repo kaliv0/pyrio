@@ -35,6 +35,10 @@ class Stream:
         """creates infinite Stream"""
         return Stream(Iterator.generate(supplier))
 
+    @staticmethod
+    def concat(*streams):
+        return Stream(Iterator.concat(*streams))
+
     def filter(self, predicate):
         self._iterable = Iterator.filter(self._iterable, predicate)
         return self
@@ -58,6 +62,10 @@ class Stream:
     def for_each(self, function):
         self._is_consumed = True
         return Iterator.for_each(self._iterable, function)
+
+    def peek(self, function):
+        self._iterable = Iterator.peek(self._iterable, function)
+        return self
 
     def reduce(self, accumulator, identity=None):
         self._is_consumed = True

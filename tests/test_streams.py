@@ -73,6 +73,20 @@ def test_for_each():
     assert f.getvalue() == "# ## ### #### "
 
 
+def test_peek():
+    f = io.StringIO()
+    with redirect_stdout(f):
+        result = (
+            Stream([1, 2, 3, 4])
+            .filter(lambda x: x > 2)
+            .peek(lambda x: print(f"{x} ", end=""))
+            .map(lambda x: x * 20)
+            .to_list()
+        )
+    assert f.getvalue() == "3 4 "
+    assert result == [60, 80]
+
+
 # ### skip ###
 def test_skip():
     assert Stream([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).skip(7).to_tuple() == (8, 9, 10)
@@ -235,6 +249,31 @@ def test_reusing_stream():
     assert str(e.value) == "Stream object already consumed"
 
 
+# ### concat ###
+def test_concat():
+    assert Stream.concat(Stream.of(1, 2, 3), Stream.of(4, 5, 6)).to_list() == [1, 2, 3, 4, 5, 6]
+
+
+def test_concat_empty():
+    assert Stream.concat(Stream.empty(), Stream.of(1, 2, 3)).to_list() == [1, 2, 3]
+    assert Stream.concat(Stream.empty(), Stream.empty()).to_list() == []
+
+
+def test_concat_collections():
+    assert Stream.concat(Stream.of(1, 2, 3), [5, 6]).to_list() == [1, 2, 3, 5, 6]
+    assert Stream.concat((1, 2, 3), [5, 6]).to_list() == [1, 2, 3, 5, 6]
+    assert Stream.concat({1, 2, 3}, [5, 6]).to_list() == [1, 2, 3, 5, 6]
+
+    assert Stream.concat([1, 2, 3], [(5, 6), [8]]).to_list() == [1, 2, 3, (5, 6), [8]]
+    assert Stream.concat([1, 2, 3], [(5, 6), [8]]).flatten().to_list() == [1, 2, 3, 5, 6, 8]
+
+
+def test_concat_raises_non_iterable():
+    with pytest.raises(TypeError) as e:
+        Stream.concat([1, 2, 3], 5).to_list()
+    assert str(e.value) == "'int' object is not iterable"
+
+
 # ### find ###
 def test_find_first():
     assert Stream.of(1, 2, 3, 4).filter(lambda x: x % 2 == 0).find_first().get() == 2
@@ -345,19 +384,6 @@ def test_max_objects(Foo):
     assert Stream(coll).max(lambda x: x.num).get() is buzz
 
 
-# ### optional ###
-def test_optional_get_raises():
-    with pytest.raises(NoSuchElementError) as e:
-        Stream.empty().find_first().get()
-    assert str(e.value) == "Optional is empty"
-
-
-def test_optional_of_none_raises():
-    with pytest.raises(NullPointerError) as e:
-        Optional.of(None)
-    assert str(e.value) == "Optional is empty"
-
-
 # ### collectors ###
 def test_to_list():
     result = Stream((1, 2, 3)).to_list()
@@ -392,3 +418,17 @@ def test_collect():
         "3": 30,
         "4": 40,
     }
+
+
+# TODO: move to different module
+# ### optional ###
+def test_optional_get_raises():
+    with pytest.raises(NoSuchElementError) as e:
+        Stream.empty().find_first().get()
+    assert str(e.value) == "Optional is empty"
+
+
+def test_optional_of_none_raises():
+    with pytest.raises(NullPointerError) as e:
+        Optional.of(None)
+    assert str(e.value) == "Optional is empty"

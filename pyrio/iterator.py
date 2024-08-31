@@ -1,5 +1,11 @@
 class Iterator:
     @staticmethod
+    def concat(*streams):
+        for iterable in streams:
+            for element in iterable:
+                yield element
+
+    @staticmethod
     def filter(iterable, predicate):
         for i in iterable:
             if predicate(i):
@@ -52,6 +58,12 @@ class Iterator:
     def for_each(iterable, function):
         for i in iterable:
             function(i)
+
+    @staticmethod
+    def peek(iterable, function):
+        for i in iterable:
+            function(i)
+            yield i
 
     @staticmethod
     def iterate(seed, mapper):

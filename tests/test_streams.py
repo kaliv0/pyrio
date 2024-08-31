@@ -258,6 +258,87 @@ def test_find_any_in_empty_stream():
     assert result.is_empty() is True
 
 
+# ### match ###
+def test_any_match():
+    assert Stream.of(1, 2, 3, 4).any_match(lambda x: x > 2) is True
+
+
+def test_any_match_false():
+    assert Stream.of(1, 2, 3, 4).any_match(lambda x: x > 10) is False
+
+
+def test_any_match_empty():
+    assert Stream.empty().any_match(lambda x: x > 10) is False
+
+
+def test_all_match():
+    assert Stream.of(1, 2, 3, 4).all_match(lambda x: x > 0) is True
+
+
+def test_all_match_false():
+    assert Stream.of(1, 2, 3, 4).all_match(lambda x: x > 10) is False
+
+
+def test_all_match_empty():
+    assert Stream.empty().all_match(lambda x: x > 10) is True
+
+
+def test_none_match():
+    assert Stream.of(1, 2, 3, 4).none_match(lambda x: x < 0) is True
+
+
+def test_none_match_false():
+    assert Stream.of(1, 2, 3, 4).none_match(lambda x: x < 10) is False
+
+
+def test_none_match_empty():
+    assert Stream.empty().none_match(lambda x: x > 10) is False
+
+
+# ### min ###
+def test_min():
+    assert Stream.of(2, 1, 3, 4).min().get() == 1
+
+
+def test_min_comparator():
+    assert Stream.of("20", "101", "50").min(key=int).get() == "20"
+
+
+def test_min_empty():
+    result = Stream.empty().min()
+    assert isinstance(result, Optional)
+    assert result.is_empty() is True
+
+
+def test_min_objects(Foo):
+    fizz = Foo("fizz", 1)
+    buzz = Foo("buzz", 2)
+    coll = [fizz, buzz]
+    assert Stream(coll).min(lambda x: x.num).get() is fizz
+
+
+# ### max ###
+def test_max():
+    assert Stream.of(2, 1, 3, 4).max().get() == 4
+
+
+def test_max_comparator():
+    assert Stream.of("20", "101", "50").max(key=int).get() == "101"
+
+
+def test_max_empty():
+    result = Stream.empty().max()
+    assert isinstance(result, Optional)
+    assert result.is_empty() is True
+
+
+def test_max_objects(Foo):
+    fizz = Foo("fizz", 1)
+    buzz = Foo("buzz", 2)
+    coll = [fizz, buzz]
+    assert Stream(coll).max(lambda x: x.num).get() is buzz
+
+
 # ### optional ###
 def test_optional_get_raises():
     with pytest.raises(NoSuchElementError) as e:
@@ -296,12 +377,7 @@ def test_to_set():
     assert type(result) is set
 
 
-def test_to_dict():
-    class Foo:
-        def __init__(self, name, num):
-            self.name = name
-            self.num = num
-
+def test_to_dict(Foo):
     coll = [Foo("fizz", 1), Foo("buzz", 2)]
     assert Stream(coll).to_dict(lambda x: (x.name, x.num)) == {"fizz": 1, "buzz": 2}
 

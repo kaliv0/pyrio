@@ -121,6 +121,28 @@ class Stream:
         except IndexError:
             return Optional.of_nullable(None)
 
+    def any_match(self, predicate):
+        return any(predicate(i) for i in self._iterable)
+
+    def all_match(self, predicate):
+        return all(predicate(i) for i in self._iterable)
+
+    def none_match(self, predicate):
+        return not all(predicate(i) for i in self._iterable)
+
+    # TODO: rename key to comparator?
+    def min(self, key=None):
+        result = min(self._iterable, key=key, default=None)
+        if result:
+            return Optional.of(result)
+        return Optional.of_nullable(None)
+
+    def max(self, key=None):
+        result = max(self._iterable, key=key, default=None)
+        if result:
+            return Optional.of(result)
+        return Optional.of_nullable(None)
+
     # TODO: NB force user to explicitly write reverse as kwarg
     # rename key to comparator?
     def sorted(self, key=None, *, reverse=False):

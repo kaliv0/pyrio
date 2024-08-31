@@ -14,5 +14,3 @@
 ------------------------
 - concat
 - peek
-- any_match, all_match, none_match
-- min, max

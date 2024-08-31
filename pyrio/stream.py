@@ -1,5 +1,8 @@
+import random
+
 from pyrio.decorator import pre_call, validate_stream
 from pyrio.iterator import Iterator
+from pyrio.optional import Optional
 
 
 @pre_call(validate_stream)
@@ -100,6 +103,23 @@ class Stream:
     def drop_while(self, predicate):
         self._iterable = Iterator.drop_while(self._iterable, predicate)
         return self
+
+    def find_first(self, predicate=None):
+        if predicate:
+            self.filter(predicate)
+
+        for i in self._iterable:
+            return Optional.of(i)
+        return Optional.of_nullable(None)
+
+    def find_any(self, predicate=None):
+        if predicate:
+            self.filter(predicate)
+
+        try:
+            return Optional.of(random.choice(list(self._iterable)))
+        except IndexError:
+            return Optional.of_nullable(None)
 
     # TODO: NB force user to explicitly write reverse as kwarg
     # rename key to comparator?

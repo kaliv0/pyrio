@@ -7,10 +7,12 @@
 - and_then, or_else, or_throw, catch (after map -> see Amnis)
 - throw IllegalStateException: stream has already been operated upon or closed
 - rename 'function' arg to 'operator'?
+- write tests for errors
+- write more tests for optional
+- extend optional -> add get_if_present
 
 ------------------------
 - concat
 - peek
 - any_match, all_match, none_match
-- find_first, find_any
 - min, max

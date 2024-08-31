@@ -4,7 +4,8 @@ from contextlib import redirect_stdout
 import pytest
 
 from pyrio import Stream
-from pyrio.decorator import IllegalStateError
+from pyrio.optional import Optional
+from pyrio.exception import IllegalStateError, NoSuchElementError, NullPointerError
 
 
 def test_stream():
@@ -226,6 +227,48 @@ def test_reusing_stream():
     with pytest.raises(IllegalStateError) as e:
         stream.map(lambda x: x * 10).to_list()
     assert str(e.value) == "Stream object already consumed"
+
+
+# ### find ###
+def test_find_first():
+    assert Stream.of(1, 2, 3, 4).filter(lambda x: x % 2 == 0).find_first().get() == 2
+
+
+def test_find_first_with_predicate():
+    assert Stream.of(1, 2, 3, 4).find_first(lambda x: x % 2 == 0).get() == 2
+
+
+def test_find_first_in_empty_stream():
+    result = Stream.empty().find_first()
+    assert isinstance(result, Optional)
+    assert result.is_empty() is True
+
+
+def test_find_any():
+    assert Stream.of(1, 2, 3, 4).filter(lambda x: x % 2 == 0).find_any().get() in (2, 4)
+
+
+def test_find_any_with_predicate():
+    assert Stream.of(1, 2, 3, 4).find_any(lambda x: x % 2 == 0).get() in (2, 4)
+
+
+def test_find_any_in_empty_stream():
+    result = Stream.empty().find_any()
+    assert isinstance(result, Optional)
+    assert result.is_empty() is True
+
+
+# ### optional ###
+def test_optional_get_raises():
+    with pytest.raises(NoSuchElementError) as e:
+        Stream.empty().find_first().get()
+    assert str(e.value) == "Optional is empty"
+
+
+def test_optional_of_none_raises():
+    with pytest.raises(NullPointerError) as e:
+        Optional.of(None)
+    assert str(e.value) == "Optional is empty"
 
 
 # ### ###

@@ -1,8 +1,6 @@
 from functools import wraps
 
-
-class IllegalStateError(Exception):
-    pass
+from pyrio.exception import IllegalStateError
 
 
 def pre_call(function_decorator):

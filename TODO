@@ -11,8 +11,3 @@
 - extend optional -> add get_if_present
 
 - group_by, order_by().then_by()....
-
-- add comparison (__eq__) between stream objects??
-
-------------------------
-- peek -> inspect

@@ -249,6 +249,22 @@ def test_reusing_stream():
     assert str(e.value) == "Stream object already consumed"
 
 
+def test_compare_with():
+    assert Stream([1, 2]).compare_with(Stream([1, 2])) is True
+    assert Stream([1, 2]).compare_with(Stream([2, 1])) is False
+    assert Stream([1, 2]).compare_with(Stream([3, 4])) is False
+
+
+def test_compare_with_custom_key(Foo):
+    fizz = Foo("fizz", 1)
+    buzz = Foo("buzz", 2)
+    comparator = lambda x, y: x.num == y.num  # noqa
+
+    assert Stream([fizz, buzz]).compare_with(Stream([fizz, buzz]), comparator) is True
+    assert Stream([buzz, fizz]).compare_with(Stream([fizz, buzz]), comparator) is False
+    assert Stream([fizz, buzz]).compare_with(Stream([buzz]), comparator) is False
+
+
 # ### concat ###
 def test_concat():
     assert Stream.concat(Stream.of(1, 2, 3), Stream.of(4, 5, 6)).to_list() == [1, 2, 3, 4, 5, 6]

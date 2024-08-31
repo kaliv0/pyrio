@@ -130,3 +130,10 @@ class Iterator:
         # TODO: sort() or sorted()
         for i in sorted(iterable, key=key, reverse=reverse):
             yield i
+
+    @staticmethod
+    def compare_with(iterable, other_iterable, key):
+        for i, j in zip(iterable, other_iterable):
+            if (key and not key(i, j)) or i != j:
+                return False
+        return True

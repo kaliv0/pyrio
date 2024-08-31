@@ -112,6 +112,7 @@ class Stream:
         if predicate:
             self.filter(predicate)
 
+        self._is_consumed = True
         for i in self._iterable:
             return Optional.of(i)
         return Optional.of_nullable(None)
@@ -120,32 +121,42 @@ class Stream:
         if predicate:
             self.filter(predicate)
 
+        self._is_consumed = True
         try:
             return Optional.of(random.choice(list(self._iterable)))
         except IndexError:
             return Optional.of_nullable(None)
 
     def any_match(self, predicate):
+        self._is_consumed = True
         return any(predicate(i) for i in self._iterable)
 
     def all_match(self, predicate):
+        self._is_consumed = True
         return all(predicate(i) for i in self._iterable)
 
     def none_match(self, predicate):
+        self._is_consumed = True
         return not all(predicate(i) for i in self._iterable)
 
     # TODO: rename key to comparator?
     def min(self, key=None):
+        self._is_consumed = True
         result = min(self._iterable, key=key, default=None)
         if result:
             return Optional.of(result)
         return Optional.of_nullable(None)
 
     def max(self, key=None):
+        self._is_consumed = True
         result = max(self._iterable, key=key, default=None)
         if result:
             return Optional.of(result)
         return Optional.of_nullable(None)
+
+    def compare_with(self, other, key=None):
+        self._is_consumed = True
+        return Iterator.compare_with(self._iterable, other, key)
 
     # TODO: NB force user to explicitly write reverse as kwarg
     # rename key to comparator?

@@ -48,6 +48,12 @@ def test_filter_map():
     assert Stream.of(None, "foo", "bar").filter_map(str.upper).to_list() == ["FOO", "BAR"]
 
 
+def test_filter_map_all_falsy():
+    assert Stream.of(None, "foo", "", "bar", 0, []).filter_map(
+        str.upper, all_falsy=True
+    ).to_list() == ["FOO", "BAR"]
+
+
 def test_reduce():
     assert Stream([1, 2, 3]).reduce(lambda acc, val: acc + val, identity=3) == 9
 
@@ -350,12 +356,6 @@ def test_optional_of_none_raises():
     with pytest.raises(NullPointerError) as e:
         Optional.of(None)
     assert str(e.value) == "Optional is empty"
-
-
-# ### ###
-# TODO: ???
-def test_eq():
-    assert Stream.of(1, 2, 3) == Stream.of(3, 2, 1)
 
 
 # ### collectors ###

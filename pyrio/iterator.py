@@ -11,9 +11,9 @@ class Iterator:
             yield mapper(i)
 
     @staticmethod
-    def filter_map(iterable, mapper):
+    def filter_map(iterable, mapper, all_falsy):
         for i in iterable:
-            if i is not None:
+            if (not all_falsy and i is not None) or (all_falsy and i):
                 yield mapper(i)
 
     @staticmethod

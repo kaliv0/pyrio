@@ -15,10 +15,6 @@ class Stream:
     def __iter__(self):
         return iter(self._iterable)
 
-    def __eq__(self, other):
-        # FIXME: don't use sets
-        return self.to_set() == other.to_set()
-
     @staticmethod
     def of(*iterable):
         """creates Stream from args"""
@@ -47,8 +43,8 @@ class Stream:
         self._iterable = Iterator.map(self._iterable, mapper)
         return self
 
-    def filter_map(self, predicate):
-        self._iterable = Iterator.filter_map(self._iterable, predicate)
+    def filter_map(self, predicate, *, all_falsy=False):
+        self._iterable = Iterator.filter_map(self._iterable, predicate, all_falsy)
         return self
 
     def flat_map(self, mapper):

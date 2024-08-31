@@ -82,9 +82,6 @@ class Iterator:
 
     @staticmethod
     def limit(iterable, count):
-        # TODO: check here or in pyrio?
-        # if count < 0:
-        #     raise ValueError("limit count cannot be negative")
         for i in iterable:
             if count == 0:
                 break
@@ -121,8 +118,3 @@ class Iterator:
         # TODO: sort() or sorted()
         for i in sorted(iterable, key=key, reverse=reverse):
             yield i
-
-    # ### ###
-    # @staticmethod
-    # def to_dict(iterable, function):
-    #     return {k: v for k, v in (function(i) for i in iterable)}

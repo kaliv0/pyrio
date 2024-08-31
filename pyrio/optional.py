@@ -9,7 +9,7 @@ class Optional:
     @staticmethod
     def of(element):
         if element is None:
-            raise ValueError("optional is empty")  # TODO: change message
+            raise ValueError("Optional is empty")  # TODO: change message
         return Optional(element)
 
     @staticmethod
@@ -18,7 +18,9 @@ class Optional:
 
     def get(self):
         if self.is_empty():
-            raise ValueError("optional is empty")  # TODO: should we raise when getting from empty optional?
+            raise ValueError(
+                "Optional is empty"
+            )  # TODO: should we raise when getting from empty optional?
         return self._element
 
     def is_present(self):

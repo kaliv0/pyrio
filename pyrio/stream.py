@@ -75,7 +75,6 @@ class Stream:
 
     def sum(self):
         self._is_consumed = True
-        # TODO: move logic to Iterator?
         if len(self._iterable) == 0:
             return 0
         if any(isinstance(x, (int | float | None)) for x in self._iterable) is False:
@@ -83,7 +82,6 @@ class Stream:
         return sum(self._iterable)
 
     def skip(self, count):
-        # TODO: check here or in iterator?
         if count < 0:
             raise ValueError("Skip count cannot be negative")
         self._iterable = Iterator.skip(self._iterable, count)
@@ -144,5 +142,4 @@ class Stream:
     # TODO: should this be inside Iterator?
     def to_dict(self, function):
         self._is_consumed = True
-        # return Iterator.to_dict(self._iterable, function)
         return {k: v for k, v in (function(i) for i in self._iterable)}

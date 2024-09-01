@@ -1,14 +1,11 @@
 - Stream.builder (?)
-- reduce returns Optional -> to handle emtpy streams?
 - add function in to_dict to resolve duplicate keys -> also in collect() with dict
 - add combiner in reduce
-- and_then, or_else, or_throw, catch (after map -> see Amnis)
+- and_then, or_throw, catch (after map -> see Amnis)
 
 - add description in readme for explicit kwargs (filter_map, sorted)
 
 - write tests for errors
 - write more tests for optional
-
-- extend optional -> add get_if_present
 
 - group_by, order_by().then_by()....

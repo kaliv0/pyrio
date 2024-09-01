@@ -12,7 +12,7 @@ class Optional:
     @staticmethod
     def of(element):
         if element is None:
-            raise NullPointerError("Optional is empty")  # TODO: change message
+            raise NullPointerError("Value cannot be None")  # TODO: change message
         return Optional(element)
 
     @staticmethod

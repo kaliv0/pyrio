@@ -5,7 +5,7 @@ import pytest
 
 from pyrio import Stream
 from pyrio.optional import Optional
-from pyrio.exception import IllegalStateError, NoSuchElementError, NullPointerError
+from pyrio.exception import IllegalStateError
 
 
 def test_stream():
@@ -49,21 +49,22 @@ def test_filter_map():
 
 
 def test_filter_map_all_falsy():
-    assert Stream.of(None, "foo", "", "bar", 0, []).filter_map(
-        str.upper, all_falsy=True
-    ).to_list() == ["FOO", "BAR"]
+    assert Stream.of(None, "foo", "", "bar", 0, []).filter_map(str.upper, falsy=True).to_list() == [
+        "FOO",
+        "BAR",
+    ]
 
 
 def test_reduce():
-    assert Stream([1, 2, 3]).reduce(lambda acc, val: acc + val, identity=3) == 9
+    assert Stream([1, 2, 3]).reduce(lambda acc, val: acc + val, identity=3).get() == 9
 
 
 def test_reduce_no_identity_provided():
-    assert Stream([1, 2, 3]).reduce(lambda acc, val: acc + val) == 6
+    assert Stream([1, 2, 3]).reduce(lambda acc, val: acc + val).get() == 6
 
 
 def test_reduce_empty_collection():
-    assert Stream([]).reduce(lambda acc, val: acc + val) is None
+    assert Stream([]).reduce(lambda acc, val: acc + val).is_empty() is True
 
 
 def test_for_each():
@@ -116,6 +117,12 @@ def test_limit_bigger_than_stream_count():
 # ### flat ###
 def test_flat_map():
     assert Stream([[1, 2], [3, 4], [5]]).flat_map(lambda x: Stream(x)).to_list() == [1, 2, 3, 4, 5]
+
+
+def test_flat_map_raises():
+    with pytest.raises(TypeError) as e:
+        assert Stream([[1, 2], 3]).flat_map(lambda x: Stream(x)).to_list()
+    assert str(e.value) == "'int' object is not iterable"
 
 
 def test_flatten():
@@ -194,7 +201,7 @@ def test_drop_while_no_elements():
     ).to_list() == ["adam", "aman", "ahmad", "hamid", "muhammad", "aladdin"]
 
 
-# ### ###
+# ### sorted ###
 def test_sorted():
     assert Stream.of(3, 5, 2, 1).map(lambda x: x * 10).sorted().to_list() == [10, 20, 30, 50]
 
@@ -373,6 +380,7 @@ def test_min_empty():
 
 def test_min_default_value():
     assert Stream.empty().min(default="foo").get() == "foo"
+    assert Stream.empty().min(default="foo").get() == Stream.empty().min().or_else("foo")
 
 
 def test_min_objects(Foo):
@@ -399,6 +407,7 @@ def test_max_empty():
 
 def test_max_default_value():
     assert Stream.empty().max(default="foo").get() == "foo"
+    assert Stream.empty().max(default="foo").get() == Stream.empty().max().or_else("foo")
 
 
 def test_max_objects(Foo):
@@ -442,17 +451,3 @@ def test_collect():
         "3": 30,
         "4": 40,
     }
-
-
-# TODO: move to different module
-# ### optional ###
-def test_optional_get_raises():
-    with pytest.raises(NoSuchElementError) as e:
-        Stream.empty().find_first().get()
-    assert str(e.value) == "Optional is empty"
-
-
-def test_optional_of_none_raises():
-    with pytest.raises(NullPointerError) as e:
-        Optional.of(None)
-    assert str(e.value) == "Optional is empty"

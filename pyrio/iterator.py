@@ -17,15 +17,14 @@ class Iterator:
             yield mapper(i)
 
     @staticmethod
-    def filter_map(iterable, mapper, all_falsy):
+    def filter_map(iterable, mapper, falsy):
         for i in iterable:
-            if (not all_falsy and i is not None) or (all_falsy and i):
+            if (not falsy and i is not None) or (falsy and i):
                 yield mapper(i)
 
     @staticmethod
     def flat_map(iterable, mapper):
         for i in iterable:
-            # TODO: should throw if j is not iterable?
             for j in mapper(i):
                 yield j
 
@@ -41,8 +40,7 @@ class Iterator:
 
     @staticmethod
     def reduce(iterable, accumulator, identity):
-        # TODO: put identity as first arg- no default value?
-        if len(iterable) == 0:  # TODO:?
+        if len(iterable) == 0:
             return identity
 
         idx = 0
@@ -109,13 +107,6 @@ class Iterator:
 
     @staticmethod
     def drop_while(iterable, predicate):
-        # is_dropped = True
-        # for i in iterable:
-        #     if not predicate(i):
-        #         is_dropped = False
-        #     if not is_dropped:
-        #         yield i
-
         idx = -1
         for i in iterable:
             idx += 1
@@ -127,7 +118,6 @@ class Iterator:
 
     @staticmethod
     def sorted(iterable, comparator, reverse):
-        # TODO: sort() or sorted()
         for i in sorted(iterable, key=comparator, reverse=reverse):
             yield i
 

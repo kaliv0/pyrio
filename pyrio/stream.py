@@ -24,7 +24,6 @@ class Stream:
     def empty():
         return Stream([])
 
-    # TODO: rename seed to identity?
     @staticmethod
     def iterate(seed, operation):
         """creates infinite Stream"""
@@ -47,9 +46,8 @@ class Stream:
         self._iterable = Iterator.map(self._iterable, mapper)
         return self
 
-    # TODO: rename all_falsy
-    def filter_map(self, predicate, *, all_falsy=False):
-        self._iterable = Iterator.filter_map(self._iterable, predicate, all_falsy)
+    def filter_map(self, predicate, *, falsy=False):
+        self._iterable = Iterator.filter_map(self._iterable, predicate, falsy)
         return self
 
     def flat_map(self, mapper):
@@ -70,8 +68,7 @@ class Stream:
 
     def reduce(self, accumulator, identity=None):
         self._is_consumed = True
-        # TODO: put identity as first arg- no default value?
-        return Iterator.reduce(self._iterable, accumulator, identity)
+        return Optional.of_nullable(Iterator.reduce(self._iterable, accumulator, identity))
 
     def distinct(self):
         self._iterable = Iterator.distinct(self._iterable)
@@ -166,7 +163,6 @@ class Stream:
     def collect(self, collection_type, dict_supplier=None):
         import builtins
 
-        # TODO: refactor without builtins
         match collection_type:
             case builtins.tuple:
                 return self.to_tuple()
@@ -176,7 +172,6 @@ class Stream:
                 return self.to_set()
             case builtins.dict:
                 if dict_supplier is None:
-                    # TODO: tests for exceptions, change messages
                     raise ValueError("Missing dict_supplier")
                 return self.to_dict(dict_supplier)
             case _:

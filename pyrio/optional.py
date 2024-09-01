@@ -5,6 +5,9 @@ class Optional:
     def __init__(self, element):
         self._element = element
 
+    def __str__(self):
+        return f"Optional[{self._element}]"
+
     @staticmethod
     def empty():
         return Optional(None)

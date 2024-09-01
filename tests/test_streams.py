@@ -362,13 +362,17 @@ def test_min():
 
 
 def test_min_comparator():
-    assert Stream.of("20", "101", "50").min(key=int).get() == "20"
+    assert Stream.of("20", "101", "50").min(comparator=int).get() == "20"
 
 
 def test_min_empty():
     result = Stream.empty().min()
     assert isinstance(result, Optional)
     assert result.is_empty() is True
+
+
+def test_min_default_value():
+    assert Stream.empty().min(default="foo").get() == "foo"
 
 
 def test_min_objects(Foo):
@@ -384,13 +388,17 @@ def test_max():
 
 
 def test_max_comparator():
-    assert Stream.of("20", "101", "50").max(key=int).get() == "101"
+    assert Stream.of("20", "101", "50").max(comparator=int).get() == "101"
 
 
 def test_max_empty():
     result = Stream.empty().max()
     assert isinstance(result, Optional)
     assert result.is_empty() is True
+
+
+def test_max_default_value():
+    assert Stream.empty().max(default="foo").get() == "foo"
 
 
 def test_max_objects(Foo):

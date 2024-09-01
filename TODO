@@ -4,7 +4,8 @@
 - add combiner in reduce
 - and_then, or_else, or_throw, catch (after map -> see Amnis)
 
-- rename 'function' arg to 'operator'?
+- add description in readme for explicit kwargs (filter_map, sorted)
+
 - write tests for errors
 - write more tests for optional
 

@@ -21,9 +21,7 @@ class Optional:
 
     def get(self):
         if self.is_empty():
-            raise NoSuchElementError(
-                "Optional is empty"
-            )  # TODO: should we raise when getting from empty optional?
+            raise NoSuchElementError("Optional is empty")  # TODO: change message
         return self._element
 
     def is_present(self):

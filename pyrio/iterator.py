@@ -55,21 +55,21 @@ class Iterator:
         return identity
 
     @staticmethod
-    def for_each(iterable, function):
+    def for_each(iterable, operation):
         for i in iterable:
-            function(i)
+            operation(i)
 
     @staticmethod
-    def peek(iterable, function):
+    def peek(iterable, operation):
         for i in iterable:
-            function(i)
+            operation(i)
             yield i
 
     @staticmethod
-    def iterate(seed, mapper):
+    def iterate(seed, operation):
         while True:
             yield seed
-            seed = mapper(seed)
+            seed = operation(seed)
 
     @staticmethod
     def generate(supplier):
@@ -126,14 +126,14 @@ class Iterator:
             yield j
 
     @staticmethod
-    def sorted(iterable, key, reverse):
+    def sorted(iterable, comparator, reverse):
         # TODO: sort() or sorted()
-        for i in sorted(iterable, key=key, reverse=reverse):
+        for i in sorted(iterable, key=comparator, reverse=reverse):
             yield i
 
     @staticmethod
-    def compare_with(iterable, other_iterable, key):
+    def compare_with(iterable, other_iterable, comparator):
         for i, j in zip(iterable, other_iterable):
-            if (key and not key(i, j)) or i != j:
+            if (comparator and not comparator(i, j)) or i != j:
                 return False
         return True

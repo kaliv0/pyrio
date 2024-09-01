@@ -26,9 +26,9 @@ class Stream:
 
     # TODO: rename seed to identity?
     @staticmethod
-    def iterate(seed, function):
+    def iterate(seed, operation):
         """creates infinite Stream"""
-        return Stream(Iterator.iterate(seed, function))
+        return Stream(Iterator.iterate(seed, operation))
 
     @staticmethod
     def generate(supplier):
@@ -47,6 +47,7 @@ class Stream:
         self._iterable = Iterator.map(self._iterable, mapper)
         return self
 
+    # TODO: rename all_falsy
     def filter_map(self, predicate, *, all_falsy=False):
         self._iterable = Iterator.filter_map(self._iterable, predicate, all_falsy)
         return self
@@ -59,12 +60,12 @@ class Stream:
         self._iterable = Iterator.flatten(self._iterable)
         return self
 
-    def for_each(self, function):
+    def for_each(self, operation):
         self._is_consumed = True
-        return Iterator.for_each(self._iterable, function)
+        return Iterator.for_each(self._iterable, operation)
 
-    def peek(self, function):
-        self._iterable = Iterator.peek(self._iterable, function)
+    def peek(self, operation):
+        self._iterable = Iterator.peek(self._iterable, operation)
         return self
 
     def reduce(self, accumulator, identity=None):
@@ -139,29 +140,26 @@ class Stream:
         self._is_consumed = True
         return not all(predicate(i) for i in self._iterable)
 
-    # TODO: rename key to comparator?
-    def min(self, key=None):
+    def min(self, comparator=None, default=None):
         self._is_consumed = True
-        result = min(self._iterable, key=key, default=None)
+        result = min(self._iterable, key=comparator, default=default)
         if result:
             return Optional.of(result)
         return Optional.of_nullable(None)
 
-    def max(self, key=None):
+    def max(self, comparator=None, default=None):
         self._is_consumed = True
-        result = max(self._iterable, key=key, default=None)
+        result = max(self._iterable, key=comparator, default=default)
         if result:
             return Optional.of(result)
         return Optional.of_nullable(None)
 
-    def compare_with(self, other, key=None):
+    def compare_with(self, other, comparator=None):
         self._is_consumed = True
-        return Iterator.compare_with(self._iterable, other, key)
+        return Iterator.compare_with(self._iterable, other, comparator)
 
-    # TODO: NB force user to explicitly write reverse as kwarg
-    # rename key to comparator?
-    def sorted(self, key=None, *, reverse=False):
-        self._iterable = Iterator.sorted(self._iterable, key, reverse)
+    def sorted(self, comparator=None, *, reverse=False):
+        self._iterable = Iterator.sorted(self._iterable, comparator, reverse)
         return self
 
     # ### collectors ###
@@ -196,7 +194,6 @@ class Stream:
         self._is_consumed = True
         return set(self._iterable)
 
-    # TODO: should this be inside Iterator?
-    def to_dict(self, function):
+    def to_dict(self, operation):
         self._is_consumed = True
-        return {k: v for k, v in (function(i) for i in self._iterable)}
+        return {k: v for k, v in (operation(i) for i in self._iterable)}

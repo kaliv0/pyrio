@@ -226,6 +226,12 @@ def test_sorted_comparator_function():
     ]
 
 
+def test_sorted_multiple_keys():
+    assert Stream.of((3, 30), (2, 30), (2, 20), (1, 20), (1, 10)).sorted(
+        lambda x: (x[0], x[1])
+    ).to_list() == [(1, 10), (1, 20), (2, 20), (2, 30), (3, 30)]
+
+
 def test_sorted_comparator_and_reverse():
     assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sorted(
         lambda x: x[1], reverse=True

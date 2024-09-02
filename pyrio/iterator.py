@@ -1,12 +1,8 @@
-import itertools
-
-
 class Iterator:
     @staticmethod
     def concat(*streams):
-        # for iterable in streams:
-        #     yield from iterable
-        return itertools.chain.from_iterable(streams)
+        for iterable in streams:
+            yield from iterable
 
     @staticmethod
     def filter(iterable, predicate):
@@ -103,23 +99,21 @@ class Iterator:
 
     @staticmethod
     def take_while(iterable, predicate):
-        # for i in iterable:
-        #     if not predicate(i):
-        #         break
-        #     yield i
-        return itertools.takewhile(predicate, iterable)
+        for i in iterable:
+            if not predicate(i):
+                break
+            yield i
 
     @staticmethod
     def drop_while(iterable, predicate):
-        # iterator = iter(iterable)
-        # for x in iterator:
-        #     if not predicate(x):
-        #         yield x
-        #         break
-        #
-        # for x in iterator:
-        #     yield x
-        return itertools.dropwhile(predicate, iterable)
+        iterator = iter(iterable)
+        for x in iterator:
+            if not predicate(x):
+                yield x
+                break
+
+        for x in iterator:
+            yield x
 
     @staticmethod
     def sorted(iterable, comparator, reverse):

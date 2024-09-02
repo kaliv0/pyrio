@@ -48,7 +48,7 @@ def test_filter_map():
     assert Stream.of(None, "foo", "bar").filter_map(str.upper).to_list() == ["FOO", "BAR"]
 
 
-def test_filter_map_all_falsy():
+def test_filter_map_falsy():
     assert Stream.of(None, "foo", "", "bar", 0, []).filter_map(str.upper, falsy=True).to_list() == [
         "FOO",
         "BAR",
@@ -454,6 +454,44 @@ def test_collect():
         "2": 20,
         "3": 30,
         "4": 40,
+    }
+
+
+def test_group_by():
+    assert Stream("AAAABBBCCD").group_by() == {
+        "A": ["A", "A", "A", "A"],
+        "B": ["B", "B", "B"],
+        "C": ["C", "C"],
+        "D": ["D"],
+    }
+
+
+def test_group_by_custom_collector():
+    assert Stream("AAAABBBCCD").group_by(collector=lambda k, g: (k, len(g))) == {
+        "A": 4,
+        "B": 3,
+        "C": 2,
+        "D": 1,
+    }
+
+
+def test_group_by_objects(Foo):
+    coll = [
+        Foo("fizz", 1),
+        Foo("fizz", 2),
+        Foo("fizz", 3),
+        Foo("buzz", 2),
+        Foo("buzz", 3),
+        Foo("buzz", 4),
+        Foo("buzz", 5),
+    ]
+
+    assert Stream(coll).group_by(
+        classifier=lambda obj: obj.name,
+        collector=lambda k, g: (k, [(obj.name, obj.num) for obj in list(g)]),
+    ) == {
+        "fizz": [("fizz", 1), ("fizz", 2), ("fizz", 3)],
+        "buzz": [("buzz", 2), ("buzz", 3), ("buzz", 4), ("buzz", 5)],
     }
 
 

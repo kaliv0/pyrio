@@ -7,10 +7,4 @@
 
 - write tests for errors
 - write more tests for optional
-
-- group_by
-
-------------
-- reverse args in take_ and drop_while -> to align with equivalent itertools methods
-- add more wrappers to re-use itertools (and more-itertools?)
-    -> use tee for spliterator
+- group_by -> add more complex scenarios?

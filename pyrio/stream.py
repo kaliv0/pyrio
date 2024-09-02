@@ -1,5 +1,3 @@
-import random
-
 from pyrio.decorator import pre_call, validate_stream
 from pyrio.iterator import Iterator
 from pyrio.optional import Optional
@@ -109,16 +107,16 @@ class Stream:
     def find_first(self, predicate=None):
         if predicate:
             self.filter(predicate)
-
         self._is_consumed = True
         for i in self._iterable:
             return Optional.of(i)
         return Optional.of_nullable(None)
 
     def find_any(self, predicate=None):
+        import random
+
         if predicate:
             self.filter(predicate)
-
         self._is_consumed = True
         try:
             return Optional.of(random.choice(list(self._iterable)))
@@ -192,3 +190,22 @@ class Stream:
     def to_dict(self, operation):
         self._is_consumed = True
         return {k: v for k, v in (operation(i) for i in self._iterable)}
+
+    def group_by(self, classifier=None, collector=None):
+        import itertools
+        from collections.abc import Iterable
+
+        self._is_consumed = True
+        if collector:
+            result = {}
+            for key, group in itertools.groupby(self._iterable, key=classifier):
+                key, group = collector(key, list(group))
+                if isinstance(group, Iterable):
+                    if key not in result:
+                        result[key] = []
+                    result[key] += group
+                else:
+                    result[key] = group
+            return result
+
+        return {key: list(group) for key, group in itertools.groupby(self._iterable, key=classifier)}

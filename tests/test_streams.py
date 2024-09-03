@@ -445,6 +445,23 @@ def test_to_dict(Foo):
     assert Stream(coll).to_dict(lambda x: (x.name, x.num)) == {"fizz": 1, "buzz": 2}
 
 
+def test_to_dict_merger(Foo):
+    coll = [Foo("fizz", 1), Foo("fizz", 2), Foo("buzz", 2)]
+    assert Stream(coll).to_dict(collector=lambda x: (x.name, x.num), merger=lambda old, new: old) == {
+        "fizz": 1,
+        "buzz": 2,
+    }
+
+
+def test_to_dict_duplicate_key_no_merger_raises(Foo):
+    coll = [Foo("fizz", 1), Foo("fizz", 2), Foo("buzz", 2)]
+    with pytest.raises(IllegalStateError) as e:
+        Stream(coll).to_dict(
+            collector=lambda x: (x.name, x.num),
+        )
+    assert str(e.value) == "Key 'fizz' already exists"
+
+
 def test_collect():
     assert Stream([1, 2, 3]).collect(tuple) == (1, 2, 3)
     assert Stream.of(1, 2, 3).collect(list) == [1, 2, 3]

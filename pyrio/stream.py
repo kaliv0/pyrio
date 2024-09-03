@@ -1,4 +1,5 @@
 from pyrio.decorator import pre_call, handle_consumed
+from pyrio.exception import IllegalStateError
 from pyrio.iterator import Iterator
 from pyrio.optional import Optional
 
@@ -146,7 +147,7 @@ class Stream:
         return self
 
     # ### collectors ###
-    def collect(self, collection_type, dict_supplier=None):
+    def collect(self, collection_type, dict_collector=None, dict_merger=None):
         import builtins
 
         match collection_type:
@@ -157,9 +158,9 @@ class Stream:
             case builtins.set:
                 return self.to_set()
             case builtins.dict:
-                if dict_supplier is None:
-                    raise ValueError("Missing dict_supplier")
-                return self.to_dict(dict_supplier)
+                if dict_collector is None:
+                    raise ValueError("Missing dict_collector")
+                return self.to_dict(dict_collector, dict_merger)
             case _:
                 raise ValueError("Invalid collection type")
 
@@ -172,8 +173,15 @@ class Stream:
     def to_set(self):
         return set(self._iterable)
 
-    def to_dict(self, operation):
-        return {k: v for k, v in (operation(i) for i in self._iterable)}
+    def to_dict(self, collector, merger=None):
+        result = {}
+        for k, v in (collector(i) for i in self._iterable):
+            if k in result:
+                if merger is None:
+                    raise IllegalStateError(f"Key '{k}' already exists")
+                v = merger(result[k], v)
+            result[k] = v
+        return result
 
     def group_by(self, classifier=None, collector=None):
         if collector is None:

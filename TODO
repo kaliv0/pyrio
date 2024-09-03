@@ -1,5 +1,4 @@
 - Stream.builder (?)
-- add function in to_dict to resolve duplicate keys -> also in collect() with dict
 - add combiner in reduce
 - and_then, or_throw, catch (after map -> see Amnis)
 

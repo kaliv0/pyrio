@@ -1,9 +1,9 @@
-from pyrio.decorator import pre_call, validate_stream
+from pyrio.decorator import pre_call, handle_consumed
 from pyrio.iterator import Iterator
 from pyrio.optional import Optional
 
 
-@pre_call(validate_stream)
+@pre_call(handle_consumed)
 class Stream:
     def __init__(self, iterable):
         """creates Stream from a collection"""
@@ -57,7 +57,6 @@ class Stream:
         return self
 
     def for_each(self, operation):
-        self._is_consumed = True
         return Iterator.for_each(self._iterable, operation)
 
     def peek(self, operation):
@@ -65,7 +64,6 @@ class Stream:
         return self
 
     def reduce(self, accumulator, identity=None):
-        self._is_consumed = True
         return Optional.of_nullable(Iterator.reduce(self._iterable, accumulator, identity))
 
     def distinct(self):
@@ -73,11 +71,9 @@ class Stream:
         return self
 
     def count(self):
-        self._is_consumed = True
         return len(tuple(self._iterable))
 
     def sum(self):
-        self._is_consumed = True
         if len(self._iterable) == 0:
             return 0
         if any(isinstance(x, (int | float | None)) for x in self._iterable) is False:
@@ -107,7 +103,6 @@ class Stream:
     def find_first(self, predicate=None):
         if predicate:
             self.filter(predicate)
-        self._is_consumed = True
         for i in self._iterable:
             return Optional.of(i)
         return Optional.of_nullable(None)
@@ -117,40 +112,33 @@ class Stream:
 
         if predicate:
             self.filter(predicate)
-        self._is_consumed = True
         try:
             return Optional.of(random.choice(list(self._iterable)))
         except IndexError:
             return Optional.of_nullable(None)
 
     def any_match(self, predicate):
-        self._is_consumed = True
         return any(predicate(i) for i in self._iterable)
 
     def all_match(self, predicate):
-        self._is_consumed = True
         return all(predicate(i) for i in self._iterable)
 
     def none_match(self, predicate):
-        self._is_consumed = True
         return not all(predicate(i) for i in self._iterable)
 
     def min(self, comparator=None, default=None):
-        self._is_consumed = True
         result = min(self._iterable, key=comparator, default=default)
         if result:
             return Optional.of(result)
         return Optional.of_nullable(None)
 
     def max(self, comparator=None, default=None):
-        self._is_consumed = True
         result = max(self._iterable, key=comparator, default=default)
         if result:
             return Optional.of(result)
         return Optional.of_nullable(None)
 
     def compare_with(self, other, comparator=None):
-        self._is_consumed = True
         return Iterator.compare_with(self._iterable, other, comparator)
 
     def sorted(self, comparator=None, *, reverse=False):
@@ -176,36 +164,57 @@ class Stream:
                 raise ValueError("Invalid collection type")
 
     def to_list(self):
-        self._is_consumed = True
         return list(self._iterable)
 
     def to_tuple(self):
-        self._is_consumed = True
         return tuple(self._iterable)
 
     def to_set(self):
-        self._is_consumed = True
         return set(self._iterable)
 
     def to_dict(self, operation):
-        self._is_consumed = True
         return {k: v for k, v in (operation(i) for i in self._iterable)}
 
     def group_by(self, classifier=None, collector=None):
-        import itertools
-        from collections.abc import Iterable
+        if collector is None:
+            return {key: list(group) for key, group in self._group_by(classifier)}
 
-        self._is_consumed = True
-        if collector:
-            result = {}
-            for key, group in itertools.groupby(self._iterable, key=classifier):
-                key, group = collector(key, list(group))
-                if isinstance(group, Iterable):
-                    if key not in result:
-                        result[key] = []
-                    result[key] += group
-                else:
-                    result[key] = group
-            return result
+        result = {}
+        for key, group in self._group_by(classifier):
+            key, group = collector(key, list(group))
+            if hasattr(group, "__iter__"):
+                if key not in result:
+                    result[key] = []
+                result[key] += group
+            else:
+                result[key] = group
+        return result
 
-        return {key: list(group) for key, group in itertools.groupby(self._iterable, key=classifier)}
+    def _group_by(self, classifier=None):
+        classifier = (lambda x: x) if classifier is None else classifier
+        iterator = iter(self._iterable)
+        exhausted = False
+
+        def _grouper(target_key):
+            nonlocal curr_value, curr_key, exhausted
+            yield curr_value
+            for curr_value in iterator:
+                curr_key = classifier(curr_value)
+                if curr_key != target_key:
+                    return
+                yield curr_value
+            exhausted = True
+
+        try:
+            curr_value = next(iterator)
+        except StopIteration:
+            return
+        curr_key = classifier(curr_value)
+
+        while not exhausted:
+            target_key = curr_key
+            curr_group = _grouper(target_key)
+            yield curr_key, curr_group
+            if curr_key == target_key:
+                for _ in curr_group:
+                    pass

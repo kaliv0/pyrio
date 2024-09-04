@@ -15,7 +15,7 @@ class Optional:
     @staticmethod
     def of(element):
         if element is None:
-            raise NullPointerError("Value cannot be None")  # TODO: change message
+            raise NullPointerError("Value cannot be None")
         return Optional(element)
 
     @staticmethod
@@ -24,7 +24,7 @@ class Optional:
 
     def get(self):
         if self.is_empty():
-            raise NoSuchElementError("Optional is empty")  # TODO: change message
+            raise NoSuchElementError("Optional is empty")
         return self._element
 
     def is_present(self):

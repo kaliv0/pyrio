@@ -12,7 +12,7 @@ def test_accumulate():
         itertools.accumulate([1, 2, 3, 4, 5], initial=100)
     )
 
-    # TODO: NB -> 'func' although it's 'function' in the docs (!)
+    # NB -> 'func' although it's 'function' in the docs (!)
     assert Stream.of(1, 2, 3, 4, 5).use(itertools.accumulate, func=operator.mul).to_list() == list(
         itertools.accumulate([1, 2, 3, 4, 5], operator.mul)
     )
@@ -144,4 +144,28 @@ def test_repeat():
 def test_starmap():
     assert Stream([(2, 5), (3, 2), (10, 3)]).use(itertools.starmap, function=pow).to_list() == list(
         itertools.starmap(pow, [(2, 5), (3, 2), (10, 3)])
+    )
+
+
+def test_itertools_takewhile():
+    coll = [1, 4, 6, 3, 8]
+    predicate = lambda x: x < 5  # noqa
+    assert Stream(coll).use(itertools.takewhile, predicate=predicate).to_list() == list(
+        itertools.takewhile(predicate, coll)
+    )
+
+
+def test_tee():
+    coll = [1, 2, 3, 4, 5, 6]
+    assert Stream(coll).use(itertools.tee, n=2).map(tuple).to_list() == [
+        tuple(s) for s in itertools.tee(coll, 2)
+    ]
+
+
+def test_zip_longest():
+    assert Stream.of("ABCD", "xy").use(itertools.zip_longest, fillvalue="-").to_list() == list(
+        itertools.zip_longest("ABCD", "xy", fillvalue="-")
+    )
+    assert Stream.of(range(3), range(2)).use(itertools.zip_longest).to_list() == list(
+        itertools.zip_longest(range(3), range(2))
     )

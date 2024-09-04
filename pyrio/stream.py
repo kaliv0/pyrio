@@ -226,3 +226,37 @@ class Stream:
             if curr_key == target_key:
                 for _ in curr_group:
                     pass
+
+    def use(self, it_function, *args, **kwargs):
+        import inspect
+
+        if args:
+            raise ValueError("Use keyword arguments only")  # TODO: ?!
+
+        # handle functions with no signature
+        if it_function.__name__ in ("chain", "islice", "product"):
+            if it_function.__name__ == "product":
+                self._iterable = it_function(*self._iterable, *kwargs.values())
+            else:
+                self._iterable = it_function(self._iterable, *kwargs.values())
+            return self
+
+        signature = inspect.signature(it_function).parameters
+
+        # handle functions that take iterable as args
+        if len(signature.keys()) == 1 and "iterable" in signature:
+            self._iterable = it_function(self._iterable)
+            return self
+
+        # if signature.keys() == {"predicate", "iterable"}:
+        if it_function.__name__ in ("dropwhile", "filterfalse"):
+            self._iterable = it_function(kwargs.get("predicate", None), self._iterable)
+            return self
+
+        if "iterable" in signature:
+            kwargs["iterable"] = self._iterable
+        elif "data" in signature:
+            kwargs["data"] = self._iterable
+
+        self._iterable = it_function(**kwargs)
+        return self

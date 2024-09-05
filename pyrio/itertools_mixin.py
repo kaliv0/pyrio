@@ -55,3 +55,6 @@ class ItertoolsMixin:
             kwargs["data"] = self._iterable
         self._iterable = it_function(**kwargs)
         return self
+
+
+# ### itertools 'recipes' ###

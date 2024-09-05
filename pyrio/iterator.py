@@ -98,6 +98,15 @@ class Iterator:
             count -= 1
 
     @staticmethod
+    def tail(iterable, count):
+        # for i in iterable:
+        #     if count == 0:
+        #         break
+        #     yield i
+        #     count -= 1
+        ...
+
+    @staticmethod
     def take_while(iterable, predicate):
         for i in iterable:
             if not predicate(i):

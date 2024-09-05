@@ -114,6 +114,22 @@ def test_limit_bigger_than_stream_count():
     assert Stream([1, 2]).limit(5).to_tuple() == (1, 2)
 
 
+# ### tail ###
+def test_take():
+    # assert Stream.of(1, 2, 3, 4).take(2).to_list() == [1, 2]
+    pass
+
+
+# ### prepend ###
+def test_prepend():
+    assert Stream([2, 3, 4]).prepend(1).to_list() == [1, 2, 3, 4]
+    assert Stream([2, 3, 4]).prepend(0, 1).to_list() == [0, 1, 2, 3, 4]
+
+
+def test_prepend_collection():
+    assert Stream([2, 3, 4]).prepend([0, 1]).to_list() == [[0, 1], 2, 3, 4]
+
+
 # ### flat ###
 def test_flat_map():
     assert Stream([[1, 2], [3, 4], [5]]).flat_map(lambda x: Stream(x)).to_list() == [1, 2, 3, 4, 5]
@@ -279,6 +295,10 @@ def test_compare_with_custom_key(Foo):
 # ### concat ###
 def test_concat():
     assert Stream.concat(Stream.of(1, 2, 3), Stream.of(4, 5, 6)).to_list() == [1, 2, 3, 4, 5, 6]
+
+
+def test_concat_to_existing_stream():
+    assert Stream.of(1, 2, 3).concat([4, 5]).to_list() == [1, 2, 3, 4, 5]
 
 
 def test_concat_empty():

@@ -169,3 +169,6 @@ def test_zip_longest():
     assert Stream.of(range(3), range(2)).use(itertools.zip_longest).to_list() == list(
         itertools.zip_longest(range(3), range(2))
     )
+
+
+# ### itertools  'recipes' ###

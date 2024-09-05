@@ -38,6 +38,10 @@ class Stream(ItertoolsMixin):
     def concat(*streams):
         return Stream(Iterator.concat(*streams))
 
+    def prepend(self, *iterable):
+        self._iterable = Iterator.concat(iterable, self._iterable)
+        return self
+
     def filter(self, predicate):
         self._iterable = Iterator.filter(self._iterable, predicate)
         return self
@@ -92,6 +96,12 @@ class Stream(ItertoolsMixin):
         if count < 0:
             raise ValueError("Limit count cannot be negative")
         self._iterable = Iterator.limit(self._iterable, count)
+        return self
+
+    def tail(self, count):
+        if count < 0:
+            raise ValueError("Take count cannot be negative")
+        self._iterable = Iterator.tail(self._iterable, count)
         return self
 
     def take_while(self, predicate):

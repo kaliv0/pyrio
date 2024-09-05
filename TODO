@@ -6,7 +6,6 @@
 
 - write tests for errors
 - write more tests for optional
-- group_by -> add more complex scenarios?
 
 -----------------
 integrate itertools:

@@ -1,3 +1,8 @@
+import itertools
+
+from pyrio.iterator import Iterator
+
+
 class ItertoolsMixin:
     def use(self, it_function, *args, **kwargs):
         import inspect
@@ -56,5 +61,7 @@ class ItertoolsMixin:
         self._iterable = it_function(**kwargs)
         return self
 
-
-# ### itertools 'recipes' ###
+    # ### 'recipes' ###
+    @staticmethod
+    def tabulate(mapper, start=0):
+        return Iterator.map(itertools.count(start), mapper)

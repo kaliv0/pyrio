@@ -172,3 +172,6 @@ def test_zip_longest():
 
 
 # ### itertools  'recipes' ###
+def test_tabulate():
+    assert Stream.empty().tabulate(lambda x: x**2).limit(3).to_list() == [0, 1, 4]
+    assert Stream.empty().tabulate(lambda x: x**2, start=3).limit(3).to_list() == [9, 16, 25]

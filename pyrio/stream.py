@@ -237,3 +237,8 @@ class Stream(ItertoolsMixin):
             if curr_key == target_key:
                 for _ in curr_group:
                     pass
+
+    # ### 'recipes' ###
+    def tabulate(self, mapper, start=0):
+        self._iterable = ItertoolsMixin.tabulate(mapper, start)
+        return self

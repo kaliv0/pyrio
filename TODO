@@ -7,6 +7,11 @@
 - write tests for errors
 - write more tests for optional
 
+- add 'head' (alias for 'limit') for consistency with 'tail'
+
+- rename (currently) private 'recipe' methods in ItertoolsMixin
+- add same default values in Iterator methods as in Stream APIs
+
 -----------------
 integrate itertools:
     - accumulate -> 'func' in signature, 'function' in docs

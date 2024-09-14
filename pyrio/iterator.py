@@ -99,12 +99,10 @@ class Iterator:
 
     @staticmethod
     def tail(iterable, count):
-        # for i in iterable:
-        #     if count == 0:
-        #         break
-        #     yield i
-        #     count -= 1
-        ...
+        import collections
+
+        for i in collections.deque(iterable, maxlen=count):
+            yield i
 
     @staticmethod
     def take_while(iterable, predicate):

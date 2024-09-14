@@ -1,4 +1,4 @@
-import itertools
+import itertools as it
 
 from pyrio.iterator import Iterator
 
@@ -63,5 +63,27 @@ class ItertoolsMixin:
 
     # ### 'recipes' ###
     @staticmethod
-    def tabulate(mapper, start=0):
-        return Iterator.map(itertools.count(start), mapper)
+    def _tabulate(mapper, start=0):
+        return Iterator.map(it.count(start), mapper)  # TODO: fix?
+
+    def _repeat_func(self, operation, times=None):
+        return it.starmap(operation, it.repeat(self._iterable, times=times))
+
+    def _ncycles(self, count):
+        return it.chain.from_iterable(it.repeat(tuple(self._iterable), count))
+
+    # def _consume(self, n=None):
+    #     import collections
+    #
+    #     if n is None:
+    #         return collections.deque(self._iterable, maxlen=0)
+    #     else:
+    #         return next(it.islice(self._iterable, n, n), None)
+
+    def _nth(self, n, default):
+        if n < 0:
+            n = len(self._iterable) + n
+        return next(it.islice(self._iterable, n, None), default)
+
+    def _all_equal(self, key=None):
+        return len(list(it.islice(it.groupby(self._iterable, key), 2))) <= 1

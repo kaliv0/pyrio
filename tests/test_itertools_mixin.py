@@ -1,69 +1,61 @@
-import itertools
+import itertools as it
 import operator
 
 from pyrio import Stream
 
 
 def test_accumulate():
-    assert Stream.of(1, 2, 3, 4, 5).use(itertools.accumulate).to_list() == list(
-        itertools.accumulate([1, 2, 3, 4, 5])
-    )
-    assert Stream.of(1, 2, 3, 4, 5).use(itertools.accumulate, initial=100).to_list() == list(
-        itertools.accumulate([1, 2, 3, 4, 5], initial=100)
+    assert Stream.of(1, 2, 3, 4, 5).use(it.accumulate).to_list() == list(it.accumulate([1, 2, 3, 4, 5]))
+    assert Stream.of(1, 2, 3, 4, 5).use(it.accumulate, initial=100).to_list() == list(
+        it.accumulate([1, 2, 3, 4, 5], initial=100)
     )
 
     # NB -> 'func' although it's 'function' in the docs (!)
-    assert Stream.of(1, 2, 3, 4, 5).use(itertools.accumulate, func=operator.mul).to_list() == list(
-        itertools.accumulate([1, 2, 3, 4, 5], operator.mul)
+    assert Stream.of(1, 2, 3, 4, 5).use(it.accumulate, func=operator.mul).to_list() == list(
+        it.accumulate([1, 2, 3, 4, 5], operator.mul)
     )
 
 
 def test_batched():
     flattened_data = ["roses", "red", "violets", "blue", "sugar", "sweet"]
-    assert Stream(flattened_data).use(itertools.batched, n=2).to_list() == list(
-        itertools.batched(flattened_data, 2)
-    )
+    assert Stream(flattened_data).use(it.batched, n=2).to_list() == list(it.batched(flattened_data, 2))
 
 
 def test_chain():
-    assert Stream("ABC").use(itertools.chain, iterables="DEF").to_list() == list(
-        itertools.chain("ABC", "DEF")
-    )
+    assert Stream("ABC").use(it.chain, iterables="DEF").to_list() == list(it.chain("ABC", "DEF"))
 
 
 def test_chain_from_iterable():
-    assert Stream(["ABC", "DEF"]).use(itertools.chain.from_iterable).to_list() == list(
-        itertools.chain.from_iterable(["ABC", "DEF"])
+    assert Stream(["ABC", "DEF"]).use(it.chain.from_iterable).to_list() == list(
+        it.chain.from_iterable(["ABC", "DEF"])
     )
 
 
 def test_combinations():
-    assert Stream.of(1, 2, 3, 4).use(itertools.combinations, r=3).to_list() == list(
-        itertools.combinations([1, 2, 3, 4], r=3)
+    assert Stream.of(1, 2, 3, 4).use(it.combinations, r=3).to_list() == list(
+        it.combinations([1, 2, 3, 4], r=3)
     )
 
 
 def test_combinations_with_replacement():
-    assert Stream("ABC").use(itertools.combinations_with_replacement, r=2).to_list() == list(
-        itertools.combinations_with_replacement("ABC", r=2)
+    assert Stream("ABC").use(it.combinations_with_replacement, r=2).to_list() == list(
+        it.combinations_with_replacement("ABC", r=2)
     )
 
 
 def test_compress():
     data = "ABCDEF"
     selectors = [1, 0, 1, 0, 1, 1]
-    assert Stream(data).use(itertools.compress, selectors=selectors).to_list() == list(
-        itertools.compress(data, selectors)
-    )
+    assert Stream(data).use(it.compress, selectors=selectors).to_list() == list(it.compress(data, selectors))
 
 
 def test_count():
-    assert Stream.empty().use(itertools.count, start=10).limit(5).to_list() == [10, 11, 12, 13, 14]
-    assert Stream.empty().use(itertools.count, start=10, step=2).limit(5).to_list() == [10, 12, 14, 16, 18]
+    assert Stream.empty().use(it.count, start=10).limit(5).to_list() == [10, 11, 12, 13, 14]
+    assert Stream.empty().use(it.count, start=10, step=2).limit(5).to_list() == [10, 12, 14, 16, 18]
 
 
 def test_cycle():
-    assert Stream("ABCD").use(itertools.cycle).limit(12).to_list() == [
+    assert Stream("ABCD").use(it.cycle).limit(12).to_list() == [
         "A",
         "B",
         "C",
@@ -82,21 +74,21 @@ def test_cycle():
 def test_itertools_dropwhile():
     coll = [1, 4, 6, 3, 8]
     predicate = lambda x: x < 5  # noqa
-    assert Stream(coll).use(itertools.dropwhile, predicate=predicate).to_list() == list(
-        itertools.dropwhile(predicate, coll)
+    assert Stream(coll).use(it.dropwhile, predicate=predicate).to_list() == list(
+        it.dropwhile(predicate, coll)
     )
 
 
 def test_itertools_filterfalse():
     coll = [1, 4, 6, 3, 8]
     predicate = lambda x: x < 5  # noqa
-    assert Stream(coll).use(itertools.filterfalse, predicate=predicate).to_list() == list(
-        itertools.filterfalse(predicate, coll)
+    assert Stream(coll).use(it.filterfalse, predicate=predicate).to_list() == list(
+        it.filterfalse(predicate, coll)
     )
 
 
 def test_itertools_groupby():
-    assert Stream("AAAABBBCCD").use(itertools.groupby).to_dict(lambda x: (x[0], list(x[1]))) == {
+    assert Stream("AAAABBBCCD").use(it.groupby).to_dict(lambda x: (x[0], list(x[1]))) == {
         "A": ["A", "A", "A", "A"],
         "B": ["B", "B", "B"],
         "C": ["C", "C"],
@@ -106,68 +98,58 @@ def test_itertools_groupby():
 
 def test_itertools_islice():
     letters = "ABCDEFG"
-    assert Stream(letters).use(itertools.islice, stop=2).to_list() == list(itertools.islice(letters, 2))
-    assert Stream(letters).use(itertools.islice, start=2, stop=None).to_list() == list(
-        itertools.islice(letters, 2, None)
-    )
-    assert Stream(letters).use(itertools.islice, start=0, stop=None, setp=2).to_list() == list(
-        itertools.islice(letters, 0, None, 2)
+    assert Stream(letters).use(it.islice, stop=2).to_list() == list(it.islice(letters, 2))
+    assert Stream(letters).use(it.islice, start=2, stop=None).to_list() == list(it.islice(letters, 2, None))
+    assert Stream(letters).use(it.islice, start=0, stop=None, setp=2).to_list() == list(
+        it.islice(letters, 0, None, 2)
     )
 
 
 def test_itertools_pairwise():
     letters = "ABCDEFG"
-    assert Stream(letters).use(itertools.pairwise).to_list() == list(itertools.pairwise(letters))
+    assert Stream(letters).use(it.pairwise).to_list() == list(it.pairwise(letters))
 
 
 def test_permutations():
-    assert Stream(range(3)).use(itertools.permutations, r=3).to_list() == list(
-        itertools.permutations(range(3), r=3)
-    )
+    assert Stream(range(3)).use(it.permutations, r=3).to_list() == list(it.permutations(range(3), r=3))
 
 
 def test_product():
-    assert Stream.of("ABCD", "xy").use(itertools.product).to_list() == list(itertools.product("ABCD", "xy"))
-    assert Stream.of([1, 2, 3, 4], [5, 6]).use(itertools.product).to_list() == list(
-        itertools.product([1, 2, 3, 4], [5, 6])
-    )
-    assert Stream(range(3)).use(itertools.product, repeat=2).to_list() == list(
-        itertools.product(range(3), repeat=2)
-    )
+    assert Stream.of("ABCD", "xy").use(it.product).to_list() == list(it.product("ABCD", "xy"))
+    assert Stream.of([1, 2, 3, 4], [5, 6]).use(it.product).to_list() == list(it.product([1, 2, 3, 4], [5, 6]))
+    assert Stream(range(3)).use(it.product, repeat=2).to_list() == list(it.product(range(3), repeat=2))
 
 
 def test_repeat():
-    assert Stream(10).use(itertools.repeat).limit(3).to_list() == [10, 10, 10]
-    assert Stream(10).use(itertools.repeat, times=3).to_list() == list(itertools.repeat(10, times=3))
+    assert Stream(10).use(it.repeat).limit(3).to_list() == [10, 10, 10]
+    assert Stream(10).use(it.repeat, times=3).to_list() == list(it.repeat(10, times=3))
 
 
 def test_starmap():
-    assert Stream([(2, 5), (3, 2), (10, 3)]).use(itertools.starmap, function=pow).to_list() == list(
-        itertools.starmap(pow, [(2, 5), (3, 2), (10, 3)])
+    assert Stream([(2, 5), (3, 2), (10, 3)]).use(it.starmap, function=pow).to_list() == list(
+        it.starmap(pow, [(2, 5), (3, 2), (10, 3)])
     )
 
 
 def test_itertools_takewhile():
     coll = [1, 4, 6, 3, 8]
     predicate = lambda x: x < 5  # noqa
-    assert Stream(coll).use(itertools.takewhile, predicate=predicate).to_list() == list(
-        itertools.takewhile(predicate, coll)
+    assert Stream(coll).use(it.takewhile, predicate=predicate).to_list() == list(
+        it.takewhile(predicate, coll)
     )
 
 
 def test_tee():
     coll = [1, 2, 3, 4, 5, 6]
-    assert Stream(coll).use(itertools.tee, n=2).map(tuple).to_list() == [
-        tuple(s) for s in itertools.tee(coll, 2)
-    ]
+    assert Stream(coll).use(it.tee, n=2).map(tuple).to_list() == [tuple(s) for s in it.tee(coll, 2)]
 
 
 def test_zip_longest():
-    assert Stream.of("ABCD", "xy").use(itertools.zip_longest, fillvalue="-").to_list() == list(
-        itertools.zip_longest("ABCD", "xy", fillvalue="-")
+    assert Stream.of("ABCD", "xy").use(it.zip_longest, fillvalue="-").to_list() == list(
+        it.zip_longest("ABCD", "xy", fillvalue="-")
     )
-    assert Stream.of(range(3), range(2)).use(itertools.zip_longest).to_list() == list(
-        itertools.zip_longest(range(3), range(2))
+    assert Stream.of(range(3), range(2)).use(it.zip_longest).to_list() == list(
+        it.zip_longest(range(3), range(2))
     )
 
 
@@ -175,3 +157,81 @@ def test_zip_longest():
 def test_tabulate():
     assert Stream.empty().tabulate(lambda x: x**2).limit(3).to_list() == [0, 1, 4]
     assert Stream.empty().tabulate(lambda x: x**2, start=3).limit(3).to_list() == [9, 16, 25]
+
+
+def test_repeat_func():
+    operation = lambda x, y: x * y  # noqa
+    args = [2, 3]
+    times = 4
+    assert Stream(args).repeat_func(operation=operation, times=times).to_list() == [6, 6, 6, 6]
+
+
+def test_ncycles():
+    coll = {1, 2, 3}
+    count = 2
+    assert Stream(coll).ncycles(count).to_list() == [1, 2, 3, 1, 2, 3]
+
+
+def test_ncycles_zero_times():
+    assert Stream({1, 2, 3}).ncycles(count=0).to_list() == []
+
+
+def test_ncycles_negative_times():
+    assert Stream({1, 2, 3}).ncycles(count=-2).to_list() == []
+
+
+# TODO
+# def test_consume():
+#     assert Stream.of(2, 3, 4, 5).consume(n=2).to_list() == [4, 5]
+
+
+def test_nth():
+    assert Stream.of(2, 3, 4).nth(1) == 3
+
+
+def test_nth_default_value():
+    assert Stream.of(2, 3, 4).nth(10, default=66) == 66
+
+
+def test_nth_negative_index():
+    assert Stream.of(2, 3, 4).nth(-1) == 4
+
+
+def test_quantify():
+    assert Stream([2, 3, 4, 5, 6]).quantify(predicate=lambda x: x % 2 == 0) == 3
+
+
+def test_quantify_default_predicate():
+    assert Stream([None, 1, "", 3, 0]).quantify() == 2
+
+
+def test_first_true():
+    assert Stream([1, 2, 3, 6, 8, 12]).first_true(predicate=lambda x: x % 2 == 0 and x % 3 == 0) == 6
+
+
+def test_first_true_default_value():
+    assert Stream([1, 2, 3, 6, 8, 12]).first_true(predicate=lambda x: x > 20, default=10) == 10
+
+
+def test_first_true_default_predicate():
+    assert Stream([None, 0, 1]).first_true() == 1
+
+
+def test_first_true_default_predicate_and_value():
+    assert Stream([None, 0, ""]).first_true() is False
+
+
+def test_all_equal():
+    assert Stream([2, 2, 2]).all_equal(key=int)
+
+
+def test_all_equal_false():
+    assert Stream([2, 5, 3]).all_equal() is False
+
+
+def test_all_equal_custom_classifier(Foo):
+    fizz = Foo("fizz", 42)
+    buzz = Foo("buzz", 42)
+    coll = [fizz, buzz]
+    assert Stream(coll).all_equal(key=lambda x: x.num)
+    assert Stream(coll).all_equal(key=lambda x: x.name) is False

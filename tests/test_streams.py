@@ -115,9 +115,16 @@ def test_limit_bigger_than_stream_count():
 
 
 # ### tail ###
-def test_take():
-    # assert Stream.of(1, 2, 3, 4).take(2).to_list() == [1, 2]
-    pass
+def test_tail():
+    assert Stream.of(1, 2, 3, 4).tail(2).to_list() == [3, 4]
+
+
+def test_tail_empty():
+    assert Stream.empty().tail(3).to_tuple() == ()
+
+
+def test_tail_bigger_than_stream_count():
+    assert Stream([1, 2]).tail(5).to_tuple() == (1, 2)
 
 
 # ### prepend ###

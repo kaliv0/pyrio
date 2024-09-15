@@ -116,8 +116,12 @@ class ItertoolsMixin:
         return self
 
     # def unique():
+    # def unique_justseen():
+    # def unique_everseen():
 
     def sliding_window(self, n):
+        if n < 0:
+            raise ValueError("Window size cannot be negative")
         self._iterable = self._sliding_window(self._iterable, n)
         return self
 
@@ -128,3 +132,9 @@ class ItertoolsMixin:
         for x in it.islice(iterable, n - 1, len(iterable)):
             window.append(x)
             yield tuple(window)
+
+    # def grouper():
+    # def round_robin():
+    # def partition():
+    # def subslices():
+    # def iter_index(): -> rename??

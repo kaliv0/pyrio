@@ -264,9 +264,22 @@ def rest_view_negative_step():
         Stream([1, 2, 3, 4, 5, 6, 7, 8, 9]).view(step=-1).to_list()
     assert str(e.value) == "Step must be a positive integer or None"
 
-# ### ###
+
+# ### sliding window ###
 def test_sliding_window():
-    assert Stream('ABCDEFG').sliding_window(4).to_list()== [('A', 'B', 'C', 'D'),
- ('B', 'C', 'D', 'E'),
- ('C', 'D', 'E', 'F'),
- ('D', 'E', 'F', 'G')]
+    assert Stream("ABCDEFG").sliding_window(4).to_list() == [
+        ("A", "B", "C", "D"),
+        ("B", "C", "D", "E"),
+        ("C", "D", "E", "F"),
+        ("D", "E", "F", "G"),
+    ]
+
+
+def test_sliding_window_empty_collection():
+    assert Stream.empty().sliding_window(2).to_list() == []
+
+
+def test_sliding_window_negative_count():
+    with pytest.raises(ValueError) as e:
+        Stream("ABCD").sliding_window(-1).to_list()
+    assert str(e.value) == "Window size cannot be negative"

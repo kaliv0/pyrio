@@ -41,6 +41,10 @@ class Stream(ItertoolsMixin):
     def concat(*streams):
         return Stream(Iterator.concat(*streams))
 
+    @staticmethod
+    def constant(element):
+        return Stream.generate(lambda: element)
+
     def prepend(self, *iterable):
         self._iterable = Iterator.concat(iterable, self._iterable)
         return self

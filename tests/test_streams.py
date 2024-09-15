@@ -32,6 +32,10 @@ def test_generate():
     assert Stream.generate(lambda: 42).limit(3).to_list() == [42, 42, 42]
 
 
+def test_constant():
+    assert Stream.constant(8).limit(3).to_list() == [8, 8, 8]
+
+
 def test_filter():
     assert Stream([1, 2, 3, 4, 5, 6]).filter(lambda x: x % 2 == 0).to_list() == [2, 4, 6]
 

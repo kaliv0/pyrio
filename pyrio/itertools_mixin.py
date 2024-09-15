@@ -136,5 +136,13 @@ class ItertoolsMixin:
     # def grouper():
     # def round_robin():
     # def partition():
-    # def subslices():
+
+    def subslices(self):
+        """Return all contiguous non-empty sub-slices"""
+        import operator
+
+        slices = it.starmap(slice, it.combinations(range(len(self._iterable) + 1), 2))
+        self._iterable = map(operator.getitem, it.repeat(self._iterable), slices)  # noqa
+        return self
+
     # def iter_index(): -> rename??

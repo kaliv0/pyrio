@@ -5,6 +5,7 @@
 
 - write tests for errors
 - write more tests for optional
+- remove _iterable class variable from Mixin
 
 - add same default values in Iterator methods as in Stream APIs
 

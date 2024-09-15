@@ -283,3 +283,22 @@ def test_sliding_window_negative_count():
     with pytest.raises(ValueError) as e:
         Stream("ABCD").sliding_window(-1).to_list()
     assert str(e.value) == "Window size cannot be negative"
+
+
+def test_subslices():
+    assert Stream("ABCD").subslices().to_list() == [
+        "A",
+        "AB",
+        "ABC",
+        "ABCD",
+        "B",
+        "BC",
+        "BCD",
+        "C",
+        "CD",
+        "D",
+    ]
+
+
+def test_subslices_empty_collection():
+    assert Stream.empty().subslices().to_list() == []

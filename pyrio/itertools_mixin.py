@@ -1,9 +1,17 @@
 import itertools as it
+from collections import deque
+from collections.abc import Iterable, Sized
 
 from pyrio.iterator import Iterator
 
 
 class ItertoolsMixin:
+    _iterable: Iterable | Sized
+
+    # FIXME
+    # def __init__(self):
+    #     self._iterable = None
+
     def use(self, it_function, *args, **kwargs):
         import inspect
 
@@ -62,28 +70,61 @@ class ItertoolsMixin:
         return self
 
     # ### 'recipes' ###
-    @staticmethod
-    def _tabulate(mapper, start=0):
-        return Iterator.map(it.count(start), mapper)  # TODO: fix?
+    def tabulate(self, mapper, start=0):
+        self._iterable = Iterator.map(it.count(start), mapper)  # TODO: fix?
+        return self
 
-    def _repeat_func(self, operation, times=None):
-        return it.starmap(operation, it.repeat(self._iterable, times=times))
+    def repeat_func(self, operation, times=None):
+        self._iterable = it.starmap(operation, it.repeat(self._iterable, times=times))
+        return self
 
-    def _ncycles(self, count):
-        return it.chain.from_iterable(it.repeat(tuple(self._iterable), count))
+    def ncycles(self, count=0):
+        self._iterable = it.chain.from_iterable(it.repeat(tuple(self._iterable), count))
+        return self
 
-    # def _consume(self, n=None):
-    #     import collections
-    #
-    #     if n is None:
-    #         return collections.deque(self._iterable, maxlen=0)
-    #     else:
-    #         return next(it.islice(self._iterable, n, n), None)
-
-    def _nth(self, n, default):
+    def consume(self, n=None):
+        if n is None:
+            self._iterable = deque(self._iterable, maxlen=0)
+            return self
         if n < 0:
-            n = len(self._iterable) + n
-        return next(it.islice(self._iterable, n, None), default)
+            raise ValueError("Consume boundary cannot be negative")
+        self._iterable = it.islice(self._iterable, n, len(self._iterable))
+        return self
 
-    def _all_equal(self, key=None):
+    def nth(self, idx, default=None):
+        # FIXME
+        """Returns empty iterable if count is zero or negative"""
+        if idx < 0:
+            idx = len(self._iterable) + idx
+        return next(it.islice(self._iterable, idx, None), default)
+
+    def all_equal(self, key=None):
         return len(list(it.islice(it.groupby(self._iterable, key), 2))) <= 1
+
+    # TODO: start=None?
+    def view(self, start=0, stop=None, step=None):
+        if start < 0:
+            start = len(self._iterable) + start
+
+        if stop and stop < 0:
+            stop = len(self._iterable) + stop
+
+        if step and step < 0:
+            raise ValueError("Step must be a positive integer or None")
+
+        self._iterable = it.islice(self._iterable, start, stop, step)
+        return self
+
+    # def unique():
+
+    def sliding_window(self, n):
+        self._iterable = self._sliding_window(self._iterable, n)
+        return self
+
+    @staticmethod
+    def _sliding_window(iterable, n):
+        """Collect data into overlapping fixed-length chunks or blocks"""
+        window = deque(it.islice(iterable, n - 1), maxlen=n)
+        for x in it.islice(iterable, n - 1, len(iterable)):
+            window.append(x)
+            yield tuple(window)

@@ -1,6 +1,8 @@
 import itertools as it
 import operator
 
+import pytest
+
 from pyrio import Stream
 
 
@@ -180,9 +182,18 @@ def test_ncycles_negative_times():
     assert Stream({1, 2, 3}).ncycles(count=-2).to_list() == []
 
 
-# TODO
-# def test_consume():
-#     assert Stream.of(2, 3, 4, 5).consume(n=2).to_list() == [4, 5]
+def test_consume():
+    assert Stream.of(2, 3, 4, 5).consume(n=2).to_list() == [4, 5]
+
+
+def test_consume_default_start():
+    assert Stream.of(2, 3, 4, 5).consume().to_list() == []
+
+
+def test_consume_negative_start():
+    with pytest.raises(ValueError) as e:
+        Stream.of(2, 3, 4, 5).consume(n=-2).to_list()
+    assert str(e.value) == "Consume boundary cannot be negative"
 
 
 def test_nth():
@@ -197,30 +208,6 @@ def test_nth_negative_index():
     assert Stream.of(2, 3, 4).nth(-1) == 4
 
 
-def test_quantify():
-    assert Stream([2, 3, 4, 5, 6]).quantify(predicate=lambda x: x % 2 == 0) == 3
-
-
-def test_quantify_default_predicate():
-    assert Stream([None, 1, "", 3, 0]).quantify() == 2
-
-
-def test_first_true():
-    assert Stream([1, 2, 3, 6, 8, 12]).first_true(predicate=lambda x: x % 2 == 0 and x % 3 == 0) == 6
-
-
-def test_first_true_default_value():
-    assert Stream([1, 2, 3, 6, 8, 12]).first_true(predicate=lambda x: x > 20, default=10) == 10
-
-
-def test_first_true_default_predicate():
-    assert Stream([None, 0, 1]).first_true() == 1
-
-
-def test_first_true_default_predicate_and_value():
-    assert Stream([None, 0, ""]).first_true() is False
-
-
 def test_all_equal():
     assert Stream([2, 2, 2]).all_equal(key=int)
 
@@ -229,9 +216,57 @@ def test_all_equal_false():
     assert Stream([2, 5, 3]).all_equal() is False
 
 
-def test_all_equal_custom_classifier(Foo):
+def test_all_equal_custom_key(Foo):
     fizz = Foo("fizz", 42)
     buzz = Foo("buzz", 42)
     coll = [fizz, buzz]
     assert Stream(coll).all_equal(key=lambda x: x.num)
     assert Stream(coll).all_equal(key=lambda x: x.name) is False
+
+
+# ### view ###
+def test_view():
+    assert Stream([1, 2, 3, 4, 5, 6, 7, 8, 9]).view(2, 6).to_list() == [3, 4, 5, 6]
+
+
+def test_view_default_stop():
+    assert Stream([1, 2, 3, 4, 5, 6, 7, 8, 9]).view(4).to_list() == [5, 6, 7, 8, 9]
+
+
+def test_view_default_boundaries():
+    assert Stream([1, 2, 3, 4, 5, 6, 7, 8, 9]).view().to_list() == [1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+
+def test_view_custom_step():
+    assert Stream([1, 2, 3, 4, 5, 6, 7, 8, 9]).view(step=2).to_list() == [1, 3, 5, 7, 9]
+
+
+def test_view_custom_stop():
+    assert Stream([1, 2, 3, 4, 5, 6, 7, 8, 9]).view(stop=-3).to_list() == [1, 2, 3, 4, 5, 6]
+
+
+def test_view_negative_start():
+    assert Stream([1, 2, 3, 4, 5, 6, 7, 8, 9]).view(-3).to_list() == [7, 8, 9]
+
+
+def test_view_negative_stop():
+    assert Stream([1, 2, 3, 4, 5, 6, 7, 8, 9]).view(stop=-4).to_list() == [1, 2, 3, 4, 5]
+
+
+def test_view_custom_boundaries():
+    coll = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    assert Stream(coll).view(2, -3).to_list() == [3, 4, 5, 6]
+    assert Stream(coll).view(-5, -2).to_list() == [5, 6, 7]
+
+
+def rest_view_negative_step():
+    with pytest.raises(ValueError) as e:
+        Stream([1, 2, 3, 4, 5, 6, 7, 8, 9]).view(step=-1).to_list()
+    assert str(e.value) == "Step must be a positive integer or None"
+
+# ### ###
+def test_sliding_window():
+    assert Stream('ABCDEFG').sliding_window(4).to_list()== [('A', 'B', 'C', 'D'),
+ ('B', 'C', 'D', 'E'),
+ ('C', 'D', 'E', 'F'),
+ ('D', 'E', 'F', 'G')]

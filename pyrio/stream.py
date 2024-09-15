@@ -9,6 +9,9 @@ from pyrio.optional import Optional
 class Stream(ItertoolsMixin):
     def __init__(self, iterable):
         """creates Stream from a collection"""
+        # FIXME
+        # super().__init__()
+
         self._iterable = iterable
         self._is_consumed = False
 
@@ -98,6 +101,13 @@ class Stream(ItertoolsMixin):
         self._iterable = Iterator.limit(self._iterable, count)
         return self
 
+    def head(self, count):
+        """Alias for 'limit'"""
+        if count < 0:
+            raise ValueError("Head count cannot be negative")
+        self._iterable = Iterator.limit(self._iterable, count)
+        return self
+
     def tail(self, count):
         if count < 0:
             raise ValueError("Take count cannot be negative")
@@ -113,11 +123,7 @@ class Stream(ItertoolsMixin):
         return self
 
     def find_first(self, predicate=None):
-        if predicate:
-            self.filter(predicate)
-        for i in self._iterable:
-            return Optional.of(i)
-        return Optional.of_nullable(None)
+        return Optional.of_nullable(next(filter(predicate, self._iterable), None))
 
     def find_any(self, predicate=None):
         import random
@@ -238,41 +244,6 @@ class Stream(ItertoolsMixin):
                 for _ in curr_group:
                     pass
 
-    # ### 'recipes' ###
-    def tabulate(self, mapper, start=0):
-        # self._iterable = ItertoolsMixin.tabulate(mapper, start)
-        self._iterable = self._tabulate(mapper, start)
-        return self
-
-    def repeat_func(self, operation, times=None):
-        # self._iterable = ItertoolsMixin.repeat_func(operation, times)
-        self._iterable = self._repeat_func(operation, times)
-        return self
-
-    def ncycles(self, count=0):
-        # TODO: returns empty iterable if count is zero or negative
-        self._iterable = self._ncycles(count)
-        return self
-
-    # TODO
-    # def consume(self, n=None):
-    #     self._iterable = self._consume(n)
-    #     return self
-
-    # TODO: rename 'n' to 'idx'??
-    def nth(self, n, default=None):
-        return self._nth(n, default)
-
-    ########################################
-    # TODO: move? -> tests too
     def quantify(self, predicate=bool):
         """Given a predicate that returns True or False, count the True results."""
         return sum(map(predicate, self._iterable))
-
-    # TODO: make default=None?
-    def first_true(self, predicate=None, default=False):
-        return next(filter(predicate, self._iterable), default)
-
-    ########################################
-    def all_equal(self, key=None):
-        return self._all_equal(key)

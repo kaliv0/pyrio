@@ -299,6 +299,14 @@ def test_compare_with_custom_key(Foo):
     assert Stream([fizz, buzz]).compare_with(Stream([buzz]), comparator) is False
 
 
+def test_quantify():
+    assert Stream([2, 3, 4, 5, 6]).quantify(predicate=lambda x: x % 2 == 0) == 3
+
+
+def test_quantify_default_predicate():
+    assert Stream([None, 1, "", 3, 0]).quantify() == 2
+
+
 # ### concat ###
 def test_concat():
     assert Stream.concat(Stream.of(1, 2, 3), Stream.of(4, 5, 6)).to_list() == [1, 2, 3, 4, 5, 6]

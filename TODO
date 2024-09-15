@@ -1,23 +1,20 @@
 - add combiner in reduce -> for parallelized streams
-- and_then, or_throw, catch (after map -> see Amnis)
 
 - add description in readme for explicit kwargs (filter_map, sorted)
+   NB -> accumulate -> 'func' in signature, 'function' in docs
 
 - write tests for errors
 - write more tests for optional
 - remove _iterable class variable from Mixin
 - add docstrings and types (+mypy)
 
-- add same default values in Iterator methods as in Stream APIs
+- add IntegerStream -> evens, odds, math funcs(?) -> or NumStream (support int and float)?
 
-- add IntegerStream -> evens, odds, math funcs(?)
-- add BooleanStream ???
+- nth -> rename method -> take_nth?
 
 - Stream:
     - to_number_stream (similar to next one?)
     - map_to_int/float
     - flat_map_to_int/float
 
------------------
-integrate itertools:
-    - accumulate -> 'func' in signature, 'function' in docs
+- refactor imports

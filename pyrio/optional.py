@@ -49,12 +49,13 @@ class Optional:
     def or_else_get(self, supplier):
         return self._element if self.is_present() else supplier()
 
-    def filter(self, predicate):
-        if self.is_present() and predicate(self.get()):
-            return self
-        return Optional.empty()
-
-    def map(self, mapper):
-        if self.is_present():
-            return Optional.of_nullable(mapper(self.get()))
-        return Optional.empty()
+    # TODO: do we need next two?
+    # def filter(self, predicate):
+    #     if self.is_present() and predicate(self.get()):
+    #         return self
+    #     return Optional.empty()
+    #
+    # def map(self, mapper):
+    #     if self.is_present():
+    #         return Optional.of_nullable(mapper(self.get()))
+    #     return Optional.empty()

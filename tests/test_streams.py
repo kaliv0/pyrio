@@ -68,7 +68,7 @@ def test_reduce_no_identity_provided():
 
 
 def test_reduce_empty_collection():
-    assert Stream([]).reduce(lambda acc, val: acc + val).is_empty() is True
+    assert Stream([]).reduce(lambda acc, val: acc + val).is_empty()
 
 
 def test_for_each():
@@ -280,7 +280,7 @@ def test_reusing_stream():
 
     result = stream.map(str).to_list()
     assert result == ["1", "2", "3"]
-    assert stream._is_consumed is True
+    assert stream._is_consumed
 
     with pytest.raises(IllegalStateError) as e:
         stream.map(lambda x: x * 10).to_list()
@@ -288,7 +288,7 @@ def test_reusing_stream():
 
 
 def test_compare_with():
-    assert Stream([1, 2]).compare_with(Stream([1, 2])) is True
+    assert Stream([1, 2]).compare_with(Stream([1, 2]))
     assert Stream([1, 2]).compare_with(Stream([2, 1])) is False
     assert Stream([1, 2]).compare_with(Stream([3, 4])) is False
 
@@ -298,7 +298,7 @@ def test_compare_with_custom_key(Foo):
     buzz = Foo("buzz", 2)
     comparator = lambda x, y: x.num == y.num  # noqa
 
-    assert Stream([fizz, buzz]).compare_with(Stream([fizz, buzz]), comparator) is True
+    assert Stream([fizz, buzz]).compare_with(Stream([fizz, buzz]), comparator)
     assert Stream([buzz, fizz]).compare_with(Stream([fizz, buzz]), comparator) is False
     assert Stream([fizz, buzz]).compare_with(Stream([buzz]), comparator) is False
 
@@ -352,7 +352,7 @@ def test_find_first_with_predicate():
 def test_find_first_in_empty_stream():
     result = Stream.empty().find_first()
     assert isinstance(result, Optional)
-    assert result.is_empty() is True
+    assert result.is_empty()
 
 
 def test_find_any():
@@ -366,12 +366,12 @@ def test_find_any_with_predicate():
 def test_find_any_in_empty_stream():
     result = Stream.empty().find_any()
     assert isinstance(result, Optional)
-    assert result.is_empty() is True
+    assert result.is_empty()
 
 
 # ### match ###
 def test_any_match():
-    assert Stream.of(1, 2, 3, 4).any_match(lambda x: x > 2) is True
+    assert Stream.of(1, 2, 3, 4).any_match(lambda x: x > 2)
 
 
 def test_any_match_false():
@@ -383,7 +383,7 @@ def test_any_match_empty():
 
 
 def test_all_match():
-    assert Stream.of(1, 2, 3, 4).all_match(lambda x: x > 0) is True
+    assert Stream.of(1, 2, 3, 4).all_match(lambda x: x > 0)
 
 
 def test_all_match_false():
@@ -391,11 +391,11 @@ def test_all_match_false():
 
 
 def test_all_match_empty():
-    assert Stream.empty().all_match(lambda x: x > 10) is True
+    assert Stream.empty().all_match(lambda x: x > 10)
 
 
 def test_none_match():
-    assert Stream.of(1, 2, 3, 4).none_match(lambda x: x < 0) is True
+    assert Stream.of(1, 2, 3, 4).none_match(lambda x: x < 0)
 
 
 def test_none_match_false():
@@ -418,7 +418,7 @@ def test_min_comparator():
 def test_min_empty():
     result = Stream.empty().min()
     assert isinstance(result, Optional)
-    assert result.is_empty() is True
+    assert result.is_empty()
 
 
 def test_min_default_value():
@@ -445,7 +445,7 @@ def test_max_comparator():
 def test_max_empty():
     result = Stream.empty().max()
     assert isinstance(result, Optional)
-    assert result.is_empty() is True
+    assert result.is_empty()
 
 
 def test_max_default_value():

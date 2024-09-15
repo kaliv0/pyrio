@@ -197,7 +197,9 @@ def test_consume_negative_start():
 
 
 def test_nth():
-    assert Stream.of(2, 3, 4).nth(1) == 3
+    stream = Stream.of(2, 3, 4)
+    assert stream.nth(1) == 3
+    assert stream._is_consumed
 
 
 def test_nth_default_value():
@@ -208,8 +210,14 @@ def test_nth_negative_index():
     assert Stream.of(2, 3, 4).nth(-1) == 4
 
 
+def test_nth_not_found():
+    assert Stream.empty().nth(2) is None
+
+
 def test_all_equal():
-    assert Stream([2, 2, 2]).all_equal(key=int)
+    stream = Stream([2, 2, 2])
+    assert stream.all_equal(key=int)
+    assert stream._is_consumed
 
 
 def test_all_equal_false():
@@ -302,3 +310,11 @@ def test_subslices():
 
 def test_subslices_empty_collection():
     assert Stream.empty().subslices().to_list() == []
+
+
+def test_partition():
+    # FIXME: returns generator with two nested ones
+    assert Stream(range(10)).partition(lambda x: x % 2 != 0).map(lambda x: list(x)).to_list() == [
+        [1, 3, 5, 7, 9],
+        [0, 2, 4, 6, 8],
+    ]

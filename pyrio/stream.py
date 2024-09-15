@@ -149,16 +149,10 @@ class Stream(ItertoolsMixin):
         return not all(predicate(i) for i in self._iterable)
 
     def min(self, comparator=None, default=None):
-        result = min(self._iterable, key=comparator, default=default)
-        if result:
-            return Optional.of(result)
-        return Optional.of_nullable(None)
+        return Optional.of_nullable(min(self._iterable, key=comparator, default=default))
 
     def max(self, comparator=None, default=None):
-        result = max(self._iterable, key=comparator, default=default)
-        if result:
-            return Optional.of(result)
-        return Optional.of_nullable(None)
+        return Optional.of_nullable(max(self._iterable, key=comparator, default=default))
 
     def compare_with(self, other, comparator=None):
         return Iterator.compare_with(self._iterable, other, comparator)
@@ -250,4 +244,11 @@ class Stream(ItertoolsMixin):
 
     def quantify(self, predicate=bool):
         """Given a predicate that returns True or False, count the True results."""
-        return sum(map(predicate, self._iterable))
+        return sum(self.map(predicate))
+
+    # NB: give access to handle_consumed decorator to toggle flag
+    def nth(self, idx, default=None):
+        return super().nth(idx, default)
+
+    def all_equal(self, key=None):
+        return super().all_equal(key)

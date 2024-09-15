@@ -2,8 +2,6 @@ import itertools as it
 from collections import deque
 from collections.abc import Iterable, Sized
 
-from pyrio.iterator import Iterator
-
 
 class ItertoolsMixin:
     _iterable: Iterable | Sized
@@ -71,7 +69,8 @@ class ItertoolsMixin:
 
     # ### 'recipes' ###
     def tabulate(self, mapper, start=0):
-        self._iterable = Iterator.map(it.count(start), mapper)  # TODO: fix?
+        # self._iterable = Iterator.map(it.count(start), mapper)
+        self._iterable = map(mapper, it.count(start))  # TODO: use Iterator.map?
         return self
 
     def repeat_func(self, operation, times=None):
@@ -92,8 +91,7 @@ class ItertoolsMixin:
         return self
 
     def nth(self, idx, default=None):
-        # FIXME
-        """Returns empty iterable if count is zero or negative"""
+        # FIXME -> return Optional
         if idx < 0:
             idx = len(self._iterable) + idx
         return next(it.islice(self._iterable, idx, None), default)
@@ -128,20 +126,27 @@ class ItertoolsMixin:
     @staticmethod
     def _sliding_window(iterable, n):
         """Collect data into overlapping fixed-length chunks or blocks"""
-        window = deque(it.islice(iterable, n - 1), maxlen=n)
+        window = deque(it.islice(iterable, n - 1), maxlen=n)  # FIXME deque -> collections.deque?
         for x in it.islice(iterable, n - 1, len(iterable)):
             window.append(x)
             yield tuple(window)
 
     # def grouper():
     # def round_robin():
-    # def partition():
+
+    def partition(self, predicate):
+        """Partitions entries into false entries and true entries."""
+
+        true_iter, false_iter = it.tee(self._iterable)
+        self._iterable = filter(predicate, true_iter), it.filterfalse(predicate, false_iter)
+        return self
 
     def subslices(self):
         """Return all contiguous non-empty sub-slices"""
         import operator
 
         slices = it.starmap(slice, it.combinations(range(len(self._iterable) + 1), 2))
+        # NB: Iterator.map doesn't support *iterables as args
         self._iterable = map(operator.getitem, it.repeat(self._iterable), slices)  # noqa
         return self
 

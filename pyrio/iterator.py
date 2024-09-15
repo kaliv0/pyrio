@@ -16,7 +16,7 @@ class Iterator:
             yield mapper(i)
 
     @staticmethod
-    def filter_map(iterable, mapper, falsy):
+    def filter_map(iterable, mapper, falsy=False):
         for i in iterable:
             if (not falsy and i is not None) or (falsy and i):
                 yield mapper(i)
@@ -38,7 +38,7 @@ class Iterator:
                 yield from Iterator.flatten(i)
 
     @staticmethod
-    def reduce(iterable, accumulator, identity):
+    def reduce(iterable, accumulator, identity=None):
         if len(iterable) == 0:
             return identity
 
@@ -123,12 +123,12 @@ class Iterator:
             yield x
 
     @staticmethod
-    def sorted(iterable, comparator, reverse):
+    def sorted(iterable, comparator=None, reverse=False):
         for i in sorted(iterable, key=comparator, reverse=reverse):
             yield i
 
     @staticmethod
-    def compare_with(iterable, other_iterable, comparator):
+    def compare_with(iterable, other_iterable, comparator=None):
         for i, j in zip(iterable, other_iterable):
             if (comparator and not comparator(i, j)) or i != j:
                 return False

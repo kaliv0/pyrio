@@ -2,7 +2,6 @@ from functools import wraps
 
 from pyrio.exception import IllegalStateError
 
-
 TERMINAL_FUNCTIONS = [
     "for_each",
     "reduce",
@@ -21,6 +20,9 @@ TERMINAL_FUNCTIONS = [
     "to_set",
     "to_dict",
     "group_by",
+    # itertools 'recipes'
+    "nth",
+    "all_equal",
 ]
 
 

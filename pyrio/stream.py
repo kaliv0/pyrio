@@ -237,9 +237,9 @@ class Stream(ItertoolsMixin):
             curr_group = _grouper(target_key)
             yield curr_key, curr_group
             # TODO: do we need this part
-            if curr_key == target_key:
-                for _ in curr_group:
-                    pass
+            # if curr_key == target_key:
+            #     for _ in curr_group:
+            #         pass
 
     def quantify(self, predicate=bool):
         """Counts the True results based on a given predicate"""

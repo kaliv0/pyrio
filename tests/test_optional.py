@@ -3,14 +3,13 @@ from contextlib import redirect_stdout
 
 import pytest
 
-from pyrio import Stream
 from pyrio.exception import NoSuchElementError, NullPointerError
 from pyrio.optional import Optional
 
 
 def test_optional_get_raises():
     with pytest.raises(NoSuchElementError) as e:
-        Stream.empty().find_first().get()
+        Optional.empty().get()
     assert str(e.value) == "Optional is empty"
 
 
@@ -21,8 +20,8 @@ def test_optional_of_none_raises():
 
 
 def test_print_optional():
-    assert str(Stream.of(1, 2, 3, 4).filter(lambda x: x % 2 == 0).find_first()) == "Optional[2]"
-    assert str(Stream.empty().filter(lambda x: x % 2 == 0).find_first()) == "Optional[None]"
+    assert str(Optional.of(2)) == "Optional[2]"
+    assert str(Optional.of_nullable(None)) == "Optional[None]"
 
 
 def test_is_empty():

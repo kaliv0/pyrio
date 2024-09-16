@@ -1,16 +1,6 @@
-- add combiner in reduce -> for parallelized streams
-
 - add description in readme for explicit kwargs (filter_map, sorted)
    NB -> accumulate -> 'func' in signature, 'function' in docs
 
 - add docstrings and types (+mypy)
 
-- add IntegerStream -> evens, odds, math funcs(?) -> or NumStream (support int and float)?
-
-- Stream:
-    - to_number_stream (similar to next one?)
-    - map_to_int/float
-    - flat_map_to_int/float
-
 - refactor imports
-- refactor Stream.group_by

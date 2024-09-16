@@ -154,7 +154,6 @@ class ItertoolsMixin:
             window.append(x)
             yield tuple(window)
 
-    # TODO: rename fill_value -> fillvalue as in zip_longest?
     def grouper(self, n, *, incomplete="fill", fill_value=None):
         """Collects data into non-overlapping fixed-length chunks or blocks."""
         self._iterable = self._grouper(n, incomplete, fill_value)

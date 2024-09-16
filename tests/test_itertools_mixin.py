@@ -198,20 +198,20 @@ def test_consume_negative_start():
 
 def test_nth():
     stream = Stream.of(2, 3, 4)
-    assert stream.nth(1) == 3
+    assert stream.nth(1).get() == 3
     assert stream._is_consumed
 
 
 def test_nth_default_value():
-    assert Stream.of(2, 3, 4).nth(10, default=66) == 66
+    assert Stream.of(2, 3, 4).nth(10, default=66).get() == 66
 
 
 def test_nth_negative_index():
-    assert Stream.of(2, 3, 4).nth(-1) == 4
+    assert Stream.of(2, 3, 4).nth(-1).get() == 4
 
 
 def test_nth_not_found():
-    assert Stream.empty().nth(2) is None
+    assert Stream.empty().nth(2).is_empty()
 
 
 def test_all_equal():

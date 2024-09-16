@@ -2,6 +2,8 @@ import itertools as it
 from collections import deque
 from collections.abc import Iterable, Sized
 
+from pyrio.optional import Optional
+
 
 class ItertoolsMixin:
     _iterable: Iterable | Sized
@@ -87,10 +89,9 @@ class ItertoolsMixin:
         return self
 
     def nth(self, idx, default=None):
-        # FIXME -> return Optional
         if idx < 0:
             idx = len(self._iterable) + idx
-        return next(it.islice(self._iterable, idx, None), default)
+        return Optional.of_nullable(next(it.islice(self._iterable, idx, None), default))
 
     def all_equal(self, key=None):
         return len(list(it.islice(it.groupby(self._iterable, key), 2))) <= 1

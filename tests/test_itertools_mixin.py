@@ -358,3 +358,68 @@ def test_grouper_invalid_incomplete_flag():
     with pytest.raises(ValueError) as e:
         Stream("ABCDEFG").grouper(3, incomplete="foo").to_list()
     assert str(e.value) == "Invalid incomplete flag 'foo', expected: 'fill', 'strict', or 'ignore'"
+
+
+# ### unique ###
+def test_unique():
+    assert Stream([[1, 2], [3, 4], [1, 2]]).unique().to_list() == [[1, 2], [3, 4]]
+
+
+def test_unique_reverse():
+    assert Stream([[1, 2], [3, 4], [1, 2]]).unique(reverse=True).to_list() == [[3, 4], [1, 2]]
+
+
+def test_unique_custom_key(Foo):
+    foo = Foo("foo", 1)
+    bar = Foo("bar", 2)
+    fizz = Foo("fizz", 3)
+    buzz = Foo("buzz", 4)
+    coll = [foo, bar, fizz, buzz, foo, bar]
+    assert Stream(coll).unique(key=lambda x: x.num).to_dict(lambda x: (x.name, x.num)) == {
+        "foo": 1,
+        "bar": 2,
+        "fizz": 3,
+        "buzz": 4,
+    }
+
+
+def test_unique_custom_key_reversed(Foo):
+    foo = Foo("foo", 1)
+    bar = Foo("bar", 2)
+    fizz = Foo("fizz", 3)
+    buzz = Foo("buzz", 4)
+    coll = [foo, bar, fizz, buzz, foo, bar]
+    assert Stream(coll).unique(key=lambda x: x.num, reverse=True).to_list() == [buzz, fizz, bar, foo]
+
+
+def test_unique_just_seen():
+    assert Stream("AAAABBBCCDAABBB").unique_just_seen().to_list() == ["A", "B", "C", "D", "A", "B"]
+
+
+def test_unique_just_seen_custom_key():
+    assert Stream("ABBcCAD").unique_just_seen(key=str.casefold).to_list() == ["A", "B", "c", "A", "D"]
+
+
+def test_unique_just_seen_empty_collection():
+    assert Stream([]).unique_just_seen().to_list() == []
+
+
+def test_unique_ever_seen():
+    assert Stream("AAAABBBCCDAABBB").unique_ever_seen().to_list() == ["A", "B", "C", "D"]
+
+
+def test_unique_ever_seen_custom_key():
+    assert Stream("ABBcCAD").unique_ever_seen(key=str.casefold).to_list() == ["A", "B", "c", "D"]
+
+
+# ### find_indices ###
+def test_find_indices():
+    assert Stream("AABCADEAF").find_indices("A").to_list() == [0, 1, 4, 7]
+
+
+def test_find_indices_custom_start():
+    assert Stream("AABCADEAF").find_indices(value="A", start=3).to_list() == [4, 7]
+
+
+def test_find_indices_custom_stop():
+    assert Stream("AABCADEAF").find_indices(value="A", stop=5).to_list() == [0, 1, 4]

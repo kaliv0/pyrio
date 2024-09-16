@@ -1,6 +1,7 @@
 import itertools as it
 from collections import deque
 from collections.abc import Iterable, Sized
+import operator
 
 from pyrio.optional import Optional
 
@@ -109,10 +110,36 @@ class ItertoolsMixin:
         self._iterable = it.islice(self._iterable, start, stop, step)
         return self
 
-    # def unique():
-    # def unique_justseen():
-    # def unique_everseen():
+    # ### unique ###
+    def unique(self, key=None, reverse=False):
+        """Yields unique elements in sorted order. Supports unhashable inputs"""
+        self._iterable = self._unique(sorted(self._iterable, key=key, reverse=reverse), key=key)
+        return self
 
+    @staticmethod
+    def _unique(iterable, key=None):
+        return map(next, map(operator.itemgetter(1), it.groupby(iterable, key)))
+
+    def unique_just_seen(self, key=None):
+        """Yields unique elements, preserving order. Remembers only the element just seen"""
+        self._iterable = map(next, map(operator.itemgetter(1), it.groupby(self._iterable, key)))
+        return self
+
+    def unique_ever_seen(self, key=None):
+        """Yields unique elements, preserving order. Remembers all elements ever seen"""
+        self._iterable = self._unique_ever_seen(self._iterable, key)
+        return self
+
+    @staticmethod
+    def _unique_ever_seen(iterable, key=None):
+        seen = set()
+        for element in iterable:
+            k = key(element) if key else element
+            if k not in seen:
+                seen.add(k)
+                yield element
+
+    # ### ###
     def sliding_window(self, n):
         if n < 0:
             raise ValueError("Window size cannot be negative")
@@ -169,11 +196,19 @@ class ItertoolsMixin:
 
     def subslices(self):
         """Return all contiguous non-empty sub-slices"""
-        import operator
-
         slices = it.starmap(slice, it.combinations(range(len(self._iterable) + 1), 2))
         # NB: Iterator.map doesn't support *iterables as args
         self._iterable = map(operator.getitem, it.repeat(self._iterable), slices)  # noqa
         return self
 
-    # def iter_index(): -> rename??
+    def find_indices(self, value, start=0, stop=None):
+        """Returns indices where a value occurs in a sequence or iterable"""
+        self._iterable = self._find_indices(self._iterable, value, start, stop)
+        return self
+
+    @staticmethod
+    def _find_indices(iterable, value, start=0, stop=None):
+        iterator = it.islice(iterable, start, stop)
+        for i, element in enumerate(iterator, start):
+            if element is value or element == value:
+                yield i

@@ -3,12 +3,9 @@
 - add description in readme for explicit kwargs (filter_map, sorted)
    NB -> accumulate -> 'func' in signature, 'function' in docs
 
-- write more tests for optional
 - add docstrings and types (+mypy)
 
 - add IntegerStream -> evens, odds, math funcs(?) -> or NumStream (support int and float)?
-
-- nth -> rename method -> take_nth?
 
 - Stream:
     - to_number_stream (similar to next one?)
@@ -16,3 +13,4 @@
     - flat_map_to_int/float
 
 - refactor imports
+- refactor Stream.group_by

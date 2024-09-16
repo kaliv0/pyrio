@@ -211,6 +211,7 @@ class Stream(ItertoolsMixin):
         return result
 
     def _group_by(self, classifier=None):
+        # https://docs.python.org/3/library/itertools.html#itertools.groupby
         classifier = (lambda x: x) if classifier is None else classifier
         iterator = iter(self._iterable)
         exhausted = False
@@ -235,8 +236,8 @@ class Stream(ItertoolsMixin):
             target_key = curr_key
             curr_group = _grouper(target_key)
             yield curr_key, curr_group
+            # TODO: do we need this part
             if curr_key == target_key:
-                # FIXME: refactor
                 for _ in curr_group:
                     pass
 
@@ -245,8 +246,8 @@ class Stream(ItertoolsMixin):
         return sum(self.map(predicate))
 
     # NB: give access to handle_consumed decorator to toggle flag
-    def nth(self, idx, default=None):
-        return super().nth(idx, default)
+    def take_nth(self, idx, default=None):
+        return super().take_nth(idx, default)
 
     def all_equal(self, key=None):
         return super().all_equal(key)

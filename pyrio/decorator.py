@@ -21,7 +21,7 @@ TERMINAL_FUNCTIONS = [
     "to_dict",
     "group_by",
     # itertools 'recipes'
-    "nth",
+    "take_nth",
     "all_equal",
 ]
 

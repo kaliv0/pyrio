@@ -202,22 +202,22 @@ def test_consume_negative_start():
     assert str(e.value) == "Consume boundary cannot be negative"
 
 
-def test_nth():
+def test_take_nth():
     stream = Stream.of(2, 3, 4)
-    assert stream.nth(1).get() == 3
+    assert stream.take_nth(1).get() == 3
     assert stream._is_consumed
 
 
-def test_nth_default_value():
-    assert Stream.of(2, 3, 4).nth(10, default=66).get() == 66
+def test_take_nth_default_value():
+    assert Stream.of(2, 3, 4).take_nth(10, default=66).get() == 66
 
 
-def test_nth_negative_index():
-    assert Stream.of(2, 3, 4).nth(-1).get() == 4
+def test_take_nth_negative_index():
+    assert Stream.of(2, 3, 4).take_nth(-1).get() == 4
 
 
-def test_nth_not_found():
-    assert Stream.empty().nth(2).is_empty()
+def test_take_nth_not_found():
+    assert Stream.empty().take_nth(2).is_empty()
 
 
 def test_all_equal():

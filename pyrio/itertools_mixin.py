@@ -67,6 +67,7 @@ class ItertoolsMixin:
         return self
 
     # ### 'recipes' ###
+    # https://docs.python.org/3/library/itertools.html#itertools-recipes
     def tabulate(self, mapper, start=0):
         self._iterable = map(mapper, it.count(start))
         return self
@@ -88,7 +89,7 @@ class ItertoolsMixin:
         self._iterable = it.islice(self._iterable, n, len(self._iterable))
         return self
 
-    def nth(self, idx, default=None):
+    def take_nth(self, idx, default=None):
         if idx < 0:
             idx = len(self._iterable) + idx
         return Optional.of_nullable(next(it.islice(self._iterable, idx, None), default))

@@ -26,4 +26,4 @@ jobs:
         poetry run ruff check --fix
         poetry run ruff format
     - name: Run tests
-      run: poetry run pytest -v
+      run: poetry run pytest -v --cov=./pyrio --cov-fail-under=90

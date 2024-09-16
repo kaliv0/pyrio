@@ -8,7 +8,7 @@ from pyrio.optional import Optional
 @pre_call(handle_consumed)
 class Stream(ItertoolsMixin):
     def __init__(self, iterable):
-        """creates Stream from a collection"""
+        """Creates Stream from a collection"""
         self._iterable = iterable
         self._is_consumed = False
 
@@ -17,7 +17,7 @@ class Stream(ItertoolsMixin):
 
     @staticmethod
     def of(*iterable):
-        """creates Stream from args"""
+        """Creates Stream from args"""
         return Stream(iterable)
 
     @staticmethod
@@ -26,12 +26,12 @@ class Stream(ItertoolsMixin):
 
     @staticmethod
     def iterate(seed, operation):
-        """creates infinite Stream"""
+        """Creates infinite Stream"""
         return Stream(Iterator.iterate(seed, operation))
 
     @staticmethod
     def generate(supplier):
-        """creates infinite Stream"""
+        """Creates infinite Stream"""
         return Stream(Iterator.generate(supplier))
 
     @staticmethod
@@ -240,7 +240,7 @@ class Stream(ItertoolsMixin):
                     pass
 
     def quantify(self, predicate=bool):
-        """Given a predicate that returns True or False, count the True results."""
+        """Counts the True results based on a given predicate"""
         return sum(self.map(predicate))
 
     # NB: give access to handle_consumed decorator to toggle flag

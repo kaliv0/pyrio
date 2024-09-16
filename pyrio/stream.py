@@ -111,7 +111,7 @@ class Stream(ItertoolsMixin):
 
     def tail(self, count):
         if count < 0:
-            raise ValueError("Take count cannot be negative")
+            raise ValueError("Tail count cannot be negative")
         self._iterable = Iterator.tail(self._iterable, count)
         return self
 
@@ -236,6 +236,7 @@ class Stream(ItertoolsMixin):
             curr_group = _grouper(target_key)
             yield curr_key, curr_group
             if curr_key == target_key:
+                # FIXME: refactor
                 for _ in curr_group:
                     pass
 

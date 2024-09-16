@@ -155,6 +155,12 @@ def test_zip_longest():
     )
 
 
+def test_args_only_raises():
+    with pytest.raises(ValueError) as e:
+        Stream.empty().use(it.count, 10, 2).limit(5).to_list()
+    assert str(e.value) == "Use keyword arguments only"
+
+
 # ### itertools  'recipes' ###
 def test_tabulate():
     assert Stream.empty().tabulate(lambda x: x**2).limit(3).to_list() == [0, 1, 4]

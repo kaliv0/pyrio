@@ -3,9 +3,7 @@
 - add description in readme for explicit kwargs (filter_map, sorted)
    NB -> accumulate -> 'func' in signature, 'function' in docs
 
-- write tests for errors
 - write more tests for optional
-- remove _iterable class variable from Mixin
 - add docstrings and types (+mypy)
 
 - add IntegerStream -> evens, odds, math funcs(?) -> or NumStream (support int and float)?

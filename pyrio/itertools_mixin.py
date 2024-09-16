@@ -68,8 +68,7 @@ class ItertoolsMixin:
 
     # ### 'recipes' ###
     def tabulate(self, mapper, start=0):
-        # self._iterable = Iterator.map(it.count(start), mapper)
-        self._iterable = map(mapper, it.count(start))  # TODO: use Iterator.map?
+        self._iterable = map(mapper, it.count(start))
         return self
 
     def repeat_func(self, operation, times=None):

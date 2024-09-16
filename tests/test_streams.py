@@ -105,6 +105,12 @@ def test_skip_bigger_than_stream_count():
     assert Stream([1, 2]).skip(5).to_tuple() == ()
 
 
+def test_skip_negative_count():
+    with pytest.raises(ValueError) as e:
+        Stream([1, 2]).skip(-5).to_tuple()
+    assert str(e.value) == "Skip count cannot be negative"
+
+
 # ### limit ###
 def test_limit():
     assert Stream([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).limit(3).to_tuple() == (1, 2, 3)
@@ -118,6 +124,19 @@ def test_limit_bigger_than_stream_count():
     assert Stream([1, 2]).limit(5).to_tuple() == (1, 2)
 
 
+def test_limit_negative_count():
+    with pytest.raises(ValueError) as e:
+        Stream([1, 2]).limit(-5).to_tuple()
+    assert str(e.value) == "Limit count cannot be negative"
+
+
+def test_head():
+    assert (
+        Stream([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).limit(3).to_tuple()
+        == Stream([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).head(3).to_tuple()
+    )
+
+
 # ### tail ###
 def test_tail():
     assert Stream.of(1, 2, 3, 4).tail(2).to_list() == [3, 4]
@@ -129,6 +148,12 @@ def test_tail_empty():
 
 def test_tail_bigger_than_stream_count():
     assert Stream([1, 2]).tail(5).to_tuple() == (1, 2)
+
+
+def test_tail_negative_count():
+    with pytest.raises(ValueError) as e:
+        Stream([1, 2]).tail(-5).to_tuple()
+    assert str(e.value) == "Tail count cannot be negative"
 
 
 # ### prepend ###
@@ -511,6 +536,20 @@ def test_collect():
         "3": 30,
         "4": 40,
     }
+
+
+def test_collect_missing_dict_collector_raises(Foo):
+    coll = [Foo("fizz", 1), Foo("fizz", 2), Foo("buzz", 2)]
+    with pytest.raises(ValueError) as e:
+        Stream(coll).collect(dict)
+    assert str(e.value) == "Missing dict_collector"
+
+
+def test_collect_invalid_type(Foo):
+    coll = [Foo("fizz", 1), Foo("fizz", 2), Foo("buzz", 2)]
+    with pytest.raises(ValueError) as e:
+        Stream(coll).collect(33)
+    assert str(e.value) == "Invalid collection type"
 
 
 def test_group_by():

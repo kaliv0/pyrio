@@ -39,7 +39,7 @@ class Optional:
 
     def if_present_or_else(self, action, empty_action):
         if self.is_present():
-            action(self.get())  # TODO: do we need return here?
+            action(self.get())
         else:
             empty_action()
 
@@ -48,14 +48,3 @@ class Optional:
 
     def or_else_get(self, supplier):
         return self._element if self.is_present() else supplier()
-
-    # TODO: do we need next two?
-    # def filter(self, predicate):
-    #     if self.is_present() and predicate(self.get()):
-    #         return self
-    #     return Optional.empty()
-    #
-    # def map(self, mapper):
-    #     if self.is_present():
-    #         return Optional.of_nullable(mapper(self.get()))
-    #     return Optional.empty()

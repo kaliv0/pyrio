@@ -20,3 +20,13 @@ def test_optional_of_none_raises():
 def test_print_optional():
     assert str(Stream.of(1, 2, 3, 4).filter(lambda x: x % 2 == 0).find_first()) == "Optional[2]"
     assert str(Stream.empty().filter(lambda x: x % 2 == 0).find_first()) == "Optional[None]"
+
+def test_get():
+    assert Optional.of(3).get() == 3
+
+def test_is_present():
+    assert Optional.of(3).is_present()
+
+def test_is_empty():
+    assert Optional.of(3).is_empty() is False
+    assert Optional.of_nullable(None).is_empty()

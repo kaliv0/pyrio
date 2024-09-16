@@ -322,3 +322,39 @@ def test_partition():
 
 def test_round_robin():
     assert Stream(["ABC", "D", "EF"]).round_robin().to_list() == ["A", "D", "E", "B", "F", "C"]
+
+
+def test_grouper_fill():
+    assert Stream("ABCDEFG").grouper(3, incomplete="fill", fill_value="x").to_list() == [
+        ("A", "B", "C"),
+        ("D", "E", "F"),
+        ("G", "x", "x"),
+    ]
+
+
+def test_grouper_default_incomplete():
+    assert Stream("ABCDEFG").grouper(3, fill_value="x").to_list() == [
+        ("A", "B", "C"),
+        ("D", "E", "F"),
+        ("G", "x", "x"),
+    ]
+
+
+def test_grouper_default_fillvalue():
+    assert Stream("ABCDEFG").grouper(3).to_list() == [("A", "B", "C"), ("D", "E", "F"), ("G", None, None)]
+
+
+def test_grouper_strict():
+    with pytest.raises(ValueError) as e:
+        Stream("ABCDEFG").grouper(3, incomplete="strict").to_list()
+    assert str(e.value) == "zip() argument 2 is shorter than argument 1"  # TODO: add custom error msg
+
+
+def test_grouper_ignore():
+    assert Stream("ABCDEFG").grouper(3, incomplete="ignore").to_list() == [("A", "B", "C"), ("D", "E", "F")]
+
+
+def test_grouper_invalid_incomplete_flag():
+    with pytest.raises(ValueError) as e:
+        Stream("ABCDEFG").grouper(3, incomplete="foo").to_list()
+    assert str(e.value) == "Invalid incomplete flag 'foo', expected: 'fill', 'strict', or 'ignore'"

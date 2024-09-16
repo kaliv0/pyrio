@@ -96,7 +96,6 @@ class ItertoolsMixin:
     def all_equal(self, key=None):
         return len(list(it.islice(it.groupby(self._iterable, key), 2))) <= 1
 
-    # TODO: start=None?
     def view(self, start=0, stop=None, step=None):
         if start < 0:
             start = len(self._iterable) + start
@@ -128,7 +127,25 @@ class ItertoolsMixin:
             window.append(x)
             yield tuple(window)
 
-    # def grouper():
+    # TODO: rename fill_value -> fillvalue as in zip_longest?
+    def grouper(self, n, *, incomplete="fill", fill_value=None):
+        """Collects data into non-overlapping fixed-length chunks or blocks."""
+        self._iterable = self._grouper(n, incomplete, fill_value)
+        return self
+
+    def _grouper(self, n, incomplete="fill", fill_value=None):
+        iterators = [iter(self._iterable)] * n
+        match incomplete:
+            case "fill":
+                return it.zip_longest(*iterators, fillvalue=fill_value)
+            case "strict":
+                return zip(*iterators, strict=True)
+            case "ignore":
+                return zip(*iterators)
+            case _:
+                raise ValueError(
+                    f"Invalid incomplete flag '{incomplete}', expected: 'fill', 'strict', or 'ignore'"
+                )
 
     def round_robin(self):
         """Visits input iterables in a cycle until each is exhausted."""

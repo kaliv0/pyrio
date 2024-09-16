@@ -6,10 +6,6 @@ from collections.abc import Iterable, Sized
 class ItertoolsMixin:
     _iterable: Iterable | Sized
 
-    # FIXME
-    # def __init__(self):
-    #     self._iterable = None
-
     def use(self, it_function, *args, **kwargs):
         import inspect
 
@@ -132,7 +128,19 @@ class ItertoolsMixin:
             yield tuple(window)
 
     # def grouper():
-    # def round_robin():
+
+    def round_robin(self):
+        """Visits input iterables in a cycle until each is exhausted."""
+        self._iterable = self._round_robin(self._iterable)
+        return self
+
+    @staticmethod
+    def _round_robin(iterable):
+        # Algorithm credited to George Sakkis
+        iterators = map(iter, iterable)
+        for num_active in range(len(iterable), 0, -1):
+            iterators = it.cycle(it.islice(iterators, num_active))
+            yield from map(next, iterators)
 
     def partition(self, predicate):
         """Partitions entries into false entries and true entries."""

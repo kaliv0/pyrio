@@ -318,3 +318,7 @@ def test_partition():
         [1, 3, 5, 7, 9],
         [0, 2, 4, 6, 8],
     ]
+
+
+def test_round_robin():
+    assert Stream(["ABC", "D", "EF"]).round_robin().to_list() == ["A", "D", "E", "B", "F", "C"]

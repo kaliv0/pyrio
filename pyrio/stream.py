@@ -9,9 +9,6 @@ from pyrio.optional import Optional
 class Stream(ItertoolsMixin):
     def __init__(self, iterable):
         """creates Stream from a collection"""
-        # FIXME
-        # super().__init__()
-
         self._iterable = iterable
         self._is_consumed = False
 

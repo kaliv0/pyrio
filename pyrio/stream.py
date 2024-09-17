@@ -42,7 +42,7 @@ class Stream(ItertoolsMixin):
 
     @staticmethod
     def concat(*streams):
-        """Concatenates several streams together or add new streams to current one"""
+        """Concatenates several streams together or add new streams to the current one"""
         return Stream(Iterator.concat(*streams))
 
     def prepend(self, *iterable):
@@ -66,7 +66,7 @@ class Stream(ItertoolsMixin):
         return self
 
     def flat_map(self, mapper):
-        """Maps each element of the stream and yields the elements of the produced iterators."""
+        """Maps each element of the stream and yields the elements of the produced iterators"""
         self._iterable = Iterator.flat_map(self._iterable, mapper)
         return self
 
@@ -193,6 +193,14 @@ class Stream(ItertoolsMixin):
 
     # ### collectors ###
     def collect(self, collection_type, dict_collector=None, dict_merger=None):
+        """Returns a collections from the stream.
+
+        In case of dict:
+        The 'dict_collector' function receives an element from the stream and returns a (key, value) pair
+        specifying how the dict should be constructed.
+
+        The 'dict_merger' functions indicates in the case of a collision (duplicate keys), which entry should be kept.
+        E.g. lambda old, new: new"""
         import builtins
 
         match collection_type:
@@ -210,15 +218,25 @@ class Stream(ItertoolsMixin):
                 raise ValueError("Invalid collection type")
 
     def to_list(self):
+        """Returns a list of the elements of the current stream"""
         return list(self._iterable)
 
     def to_tuple(self):
+        """Returns a tuple of the elements of the current stream"""
         return tuple(self._iterable)
 
     def to_set(self):
+        """Returns a set of the elements of the current stream"""
         return set(self._iterable)
 
     def to_dict(self, collector, merger=None):
+        """Returns a dict of the elements of the current stream.
+
+        The 'collector' function receives an element from the stream and returns a (key, value) pair
+        specifying how the dict should be constructed.
+
+        The 'merger' functions indicates in the case of a collision (duplicate keys), which entry should be kept.
+        E.g. lambda old, new: new"""
         result = {}
         for k, v in (collector(i) for i in self._iterable):
             if k in result:
@@ -274,12 +292,14 @@ class Stream(ItertoolsMixin):
                     pass
 
     def quantify(self, predicate=bool):
-        """Counts the True results based on a given predicate"""
+        """Count how many of the elements are Truthy or evaluate to True based on a given predicate"""
         return sum(self.map(predicate))
 
     # NB: give access to handle_consumed decorator to toggle flag
     def take_nth(self, idx, default=None):
+        """Returns Optional with the nth element of the stream or a default value"""
         return super().take_nth(idx, default)
 
     def all_equal(self, key=None):
+        """Returns True if all elements of the stream are equal to each other"""
         return super().all_equal(key)

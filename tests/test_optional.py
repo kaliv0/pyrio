@@ -4,7 +4,7 @@ from contextlib import redirect_stdout
 import pytest
 
 from pyrio.exception import NoSuchElementError, NullPointerError
-from pyrio.optional import Optional
+from pyrio import Optional
 
 
 def test_optional_get_raises():

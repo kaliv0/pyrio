@@ -20,7 +20,6 @@ TERMINAL_FUNCTIONS = [
     "to_set",
     "to_dict",
     "group_by",
-    # itertools 'recipes'
     "take_nth",
     "all_equal",
 ]

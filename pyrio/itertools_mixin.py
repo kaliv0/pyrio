@@ -69,7 +69,7 @@ class ItertoolsMixin:
     # ### 'recipes' ###
     # https://docs.python.org/3/library/itertools.html#itertools-recipes
     def tabulate(self, mapper, start=0):
-        """"Returns function(0), function(1), ..."""
+        """ "Returns function(0), function(1), ..."""
         self._iterable = map(mapper, it.count(start))
         return self
 

@@ -4,7 +4,7 @@ from contextlib import redirect_stdout
 import pytest
 
 from pyrio import Stream
-from pyrio.optional import Optional
+from pyrio import Optional
 from pyrio.exception import IllegalStateError
 
 

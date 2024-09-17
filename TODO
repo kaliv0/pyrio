@@ -1,6 +1,0 @@
-- add description in readme for explicit kwargs (filter_map, sorted)
-   NB -> accumulate -> 'func' in signature, 'function' in docs
-
-- add docstrings and types (+mypy)
-
-- refactor imports

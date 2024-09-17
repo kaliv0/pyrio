@@ -319,7 +319,6 @@ def test_subslices_empty_collection():
 
 
 def test_partition():
-    # FIXME: returns generator with two nested ones
     assert Stream(range(10)).partition(lambda x: x % 2 != 0).map(lambda x: list(x)).to_list() == [
         [1, 3, 5, 7, 9],
         [0, 2, 4, 6, 8],
@@ -353,7 +352,7 @@ def test_grouper_default_fillvalue():
 def test_grouper_strict():
     with pytest.raises(ValueError) as e:
         Stream("ABCDEFG").grouper(3, incomplete="strict").to_list()
-    assert str(e.value) == "zip() argument 2 is shorter than argument 1"  # TODO: add custom error msg
+    assert str(e.value) == "zip() argument 2 is shorter than argument 1"
 
 
 def test_grouper_ignore():

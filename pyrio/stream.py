@@ -15,32 +15,32 @@ class Stream(ItertoolsMixin):
     def __iter__(self):
         return iter(self._iterable)
 
-    @staticmethod
-    def of(*iterable):
+    @classmethod
+    def of(cls, *iterable):
         """Creates Stream from args"""
-        return Stream(iterable)
+        return cls(iterable)
 
-    @staticmethod
-    def empty():
-        return Stream([])
+    @classmethod
+    def empty(cls):
+        return cls([])
 
-    @staticmethod
-    def iterate(seed, operation):
+    @classmethod
+    def iterate(cls, seed, operation):
         """Creates infinite Stream"""
-        return Stream(Iterator.iterate(seed, operation))
+        return cls(Iterator.iterate(seed, operation))
 
-    @staticmethod
-    def generate(supplier):
+    @classmethod
+    def generate(cls, supplier):
         """Creates infinite Stream"""
-        return Stream(Iterator.generate(supplier))
+        return cls(Iterator.generate(supplier))
+
+    @classmethod
+    def constant(cls, element):
+        return cls.generate(lambda: element)
 
     @staticmethod
     def concat(*streams):
         return Stream(Iterator.concat(*streams))
-
-    @staticmethod
-    def constant(element):
-        return Stream.generate(lambda: element)
 
     def prepend(self, *iterable):
         self._iterable = Iterator.concat(iterable, self._iterable)
@@ -236,10 +236,9 @@ class Stream(ItertoolsMixin):
             target_key = curr_key
             curr_group = _grouper(target_key)
             yield curr_key, curr_group
-            # TODO: do we need this part
-            # if curr_key == target_key:
-            #     for _ in curr_group:
-            #         pass
+            if curr_key == target_key:
+                for _ in curr_group:
+                    pass
 
     def quantify(self, predicate=bool):
         """Counts the True results based on a given predicate"""

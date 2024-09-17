@@ -1,6 +1,5 @@
-import itertools as it
-from collections import deque
 from collections.abc import Iterable, Sized
+import itertools as it
 import operator
 
 from pyrio.optional import Optional
@@ -81,8 +80,10 @@ class ItertoolsMixin:
         return self
 
     def consume(self, n=None):
+        import collections
+
         if n is None:
-            self._iterable = deque(self._iterable, maxlen=0)
+            self._iterable = collections.deque(self._iterable, maxlen=0)
             return self
         if n < 0:
             raise ValueError("Consume boundary cannot be negative")
@@ -149,7 +150,9 @@ class ItertoolsMixin:
     @staticmethod
     def _sliding_window(iterable, n):
         """Collect data into overlapping fixed-length chunks or blocks"""
-        window = deque(it.islice(iterable, n - 1), maxlen=n)  # FIXME deque -> collections.deque?
+        import collections
+
+        window = collections.deque(it.islice(iterable, n - 1), maxlen=n)
         for x in it.islice(iterable, n - 1, len(iterable)):
             window.append(x)
             yield tuple(window)
@@ -188,7 +191,7 @@ class ItertoolsMixin:
 
     def partition(self, predicate):
         """Partitions entries into false entries and true entries."""
-
+        # NB: returns generator with two nested ones
         true_iter, false_iter = it.tee(self._iterable)
         self._iterable = filter(predicate, true_iter), it.filterfalse(predicate, false_iter)
         return self

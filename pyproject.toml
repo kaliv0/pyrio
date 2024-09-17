@@ -1,17 +1,18 @@
 [tool.poetry]
 name = "pyrio"
-version = "0.1.0"
+version = "1.0.0"
 description = "Java-inspired Streams Api"
 authors = ["kaliv0 <kaloyan.ivanov88@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.12"
-pytest-cov = "^5.0.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.6.3"
 pytest = "^8.3.2"
+pytest-cov = "^5.0.0"
+twine = "^5.1.1"
 
 [build-system]
 requires = ["poetry-core"]

@@ -9,6 +9,7 @@ class ItertoolsMixin:
     _iterable: Iterable | Sized
 
     def use(self, it_function, *args, **kwargs):
+        """Provides integration with itertools methods"""
         import inspect
 
         if args:
@@ -68,18 +69,22 @@ class ItertoolsMixin:
     # ### 'recipes' ###
     # https://docs.python.org/3/library/itertools.html#itertools-recipes
     def tabulate(self, mapper, start=0):
+        """"Returns function(0), function(1), ..."""
         self._iterable = map(mapper, it.count(start))
         return self
 
     def repeat_func(self, operation, times=None):
+        """Repeats calls to func with specified arguments"""
         self._iterable = it.starmap(operation, it.repeat(self._iterable, times=times))
         return self
 
     def ncycles(self, count=0):
+        """Returns the stream elements n times"""
         self._iterable = it.chain.from_iterable(it.repeat(tuple(self._iterable), count))
         return self
 
     def consume(self, n=None):
+        """Advances the iterator n-steps ahead. If n is None, consumes stream entirely"""
         import collections
 
         if n is None:
@@ -91,14 +96,17 @@ class ItertoolsMixin:
         return self
 
     def take_nth(self, idx, default=None):
+        """Returns Optional with the nth element of the stream or a default value"""
         if idx < 0:
             idx = len(self._iterable) + idx
         return Optional.of_nullable(next(it.islice(self._iterable, idx, None), default))
 
     def all_equal(self, key=None):
+        """Returns True if all elements of the stream are equal to each other"""
         return len(list(it.islice(it.groupby(self._iterable, key), 2))) <= 1
 
     def view(self, start=0, stop=None, step=None):
+        """Provides access to a selected part of the stream"""
         if start < 0:
             start = len(self._iterable) + start
 
@@ -142,6 +150,7 @@ class ItertoolsMixin:
 
     # ### ###
     def sliding_window(self, n):
+        """Collects data into overlapping fixed-length chunks or blocks"""
         if n < 0:
             raise ValueError("Window size cannot be negative")
         self._iterable = self._sliding_window(self._iterable, n)
@@ -149,7 +158,6 @@ class ItertoolsMixin:
 
     @staticmethod
     def _sliding_window(iterable, n):
-        """Collect data into overlapping fixed-length chunks or blocks"""
         import collections
 
         window = collections.deque(it.islice(iterable, n - 1), maxlen=n)
@@ -158,7 +166,7 @@ class ItertoolsMixin:
             yield tuple(window)
 
     def grouper(self, n, *, incomplete="fill", fill_value=None):
-        """Collects data into non-overlapping fixed-length chunks or blocks."""
+        """Collects data into non-overlapping fixed-length chunks or blocks"""
         self._iterable = self._grouper(n, incomplete, fill_value)
         return self
 
@@ -177,7 +185,7 @@ class ItertoolsMixin:
                 )
 
     def round_robin(self):
-        """Visits input iterables in a cycle until each is exhausted."""
+        """Visits input iterables in a cycle until each is exhausted"""
         self._iterable = self._round_robin(self._iterable)
         return self
 
@@ -190,16 +198,15 @@ class ItertoolsMixin:
             yield from map(next, iterators)
 
     def partition(self, predicate):
-        """Partitions entries into false entries and true entries."""
-        # NB: returns generator with two nested ones
+        """Partitions entries into false entries and true entries.
+        Returns a stream of two nested generators"""
         true_iter, false_iter = it.tee(self._iterable)
         self._iterable = filter(predicate, true_iter), it.filterfalse(predicate, false_iter)
         return self
 
     def subslices(self):
-        """Return all contiguous non-empty sub-slices"""
+        """Returns all contiguous non-empty sub-slices"""
         slices = it.starmap(slice, it.combinations(range(len(self._iterable) + 1), 2))
-        # NB: Iterator.map doesn't support *iterables as args
         self._iterable = map(operator.getitem, it.repeat(self._iterable), slices)  # noqa
         return self
 

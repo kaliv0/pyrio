@@ -11,7 +11,8 @@
 [![PyPI](https://img.shields.io/pypi/v/pyrio.svg)](https://pypi.org/project/pyrio/)
 [![Downloads](https://static.pepy.tech/badge/pyrio)](https://pepy.tech/project/pyrio)
 
-<br><b>Java-inspired Streams Api library</b>
+<br><b>Java-inspired Streams library</b>
+<br>Facilitates 'functional'-style processing of collections and iterables using fluent APIs
 <br>Provides easy integration with <i>itertools</i>
 <br>Commonly used <i>itertools 'recipes'</i> are included as part of the main APIs
 

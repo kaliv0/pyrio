@@ -102,7 +102,7 @@ def test_itertools_islice():
     letters = "ABCDEFG"
     assert Stream(letters).use(it.islice, stop=2).to_list() == list(it.islice(letters, 2))
     assert Stream(letters).use(it.islice, start=2, stop=None).to_list() == list(it.islice(letters, 2, None))
-    assert Stream(letters).use(it.islice, start=0, stop=None, setp=2).to_list() == list(
+    assert Stream(letters).use(it.islice, start=0, stop=None, step=2).to_list() == list(
         it.islice(letters, 0, None, 2)
     )
 

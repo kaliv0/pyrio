@@ -10,9 +10,6 @@ class Stream(BaseStream, ItertoolsMixin):
         """Creates Stream from a collection"""
         super().__init__(iterable)
 
-    def __iter__(self):
-        return iter(self._iterable)  # TODO: ???
-
     @classmethod
     def of(cls, *iterable):
         """Creates Stream from args"""

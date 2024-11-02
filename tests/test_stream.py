@@ -9,8 +9,6 @@ from pyrio.exception import IllegalStateError
 
 
 def test_stream():
-    # from pyrio.base_stream import BaseStream  # TODO: remove
-    # BaseStream([])
     assert Stream([1, 2, 3])._iterable == [1, 2, 3]
 
 

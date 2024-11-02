@@ -14,10 +14,8 @@ class BaseStream(ABC):
         self._iterable = iterable
         self._is_consumed = False
 
-    @abstractmethod
     def __iter__(self):
-        # return iter(self._iterable)  # TODO: ???
-        pass
+        return iter(self._iterable)
 
     def filter(self, predicate):
         """Filters values in stream based on given predicate function"""

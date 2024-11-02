@@ -38,9 +38,9 @@ def pre_call(function_decorator):
 def handle_consumed(func):
     @wraps(func)
     def wrapper(*args, **kw):
-        from pyrio import Stream
+        from pyrio.base_stream import BaseStream
 
-        if not args or isinstance(args[0], Stream) is False:
+        if not args or isinstance(args[0], BaseStream) is False:
             return func(*args, **kw)
 
         is_consumed = getattr(args[0], "_is_consumed", None)

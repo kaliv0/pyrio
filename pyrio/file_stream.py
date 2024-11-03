@@ -1,12 +1,12 @@
-import os
 from collections.abc import Mapping
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from pyrio.base_stream import BaseStream
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)  # FIXME: remove slots??
 class Item:
     key: Any
     value: Any
@@ -22,16 +22,21 @@ class FileStream(BaseStream):
 
     @staticmethod
     def _read_file(file_path):
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f"No such file or directory: {file_path}")
-        # TODO: raise if path is dir
+        path = Path(file_path)
+        if not path.exists():
+            raise FileNotFoundError(f"No such file or directory: '{file_path}'")
+        if path.is_dir():
+            raise IsADirectoryError(f"Given path '{file_path}' is a directory")
 
-        _, extension = os.path.splitext(file_path)
-        if extension == ".csv":  # TODO: handle .tsv files
+        extension = path.suffix
+        if extension in (".csv", ".tsv"):
             import csv
 
+            # TODO: give user access to newline param
             with open(file_path, newline="") as f:
-                return tuple(csv.DictReader(f))
+                # TODO: give control args in DictReader
+                delimiter = "\t" if extension == ".tsv" else ","
+                return tuple(csv.DictReader(f, delimiter=delimiter))
 
         with open(file_path, "rb") as f:
             match extension:
@@ -50,7 +55,7 @@ class FileStream(BaseStream):
                 case ".xml":
                     import xmltodict
 
-                    return xmltodict.parse(f)["root"]
+                    return xmltodict.parse(f).get("root")
 
                 case _:
                     raise TypeError("Unsupported file type")  # TODO

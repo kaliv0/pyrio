@@ -1,3 +1,5 @@
+from operator import itemgetter
+
 import pytest
 
 from pyrio.exception import IllegalStateError, UnsupportedFileTypeError
@@ -70,7 +72,7 @@ def test_complex_pipeline():
         FileStream("./tests/resources/long.json")
         .filter(lambda x: "a" in x.key)
         .map(lambda x: (x.key, sum(x.value) * 10))
-        .sorted(lambda x: x[1], reverse=True)
+        .sorted(itemgetter(1), reverse=True)
         .map(lambda x: f"{str(x[1])}::{x[0]}")
     ).to_list() == ["230::xza", "110::abba", "30::a"]
 

@@ -8,3 +8,7 @@ class NullPointerError(Exception):
 
 class NoSuchElementError(Exception):
     pass
+
+
+class UnsupportedFileTypeError(Exception):
+    pass

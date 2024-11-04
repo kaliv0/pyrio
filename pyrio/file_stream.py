@@ -4,9 +4,10 @@ from pathlib import Path
 from typing import Any
 
 from pyrio.base_stream import BaseStream
+from pyrio.exception import UnsupportedFileTypeError
 
 
-@dataclass(frozen=True, slots=True)  # FIXME: remove slots??
+@dataclass(frozen=True, slots=True)
 class Item:
     key: Any
     value: Any
@@ -32,9 +33,7 @@ class FileStream(BaseStream):
         if extension in (".csv", ".tsv"):
             import csv
 
-            # TODO: give user access to newline param
             with open(file_path, newline="") as f:
-                # TODO: give control args in DictReader
                 delimiter = "\t" if extension == ".tsv" else ","
                 return tuple(csv.DictReader(f, delimiter=delimiter))
 
@@ -58,4 +57,4 @@ class FileStream(BaseStream):
                     return xmltodict.parse(f).get("root")
 
                 case _:
-                    raise TypeError("Unsupported file type")  # TODO
+                    raise UnsupportedFileTypeError(f"Unsupported file type: '{extension}'")

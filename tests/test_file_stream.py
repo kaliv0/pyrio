@@ -1,4 +1,5 @@
 from operator import itemgetter
+from pathlib import Path
 
 import pytest
 
@@ -20,10 +21,18 @@ def test_path_is_dir_error():
     assert str(e.value) == f"Given path '{file_path}' is a directory"
 
 
-def test_file_type_error():
+@pytest.mark.parametrize(
+    "file_path",
+    [
+        "./tests/resources/fizz.buzz",
+        "./tests/resources/noextension",
+        "./tests/resources/empty.",
+    ],
+)
+def test_file_type_error(file_path):
     with pytest.raises(UnsupportedFileTypeError) as e:
-        FileStream("./tests/resources/fizz.buzz")
-    assert str(e.value) == "Unsupported file type: '.buzz'"
+        FileStream(file_path)
+    assert str(e.value) == f"Unsupported file type: '{Path(file_path).suffix}'"
 
 
 @pytest.mark.parametrize(

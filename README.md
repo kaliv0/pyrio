@@ -11,4 +11,4 @@
 [![PyPI](https://img.shields.io/pypi/v/pyrio.svg)](https://pypi.org/project/pyrio/)
 [![Downloads](https://static.pepy.tech/badge/pyrio)](https://pepy.tech/project/pyrio)
 
-<br>Java-inspired Streams Api
+<br>Java-inspired Streams API

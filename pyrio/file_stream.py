@@ -30,7 +30,7 @@ class FileStream(BaseStream):
             raise IsADirectoryError(f"Given path '{file_path}' is a directory")
 
         extension = path.suffix
-        if extension in (".csv", ".tsv"):
+        if extension in {".csv", ".tsv"}:
             import csv
 
             with open(file_path, newline="") as f:

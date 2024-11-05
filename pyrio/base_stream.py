@@ -69,7 +69,7 @@ class BaseStream(ABC):
         """Sums the elements of the stream"""
         if len(self._iterable) == 0:
             return 0
-        if any(isinstance(x, (int | float | None)) for x in self._iterable) is False:
+        if not any(isinstance(x, (int | float | None)) for x in self._iterable):
             raise ValueError("Cannot apply sum on non-number elements")
         return sum(self._iterable)
 
@@ -138,7 +138,7 @@ class BaseStream(ABC):
 
     def none_match(self, predicate):
         """Returns whether no elements of the stream match the given predicate"""
-        return not all(predicate(i) for i in self._iterable)
+        return any(not predicate(i) for i in self._iterable)
 
     def min(self, comparator=None, default=None):
         """Returns the minimum element of the stream according to the given comparator"""

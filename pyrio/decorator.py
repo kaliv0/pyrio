@@ -40,7 +40,7 @@ def handle_consumed(func):
     def wrapper(*args, **kw):
         from pyrio.base_stream import BaseStream
 
-        if not args or isinstance(args[0], BaseStream) is False:
+        if not args or not isinstance(args[0], BaseStream):
             return func(*args, **kw)
 
         is_consumed = getattr(args[0], "_is_consumed", None)

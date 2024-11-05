@@ -77,7 +77,7 @@ Stream([1, 2, 3]).map(lambda x: x + 5).to_list()
 ```
 
 - filter map
-  <br>(Filters out all None or falsy values (if falsy=True) and applies mapper function to the elements of the stream)
+<br>(filters out all None or falsy values (if falsy=True) and applies mapper function to the elements of the stream)
 ```python
 Stream.of(None, "foo", "", "bar", 0, []).filter_map(str.upper, falsy=True).to_list()
 ```
@@ -85,7 +85,8 @@ Stream.of(None, "foo", "", "bar", 0, []).filter_map(str.upper, falsy=True).to_li
 ["FOO", "BAR"]
 ```
 
-- reduce (similarly to Java returns Optional)
+- reduce 
+<br>(returns Optional)
 ```python
 Stream([1, 2, 3]).reduce(lambda acc, val: acc + val, identity=3).get()
 ```
@@ -148,6 +149,12 @@ Stream(coll).group_by(
   "fizz": [("fizz", 1), ("fizz", 2), ("fizz", 3)],
   "buzz": [("buzz", 2), ("buzz", 3), ("buzz", 4), ("buzz", 5)],
 }
+```
+## Other terminal operations
+- quantify
+<br>(counts how many of the elements are Truthy or evaluate to True based on a given predicate)
+```python
+Stream([2, 3, 4, 5, 6]).quantify(predicate=lambda x: x % 2 == 0)
 ```
 --------------------------------------------
 ## Itertools integration

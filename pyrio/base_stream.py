@@ -182,7 +182,7 @@ class BaseStream(ABC):
                 return self.to_dict(dict_collector, dict_merger)
             case _:
                 raise ValueError("Invalid collection type")
-    #
+
     def to_list(self):
         """Returns a list of the elements of the current stream"""
         return list(self._iterable)

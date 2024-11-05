@@ -18,7 +18,7 @@
 <br>(NB: Commonly used <i>itertools 'recipes'</i> are included as part of the main APIs)
 
 ## How to use
-### creating streams
+### Creating streams
 - stream from iterable
 ```python
 Stream([1, 2, 3])
@@ -49,8 +49,21 @@ Stream.generate(lambda: random.random())
 ```python
 Stream.constant(42)
 ```
+
+- concat
+<br>(concatenate several streams together or add new streams to the current one)
+```python
+Stream.concat((1, 2, 3), [5, 6]).to_list()
+Stream.of(1, 2, 3).concat([4, 5]).to_list()
+```
+
+- prepend
+<br>(prepend iterable to current stream)
+```python
+Stream([2, 3, 4]).prepend(0, 1).to_list()
+```
 --------------------------------------------
-### intermediate operations
+### Intermediate operations
 - filter
 ```python
 Stream([1, 2, 3]).filter(lambda x: x % 2 == 0)
@@ -76,18 +89,18 @@ Stream.of(None, "foo", "", "bar", 0, []).filter_map(str.upper, falsy=True).to_li
 Stream([1, 2, 3]).reduce(lambda acc, val: acc + val, identity=3).get()
 ```
 --------------------------------------------
-### terminal operations
+### Terminal operations
 - to_list
 ```python
 Stream([1, 2, 3]).to_list()
 ```
 --------------------------------------------
-## itertools integration
+## Itertools integration
 ```python
 import itertools
 Stream([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).use(itertools.islice, start=3, stop=8)
 ```
-### itertools 'recipes'
+### Itertools 'recipes'
 - tee
 ```python
 Stream([1, 2, 3]).ncycles(count=2).to_list()

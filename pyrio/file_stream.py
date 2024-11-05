@@ -47,7 +47,7 @@ class FileStream(BaseStream):
                     import json
 
                     return json.load(f)
-                case ".yaml":
+                case ".yaml" | ".yml":
                     import yaml
 
                     return yaml.safe_load(f)

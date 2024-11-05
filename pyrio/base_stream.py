@@ -10,7 +10,6 @@ from pyrio.optional import Optional
 class BaseStream(ABC):
     @abstractmethod
     def __init__(self, iterable):
-        """Creates new Stream"""
         self._iterable = iterable
         self._is_consumed = False
 

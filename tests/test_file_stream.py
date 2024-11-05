@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 
+from pyrio import FileStream
 from pyrio.exception import IllegalStateError, UnsupportedFileTypeError
-from pyrio.file_stream import FileStream
 
 
 def test_invalid_path_error():

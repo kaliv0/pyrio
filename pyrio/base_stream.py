@@ -10,23 +10,22 @@ from pyrio.optional import Optional
 class BaseStream(ABC):
     @abstractmethod
     def __init__(self, iterable):
-        """Creates new Stream"""
         self._iterable = iterable
         self._is_consumed = False
 
     def __iter__(self):
         return iter(self._iterable)
-
+    #
     def filter(self, predicate):
         """Filters values in stream based on given predicate function"""
         self._iterable = Iterator.filter(self._iterable, predicate)
         return self
-
+    #
     def map(self, mapper):
         """Returns a stream consisting of the results of applying the given function to the elements of this stream"""
         self._iterable = Iterator.map(self._iterable, mapper)
         return self
-
+    #
     def filter_map(self, mapper, *, falsy=False):
         """Filters out all None or falsy values and applies mapper function to the elements of the stream"""
         self._iterable = Iterator.filter_map(self._iterable, mapper, falsy)
@@ -41,7 +40,7 @@ class BaseStream(ABC):
         """Converts a Stream of multidimensional collection into a one-dimensional"""
         self._iterable = Iterator.flatten(self._iterable)
         return self
-
+    #
     def for_each(self, operation):
         """Performs an action for each element of this stream"""
         return Iterator.for_each(self._iterable, operation)
@@ -50,7 +49,7 @@ class BaseStream(ABC):
         """Performs the provided operation on each element of the stream without consuming it"""
         self._iterable = Iterator.peek(self._iterable, operation)
         return self
-
+    #
     def reduce(self, accumulator, identity=None):
         """Reduces the elements to a single one, by repeatedly applying a reducing operation.
         Returns Optional with the result, if any, or None"""
@@ -60,11 +59,11 @@ class BaseStream(ABC):
         """Returns a stream with the distinct elements of the current one"""
         self._iterable = Iterator.distinct(self._iterable)
         return self
-
+    #
     def count(self):
         """Returns the count of elements in the stream"""
         return len(tuple(self._iterable))
-
+    #
     def sum(self):
         """Sums the elements of the stream"""
         if len(self._iterable) == 0:
@@ -110,12 +109,12 @@ class BaseStream(ABC):
         """Returns a stream that skips elements based on a predicate and yields the remaining ones"""
         self._iterable = Iterator.drop_while(self._iterable, predicate)
         return self
-
+    #
     def find_first(self, predicate=None):
         """Searches for an element of the stream that satisfies a predicate.
         Returns an Optional with the first found value, if any, or None"""
         return Optional.of_nullable(next(filter(predicate, self._iterable), None))
-
+    #
     def find_any(self, predicate=None):
         """Searches for an element of the stream that satisfies a predicate.
         Returns an Optional with some of the found values, if any, or None"""
@@ -127,27 +126,27 @@ class BaseStream(ABC):
             return Optional.of(random.choice(list(self._iterable)))
         except IndexError:
             return Optional.of_nullable(None)
-
+    #
     def any_match(self, predicate):
         """Returns whether any elements of the stream match the given predicate"""
         return any(predicate(i) for i in self._iterable)
-
+    #
     def all_match(self, predicate):
         """Returns whether all elements of the stream match the given predicate"""
         return all(predicate(i) for i in self._iterable)
-
+    #
     def none_match(self, predicate):
         """Returns whether no elements of the stream match the given predicate"""
         return any(not predicate(i) for i in self._iterable)
-
+    #
     def min(self, comparator=None, default=None):
         """Returns the minimum element of the stream according to the given comparator"""
         return Optional.of_nullable(min(self._iterable, key=comparator, default=default))
-
+    #
     def max(self, comparator=None, default=None):
         """Returns the maximum element of the stream according to the given comparator"""
         return Optional.of_nullable(max(self._iterable, key=comparator, default=default))
-
+    #
     def compare_with(self, other, comparator=None):
         """Compares current stream with another one based on a given comparator"""
         return Iterator.compare_with(self._iterable, other, comparator)

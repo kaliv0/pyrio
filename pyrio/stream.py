@@ -45,7 +45,7 @@ class Stream(BaseStream, ItertoolsMixin):
         self._iterable = Iterator.concat(iterable, self._iterable)
         return self
 
-    # NB: give access to handle_consumed decorator to toggle flag
+    # NB: handle_consumed decorator needs access to toggle flag
     def take_nth(self, idx, default=None):
         """Returns Optional with the nth element of the stream or a default value"""
         return super().take_nth(idx, default)

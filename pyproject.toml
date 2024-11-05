@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyrio"
-version = "1.0.5"
+version = "1.0.0"
 authors = ["kaliv0 <kaloyan.ivanov88@gmail.com>"]
 readme = "README.md"
 description = "Java-inspired Streams library for 'functional'-style processing of collections and iterables using fluent APIs. Provides easy integration with itertools."

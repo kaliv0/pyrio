@@ -1,12 +1,16 @@
 [tool.poetry]
 name = "pyrio"
 version = "1.0.0"
-description = "Java-inspired Streams Api"
 authors = ["kaliv0 <kaloyan.ivanov88@gmail.com>"]
 readme = "README.md"
+description = "Java-inspired Streams library for 'functional'-style processing of collections and iterables using fluent APIs. Provides easy integration with itertools."
+keywords = ["Stream", "functional", "processing", "collections", "fluent API"]
+repository = "https://github.com/kaliv0/pyrio"
 
 [tool.poetry.dependencies]
 python = "^3.12"
+pyyaml = "^6.0.2"
+xmltodict = "^0.14.2"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.6.3"

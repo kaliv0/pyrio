@@ -1,5 +1,6 @@
 import io
 from contextlib import redirect_stdout
+from operator import itemgetter
 
 import pytest
 
@@ -268,7 +269,7 @@ def test_sorted_reverse():
 
 
 def test_sorted_comparator_function():
-    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sorted(lambda x: x[1]).to_list() == [
+    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sorted(itemgetter(1)).to_list() == [
         ("1", 10),
         ("2", 20),
         ("3", 30),
@@ -284,7 +285,7 @@ def test_sorted_multiple_keys():
 
 def test_sorted_comparator_and_reverse():
     assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sorted(
-        lambda x: x[1], reverse=True
+        itemgetter(1), reverse=True
     ).to_list() == [
         ("5", 50),
         ("3", 30),
@@ -294,7 +295,7 @@ def test_sorted_comparator_and_reverse():
 
 
 def test_complex_pipeline():
-    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sorted(lambda x: x[1], reverse=True).to_dict(
+    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sorted(itemgetter(1), reverse=True).to_dict(
         lambda x: (x[0], x[1])
     ) == {"5": 50, "3": 30, "2": 20, "1": 10}
 

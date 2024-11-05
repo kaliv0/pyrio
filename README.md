@@ -42,6 +42,7 @@ Stream.iterate(0, lambda x: x + 1)
 - infinite unordered stream
 ```python
 import random
+
 Stream.generate(lambda: random.random())
 ```
 
@@ -90,14 +91,69 @@ Stream([1, 2, 3]).reduce(lambda acc, val: acc + val, identity=3).get()
 ```
 --------------------------------------------
 ### Terminal operations
-- to_list
+## Collectors
+- collecting result into list, tuple, set
 ```python
 Stream([1, 2, 3]).to_list()
+Stream([1, 2, 3]).to_tuple()
+Stream([1, 2, 3]).to_set()
+```
+
+- into dict
+```python
+class Foo:
+    def __init__(self, name, num):
+        self.name = name
+        self.num = num
+        
+Stream([Foo("fizz", 1), Foo("buzz", 2)]).to_dict(lambda x: (x.name, x.num))
+```
+```shell
+{"fizz": 1, "buzz": 2}
+```
+
+In the case of a collision (duplicate keys) the 'merger' functions indicates which entry should be kept
+```python
+collection = [Foo("fizz", 1), Foo("fizz", 2), Foo("buzz", 2)]
+Stream(collection).to_dict(collector=lambda x: (x.name, x.num), merger=lambda old, new: old)
+```
+```shell
+{"fizz": 1, "buzz": 2}
+```
+
+- alternative for working with collectors is using the <i>collect</i> method
+```python
+Stream([1, 2, 3]).collect(tuple)
+Stream.of(1, 2, 3).collect(list)
+Stream.of(1, 1, 2, 2, 2, 3).collect(set)
+Stream.of(1, 2, 3, 4).collect(dict, lambda x: (str(x), x * 10))
+```
+
+- grouping
+```python
+Stream("AAAABBBCCD").group_by(collector=lambda k, g: (k, len(g)))
+```
+```shell
+{"A": 4, "B": 3, "C": 2, "D": 1}
+```
+
+```python
+coll = [Foo("fizz", 1), Foo("fizz", 2), Foo("fizz", 3), Foo("buzz", 2), Foo("buzz", 3), Foo("buzz", 4), Foo("buzz", 5)]
+Stream(coll).group_by(
+    classifier=lambda obj: obj.name,
+    collector=lambda key, grouper: (key, [(obj.name, obj.num) for obj in list(grouper)]))
+```
+```shell
+{
+  "fizz": [("fizz", 1), ("fizz", 2), ("fizz", 3)],
+  "buzz": [("buzz", 2), ("buzz", 3), ("buzz", 4), ("buzz", 5)],
+}
 ```
 --------------------------------------------
 ## Itertools integration
 ```python
 import itertools
+
 Stream([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).use(itertools.islice, start=3, stop=8)
 ```
 ### Itertools 'recipes'

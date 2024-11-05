@@ -92,7 +92,7 @@ Stream([1, 2, 3]).reduce(lambda acc, val: acc + val, identity=3).get()
 ```
 --------------------------------------------
 ### Terminal operations
-## Collectors
+#### Collectors
 - collecting result into list, tuple, set
 ```python
 Stream([1, 2, 3]).to_list()
@@ -132,7 +132,7 @@ Stream.of(1, 2, 3, 4).collect(dict, lambda x: (str(x), x * 10))
 
 - grouping
 ```python
-Stream("AAAABBBCCD").group_by(collector=lambda k, g: (k, len(g)))
+Stream("AAAABBBCCD").group_by(collector=lambda key, grouper: (key, len(grouper)))
 ```
 ```shell
 {"A": 4, "B": 3, "C": 2, "D": 1}
@@ -150,26 +150,96 @@ Stream(coll).group_by(
   "buzz": [("buzz", 2), ("buzz", 3), ("buzz", 4), ("buzz", 5)],
 }
 ```
-## Other terminal operations
+#### Other terminal operations
+- for_each
+```python
+Stream([1, 2, 3, 4]).for_each(lambda x: print(f"{'#' * x} ", end=""))
+```
+
+- count
+<br>(returns the count of elements in the stream)
+```python
+Stream([1, 2, 3, 4]).filter(lambda x: x % 2 == 0).count()
+```
+
+- sum
+```python
+Stream.of(1, 2, 3, 4).sum() 
+```
+
+- find_first
+<br>(searches for an element of the stream that satisfies a predicate,
+returns an Optional with the first found value, if any, or None)
+```python
+Stream.of(1, 2, 3, 4).filter(lambda x: x % 2 == 0).find_first().get()
+```
+
+- find_any
+<br>(searches for an element of the stream that satisfies a predicate,
+returns an Optional with some of the found values, if any, or None)
+```python
+Stream.of(1, 2, 3, 4).filter(lambda x: x % 2 == 0).find_any().get()
+```
+
+- any_match
+<br>(returns whether any elements of the stream match the given predicate)
+```python
+Stream.of(1, 2, 3, 4).any_match(lambda x: x > 2)
+```
+
+- all_match
+<br>(returns whether all elements of the stream match the given predicate)
+```python
+Stream.of(1, 2, 3, 4).all_match(lambda x: x > 2)
+```
+
+- none_match
+<br>(returns whether no elements of the stream match the given predicate)
+```python
+Stream.of(1, 2, 3, 4).none_match(lambda x: x < 0)
+```
+
+- min
+<br>(returns Optional with the minimum element of the stream)
+```python
+Stream.of(2, 1, 3, 4).min().get()
+```
+
+- max
+<br>(returns Optional with the maximum element of the stream)
+```python
+Stream.of(2, 1, 3, 4).max().get()
+```
+
+- compare_with
+<br>(compares linearly the contents of two streams based on a given comparator)
+```python
+fizz = Foo("fizz", 1)
+buzz = Foo("buzz", 2)
+comparator = lambda x, y: x.num == y.num
+
+Stream([buzz, fizz]).compare_with(Stream([fizz, buzz]), lambda x, y: x.num == y.num)
+```
+
 - quantify
 <br>(counts how many of the elements are Truthy or evaluate to True based on a given predicate)
 ```python
 Stream([2, 3, 4, 5, 6]).quantify(predicate=lambda x: x % 2 == 0)
 ```
 --------------------------------------------
-## Itertools integration
+### Itertools integration
 ```python
 import itertools
 
 Stream([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).use(itertools.islice, start=3, stop=8)
 ```
-### Itertools 'recipes'
+#### Itertools 'recipes'
 - tee
 ```python
 Stream([1, 2, 3]).ncycles(count=2).to_list()
 ```
 --------------------------------------------
-## Querying files with FileStream
+### Querying files with FileStream
 - working with <i>json</i>, <i>toml</i>, <i>yaml</i>, <i>xml</i> files
 ```python
 FileStream("path/to/file").map(lambda x: f"{x.key}=>{x.value}").to_tuple()

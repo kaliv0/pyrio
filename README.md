@@ -216,8 +216,6 @@ Stream.of(2, 1, 3, 4).max().get()
 ```python
 fizz = Foo("fizz", 1)
 buzz = Foo("buzz", 2)
-comparator = lambda x, y: x.num == y.num
-
 Stream([buzz, fizz]).compare_with(Stream([fizz, buzz]), lambda x, y: x.num == y.num)
 ```
 

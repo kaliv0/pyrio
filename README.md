@@ -105,3 +105,49 @@ Stream([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).use(itertools.islice, start=3, stop=8)
 ```python
 Stream([1, 2, 3]).ncycles(count=2).to_list()
 ```
+--------------------------------------------
+## Querying files with FileStream
+- working with <i>json</i>, <i>toml</i>, <i>yaml</i>, <i>xml</i> files
+```python
+FileStream("path/to/file").map(lambda x: f"{x.key}=>{x.value}").to_tuple()
+```
+```shell
+(
+  "abc=>xyz", 
+  "qwerty=>42",
+)
+```
+```python
+from operator import itemgetter
+
+(FileStream("path/to/file")
+    .filter(lambda x: "a" in x.key)
+    .map(lambda x: (x.key, sum(x.value) * 10))
+    .sorted(itemgetter(1), reverse=True)
+    .map(lambda x: f"{str(x[1])}::{x[0]}")
+    .to_list()) 
+```
+```shell
+["230::xza", "110::abba", "30::a"]
+```
+FileStream reads data as series of Item objects with key/value attributes.
+
+- querying <i>csv</i> and <i>tsv</i> files
+<br>(each row is read as a dict with keys taken from the header row)
+```python
+FileStream("path/to/file").map(lambda x: f"fizz: {x['fizz']}, buzz: {x['buzz']}").to_tuple() 
+```
+```shell
+(
+  "fizz: 42, buzz: 45",
+  "fizz: aaa, buzz: bbb",
+)
+```
+```python
+from operator import itemgetter
+
+FileStream("path/to/file").map(itemgetter('fizz', 'buzz')).to_tuple()
+```
+```shell
+(('42', '45'), ('aaa', 'bbb'))
+```

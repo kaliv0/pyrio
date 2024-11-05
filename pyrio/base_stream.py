@@ -15,17 +15,17 @@ class BaseStream(ABC):
 
     def __iter__(self):
         return iter(self._iterable)
-
+    #
     def filter(self, predicate):
         """Filters values in stream based on given predicate function"""
         self._iterable = Iterator.filter(self._iterable, predicate)
         return self
-
+    #
     def map(self, mapper):
         """Returns a stream consisting of the results of applying the given function to the elements of this stream"""
         self._iterable = Iterator.map(self._iterable, mapper)
         return self
-
+    #
     def filter_map(self, mapper, *, falsy=False):
         """Filters out all None or falsy values and applies mapper function to the elements of the stream"""
         self._iterable = Iterator.filter_map(self._iterable, mapper, falsy)
@@ -49,7 +49,7 @@ class BaseStream(ABC):
         """Performs the provided operation on each element of the stream without consuming it"""
         self._iterable = Iterator.peek(self._iterable, operation)
         return self
-
+    #
     def reduce(self, accumulator, identity=None):
         """Reduces the elements to a single one, by repeatedly applying a reducing operation.
         Returns Optional with the result, if any, or None"""
@@ -182,7 +182,7 @@ class BaseStream(ABC):
                 return self.to_dict(dict_collector, dict_merger)
             case _:
                 raise ValueError("Invalid collection type")
-
+    #
     def to_list(self):
         """Returns a list of the elements of the current stream"""
         return list(self._iterable)

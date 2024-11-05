@@ -16,21 +16,64 @@
 <br>Gives access to files of various types (<i>json</i>, <i>toml</i>, <i>yaml</i>, <i>xml</i>, <i>csv</i> and <i>tsv</i>) for reading and executing complex queries
 <br>Provides easy integration with <i>itertools</i>
 <br>(NB: Commonly used <i>itertools 'recipes'</i> are included as part of the main APIs)
+
 ## How to use
 ### creating streams
 - stream from iterable
 ```python
 Stream([1, 2, 3])
 ```
+
+- from variadic arguments
+```python
+Stream.of(1, 2, 3)
+```
+
 - empty stream
 ```python
 Stream.empty()
+```
+
+- infinite ordered stream
+```python
+Stream.iterate(0, lambda x: x + 1)
+```
+
+- infinite unordered stream
+```python
+import random
+Stream.generate(lambda: random.random())
+```
+
+- infinite stream with given value
+```python
+Stream.constant(42)
 ```
 --------------------------------------------
 ### intermediate operations
 - filter
 ```python
 Stream([1, 2, 3]).filter(lambda x: x % 2 == 0)
+```
+
+- map
+```python
+Stream([1, 2, 3]).map(str).to_list()
+Stream([1, 2, 3]).map(lambda x: x + 5).to_list()
+```
+
+- filter map
+  <br>(Filters out all None or falsy values (if falsy=True) and applies mapper function to the elements of the stream)
+```python
+Stream.of(None, "foo", "", "bar", 0, []).filter_map(str.upper, falsy=True).to_list()
+```
+```shell
+["FOO", "BAR"]
+```
+
+- reduce (similarly to Java returns Optional)
+```python
+Stream([1, 2, 3]).reduce(lambda acc, val: acc + val, identity=3).get()
 ```
 --------------------------------------------
 ### terminal operations

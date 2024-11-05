@@ -55,6 +55,5 @@ class FileStream(BaseStream):
                     import xmltodict
 
                     return xmltodict.parse(f).get("root")
-
                 case _:
                     raise UnsupportedFileTypeError(f"Unsupported file type: '{extension}'")

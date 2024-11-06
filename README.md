@@ -9,7 +9,7 @@
 [![tests](https://img.shields.io/github/actions/workflow/status/kaliv0/pyrio/ci.yml)](https://github.com/kaliv0/pyrio/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/kaliv0/pyrio/graph/badge.svg?token=7EEG43BL33)](https://codecov.io/gh/kaliv0/pyrio)
 [![PyPI](https://img.shields.io/pypi/v/pyrio.svg)](https://pypi.org/project/pyrio/)
-[![Downloads](https://static.pepy.tech/badge/pyrio)](https://pepy.tech/project/pyrio)
+[![Downloads](https://static.pepy.tech/badge/pyrio)](https://pepy.tech/projects/pyrio)
 
 <br><b>Functional-style Streams API library</b><br>
 <br>Facilitates processing of collections and iterables using fluent APIs.

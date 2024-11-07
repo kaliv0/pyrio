@@ -76,8 +76,8 @@ Stream([1, 2, 3]).map(str).to_list()
 Stream([1, 2, 3]).map(lambda x: x + 5).to_list()
 ```
 
-- filter map
-<br>(filters out all None or falsy values (if falsy=True) and applies mapper function to the elements of the stream)
+- filter_map
+<br>(filter out all None or falsy values (if falsy=True) and applies mapper function to the elements of the stream)
 ```python
 Stream.of(None, "foo", "", "bar", 0, []).filter_map(str.upper, falsy=True).to_list()
 ```
@@ -85,10 +85,92 @@ Stream.of(None, "foo", "", "bar", 0, []).filter_map(str.upper, falsy=True).to_li
 ["FOO", "BAR"]
 ```
 
+- flat_map
+<br>(map each element of the stream and yields the elements of the produced iterators)
+```python
+Stream([[1, 2], [3, 4], [5]]).flat_map(lambda x: Stream(x)).to_list()
+```
+```shell
+[1, 2, 3, 4, 5]
+```
+
+- flatten
+```python
+Stream([[1, 2], [3, 4], [5]]).flatten().to_list()
+```
+```shell
+[1, 2, 3, 4, 5]
+```
+
 - reduce 
 <br>(returns Optional)
 ```python
 Stream([1, 2, 3]).reduce(lambda acc, val: acc + val, identity=3).get()
+```
+
+- peek
+<br>(perform the provided operation on each element of the stream without consuming it)
+```python
+(Stream([1, 2, 3, 4])
+    .filter(lambda x: x > 2)
+    .peek(lambda x: print(f"{x} ", end=""))
+    .map(lambda x: x * 20)
+    .to_list())
+```
+
+- distinct
+<br>(returns a stream with the distinct elements of the current one)
+```python
+Stream([1, 1, 2, 2, 2, 3]).distinct().to_list()
+```
+
+- skip
+<br>(discards the first n elements of the stream and returns a new stream with the remaining ones)
+```python
+Stream.iterate(0, lambda x: x + 1).skip(5).limit(5).to_list()
+```
+
+- limit / head
+<br>(returns a stream with the first n elements, or fewer if the underlying iterator ends sooner)
+```python
+Stream([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).limit(3).to_tuple()
+Stream([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).head(3).to_tuple()
+```
+
+- tail
+<br>(returns a stream with the last n elements, or fewer if the underlying iterator ends sooner)
+```python
+Stream([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).tail(3).to_tuple()
+```
+
+- take_while
+<br>(returns a stream that yields elements based on a predicate)
+```python
+Stream.of(1, 2, 3, 4, 5, 6, 7, 2, 3).take_while(lambda x: x < 5).to_list()
+```
+```shell
+[1, 2, 3, 4]
+```
+
+- drop_while
+<br>(returns a stream that skips elements based on a predicate and yields the remaining ones)
+```python
+Stream.of(1, 2, 3, 5, 6, 7, 2).drop_while(lambda x: x < 5).to_list()
+```
+```shell
+[5, 6, 7, 2]
+```
+
+- sorted
+<br>(sorts the elements of the current stream according to natural order or based on the given comparator;
+<br>if 'reverse' flag is True, the elements are sorted in descending order)
+```python
+(Stream.of((3, 30), (2, 30), (2, 20), (1, 20), (1, 10))
+    .sorted(lambda x: (x[0], x[1]), reverse=True)
+    .to_list())
+```
+```shell
+[(3, 30), (2, 30), (2, 20), (1, 20), (1, 10)]
 ```
 --------------------------------------------
 ### Terminal operations
@@ -168,14 +250,14 @@ Stream.of(1, 2, 3, 4).sum()
 ```
 
 - find_first
-<br>(searches for an element of the stream that satisfies a predicate,
+<br>(search for an element of the stream that satisfies a predicate,
 returns an Optional with the first found value, if any, or None)
 ```python
 Stream.of(1, 2, 3, 4).filter(lambda x: x % 2 == 0).find_first().get()
 ```
 
 - find_any
-<br>(searches for an element of the stream that satisfies a predicate,
+<br>(search for an element of the stream that satisfies a predicate,
 returns an Optional with some of the found values, if any, or None)
 ```python
 Stream.of(1, 2, 3, 4).filter(lambda x: x % 2 == 0).find_any().get()
@@ -220,7 +302,7 @@ Stream([buzz, fizz]).compare_with(Stream([fizz, buzz]), lambda x, y: x.num == y.
 ```
 
 - quantify
-<br>(counts how many of the elements are Truthy or evaluate to True based on a given predicate)
+<br>(count how many of the elements are Truthy or evaluate to True based on a given predicate)
 ```python
 Stream([2, 3, 4, 5, 6]).quantify(predicate=lambda x: x % 2 == 0)
 ```

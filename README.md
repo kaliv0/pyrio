@@ -118,6 +118,15 @@ Stream([1, 2, 3]).reduce(lambda acc, val: acc + val, identity=3).get()
     .to_list())
 ```
 
+- view
+<br>(provides access to a selected part of the stream)
+```python
+Stream([1, 2, 3, 4, 5, 6, 7, 8, 9]).view(start=1, stop=-3, step=2).to_list()
+```
+```shell
+[2, 4, 6]
+```
+
 - distinct
 <br>(returns a stream with the distinct elements of the current one)
 ```python
@@ -308,15 +317,22 @@ Stream([2, 3, 4, 5, 6]).quantify(predicate=lambda x: x % 2 == 0)
 ```
 --------------------------------------------
 ### Itertools integration
+Invoke <i>use</i> method by passing the itertools function and it's arguments as **kwargs
 ```python
 import itertools
+import operator
 
 Stream([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).use(itertools.islice, start=3, stop=8)
+Stream.of(1, 2, 3, 4, 5).use(itertools.accumulate, func=operator.mul).to_list()
+Stream(range(3)).use(itertools.permutations, r=3).to_list()
+
 ```
 #### Itertools 'recipes'
-- tee
+Invoke the 'recipes' described [here](https://docs.python.org/3/library/itertools.html#itertools-recipes) as stream methods and pass required key-word arguments
 ```python
 Stream([1, 2, 3]).ncycles(count=2).to_list()
+Stream.of(2, 3, 4).take_nth(10, default=66).get()
+Stream(["ABC", "D", "EF"]).round_robin().to_list()
 ```
 --------------------------------------------
 ### Querying files with FileStream

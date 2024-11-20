@@ -3,8 +3,9 @@ from pathlib import Path
 
 import pytest
 
-from pyrio import FileStream
+from pyrio import FileStream, Stream
 from pyrio.exception import IllegalStateError, UnsupportedFileTypeError
+from pyrio.file_stream import Item
 
 
 def test_invalid_path_error():
@@ -97,3 +98,57 @@ def test_reusing_stream():
     with pytest.raises(IllegalStateError) as e:
         stream.map(lambda x: x.value * 10).to_list()
     assert str(e.value) == "Stream object already consumed"
+
+
+def test_concat():
+    assert (
+        FileStream.of("./tests/resources/long.json")
+        .concat(FileStream.of("./tests/resources/foo.json"))
+        .map(lambda x: f"{x.key}: {x.value}")
+    ).to_tuple() == (
+        "a: [1, 2]",
+        "b: [2, 3, 4]",
+        "abba: [5, 6]",
+        "x: []",
+        "y: [55]",
+        "xza: [11, 12]",
+        "z: [3]",
+        "zzz: None",
+        "abc: xyz",
+        "qwerty: 42",
+    )
+
+
+def test_prepend():
+    json_dict = (
+        Stream(
+            {
+                "Name": "Jennifer Smith",
+                "Security Number": 7867567898,
+                "Phone": "555-123-4568",
+                "Email": "jen123@gmail.com",
+                "Hobbies": ["Reading", "Sketching", "Horse Riding"],
+            }
+        )
+        .map(lambda x: Item(x[0], x[1]))
+        .to_tuple()
+    )
+    assert (
+        FileStream.of("./tests/resources/long.json")
+        .prepend(json_dict)
+        .map(lambda x: f"key={x.key}, value={x.value}")
+    ).to_tuple() == (
+        "key=Name, value=Jennifer Smith",
+        "key=Security Number, value=7867567898",
+        "key=Phone, value=555-123-4568",
+        "key=Email, value=jen123@gmail.com",
+        "key=Hobbies, value=['Reading', 'Sketching', 'Horse Riding']",
+        "key=a, value=[1, 2]",
+        "key=b, value=[2, 3, 4]",
+        "key=abba, value=[5, 6]",
+        "key=x, value=[]",
+        "key=y, value=[55]",
+        "key=xza, value=[11, 12]",
+        "key=z, value=[3]",
+        "key=zzz, value=None",
+    )

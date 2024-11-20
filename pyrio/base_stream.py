@@ -1,5 +1,3 @@
-from abc import ABC, abstractmethod
-
 from pyrio.decorator import pre_call, handle_consumed
 from pyrio.exception import IllegalStateError
 from pyrio.iterator import Iterator
@@ -7,14 +5,31 @@ from pyrio.optional import Optional
 
 
 @pre_call(handle_consumed)
-class BaseStream(ABC):
-    @abstractmethod
+class BaseStream:
     def __init__(self, iterable):
         self._iterable = iterable
         self._is_consumed = False
 
     def __iter__(self):
+        # if isinstance(self._iterable, Mapping):
+        #     return self._iterable.items()
+
         return iter(self._iterable)
+
+    @classmethod
+    def empty(cls):
+        """Creates empty Stream"""
+        return cls([])
+
+    @staticmethod
+    def concat(*streams):
+        """Concatenates several streams together or add new streams to the current one"""
+        return BaseStream(Iterator.concat(*streams))
+
+    def prepend(self, iterable):
+        """Prepends iterable to current stream"""
+        self._iterable = Iterator.concat(iterable, self._iterable)
+        return self
 
     def filter(self, predicate):
         """Filters values in stream based on given predicate function"""

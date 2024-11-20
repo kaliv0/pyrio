@@ -12,6 +12,8 @@ class Iterator:
 
     @staticmethod
     def map(iterable, mapper):
+        if isinstance(iterable, dict):
+            iterable = iterable.items()
         for i in iterable:
             yield mapper(i)
 

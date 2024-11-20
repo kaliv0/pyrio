@@ -66,6 +66,10 @@ def test_map_lambda():
     assert Stream([1, 2, 3]).map(lambda x: x + 5).to_list() == [6, 7, 8]
 
 
+def test_map_dict():
+    assert Stream({"x": 1, "y": 2}).map(lambda x: x[0] + str(x[1])).to_list() == ["x1", "y2"]
+
+
 def test_filter_map():
     assert Stream.of(None, "foo", "bar").filter_map(str.upper).to_list() == ["FOO", "BAR"]
 
@@ -176,12 +180,12 @@ def test_tail_negative_count():
 
 # ### prepend ###
 def test_prepend():
-    assert Stream([2, 3, 4]).prepend(1).to_list() == [1, 2, 3, 4]
-    assert Stream([2, 3, 4]).prepend(0, 1).to_list() == [0, 1, 2, 3, 4]
+    assert Stream([2, 3, 4]).prepend([1]).to_list() == [1, 2, 3, 4]
+    assert Stream([2, 3, 4]).prepend((0, 1)).to_list() == [0, 1, 2, 3, 4]
 
 
 def test_prepend_collection():
-    assert Stream([2, 3, 4]).prepend([0, 1]).to_list() == [[0, 1], 2, 3, 4]
+    assert Stream([3, 4, 5]).prepend(([0, 1], 2)).to_list() == [[0, 1], 2, 3, 4, 5]
 
 
 # ### flat ###

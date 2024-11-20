@@ -14,8 +14,9 @@ class Item:
 
 class FileStream(BaseStream):
     # used internally
-    def __init__(self, iterable):
-        super().__init__(iterable)
+    # TODO: do we need this explicitly?
+    # def __init__(self, iterable):
+    #     super().__init__(iterable)
 
     @classmethod
     def of(cls, file_path):

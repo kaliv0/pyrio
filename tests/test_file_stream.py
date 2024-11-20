@@ -10,14 +10,14 @@ from pyrio.exception import IllegalStateError, UnsupportedFileTypeError
 def test_invalid_path_error():
     file_path = "./foo/bar.xyz"
     with pytest.raises(FileNotFoundError) as e:
-        FileStream(file_path)
+        FileStream.of(file_path)
     assert str(e.value) == f"No such file or directory: '{file_path}'"
 
 
 def test_path_is_dir_error():
     file_path = "./tests/resources/"
     with pytest.raises(IsADirectoryError) as e:
-        FileStream(file_path)
+        FileStream.of(file_path)
     assert str(e.value) == f"Given path '{file_path}' is a directory"
 
 
@@ -31,7 +31,7 @@ def test_path_is_dir_error():
 )
 def test_file_type_error(file_path):
     with pytest.raises(UnsupportedFileTypeError) as e:
-        FileStream(file_path)
+        FileStream.of(file_path)
     assert str(e.value) == f"Unsupported file type: '{Path(file_path).suffix}'"
 
 
@@ -45,7 +45,7 @@ def test_file_type_error(file_path):
     ],
 )
 def test_json(file_path):
-    assert FileStream(file_path).map(lambda x: f"{x.key}=>{x.value}").to_tuple() == (
+    assert FileStream.of(file_path).map(lambda x: f"{x.key}=>{x.value}").to_tuple() == (
         "abc=>xyz",
         "qwerty=>42",
     )
@@ -59,14 +59,14 @@ def test_json(file_path):
     ],
 )
 def test_csv(file_path):
-    assert FileStream(file_path).map(lambda x: f"fizz: {x['fizz']}, buzz: {x['buzz']}").to_tuple() == (
+    assert FileStream.of_csv(file_path).map(lambda x: f"fizz: {x['fizz']}, buzz: {x['buzz']}").to_tuple() == (
         "fizz: 42, buzz: 45",
         "fizz: aaa, buzz: bbb",
     )
 
 
 def test_nested_json():
-    assert FileStream("./tests/resources/nested.json").map(
+    assert FileStream.of("./tests/resources/nested.json").map(
         lambda x: x.value["second"]
     ).flatten().to_list() == [
         1,
@@ -78,7 +78,7 @@ def test_nested_json():
 
 def test_complex_pipeline():
     assert (
-        FileStream("./tests/resources/long.json")
+        FileStream.of("./tests/resources/long.json")
         .filter(lambda x: "a" in x.key)
         .map(lambda x: (x.key, sum(x.value) * 10))
         .sorted(itemgetter(1), reverse=True)
@@ -87,7 +87,7 @@ def test_complex_pipeline():
 
 
 def test_reusing_stream():
-    stream = FileStream("./tests/resources/foo.json")
+    stream = FileStream.of("./tests/resources/foo.json")
     assert stream._is_consumed is False
 
     result = stream.map(lambda x: f"{x.key}=>{x.value}").tail(1).to_tuple()

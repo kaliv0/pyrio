@@ -1,4 +1,5 @@
 import io
+import json
 from contextlib import redirect_stdout
 from operator import itemgetter
 
@@ -35,6 +36,22 @@ def test_generate():
 
 def test_constant():
     assert Stream.constant(8).limit(3).to_list() == [8, 8, 8]
+
+
+def test_iterable_from_string():
+    json_str = """{
+        "Name": "Jennifer Smith",
+        "Security Number": 7867567898,
+        "Phone": "555-123-4568",
+        "Email": "jen123@gmail.com",
+        "Hobbies":["Reading", "Sketching", "Horse Riding"]
+        }"""
+    iterable = json.loads(json_str)
+    assert (Stream(iterable).filter(lambda key: len(key) < 6).map(lambda key: f"***{key}***").to_tuple()) == (
+        "***Name***",
+        "***Phone***",
+        "***Email***",
+    )
 
 
 def test_filter():

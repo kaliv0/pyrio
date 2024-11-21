@@ -1,28 +1,14 @@
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 from pyrio.base_stream import BaseStream
 from pyrio.exception import UnsupportedFileTypeError
 
 
-@dataclass(frozen=True, slots=True)
-class Item:
-    key: Any
-    value: Any
-
-
 class FileStream(BaseStream):
-    # used internally
-    # TODO: do we need this explicitly?
-    # def __init__(self, iterable):
-    #     super().__init__(iterable)
-
     @classmethod
     def of(cls, file_path):
         """Creates Stream from a file"""
-        content_dict = cls._read_file(file_path)
-        iterable = (Item(key=k, value=v) for k, v in content_dict.items())
+        iterable = cls._read_file(file_path)
         return cls(iterable)
 
     # TODO: provide access for csv.DictReader options via **kwargs -> add tests

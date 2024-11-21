@@ -5,7 +5,7 @@ import pytest
 
 from pyrio import FileStream, Stream
 from pyrio.exception import IllegalStateError, UnsupportedFileTypeError
-from pyrio.file_stream import Item
+from pyrio.base_stream import Item
 
 
 def test_invalid_path_error():
@@ -130,7 +130,7 @@ def test_prepend():
                 "Hobbies": ["Reading", "Sketching", "Horse Riding"],
             }
         )
-        .map(lambda x: Item(x[0], x[1]))
+        .map(lambda x: Item(x.key, x.value))
         .to_tuple()
     )
     assert (

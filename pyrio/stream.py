@@ -6,11 +6,6 @@ from pyrio.itertools_mixin import ItertoolsMixin
 
 @pre_call(handle_consumed)
 class Stream(BaseStream, ItertoolsMixin):
-    # TODO: do we need this explicitly?
-    # def __init__(self, iterable):
-    #     """Creates Stream from a collection"""
-    #     super().__init__(iterable)
-
     @classmethod
     def of(cls, *iterable):
         """Creates Stream from args"""

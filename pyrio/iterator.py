@@ -1,8 +1,25 @@
+from typing import Mapping
+from collections.abc import Iterable
+
+from pyrio.utils import Item
+
+
 class Iterator:
     @staticmethod
     def concat(*streams):
         for iterable in streams:
-            yield from iterable
+            if isinstance(iterable, Mapping):
+                yield from iterable.items()
+            else:
+                yield from iterable
+
+    @staticmethod
+    def concat_dict(*streams):
+        for iterable in streams:
+            if isinstance(iterable, Mapping):
+                yield from (Item(k, v) for k, v in iterable.items())
+            else:
+                yield from iterable
 
     @staticmethod
     def filter(iterable, predicate):
@@ -12,8 +29,6 @@ class Iterator:
 
     @staticmethod
     def map(iterable, mapper):
-        if isinstance(iterable, dict):
-            iterable = iterable.items()
         for i in iterable:
             yield mapper(i)
 
@@ -26,13 +41,10 @@ class Iterator:
     @staticmethod
     def flat_map(iterable, mapper):
         for i in iterable:
-            for j in mapper(i):
-                yield j
+            yield from mapper(i)
 
     @staticmethod
     def flatten(iterable):
-        from collections.abc import Iterable
-
         for i in iterable:
             if isinstance(i, str) or not isinstance(i, Iterable):
                 yield i

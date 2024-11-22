@@ -8,13 +8,9 @@ from pyrio.utils.optional import Optional
 class ItertoolsMixin:
     iterable: Iterable | Sized
 
-    def use(self, it_function, *args, **kwargs):
-        """Provides integration with itertools methods"""
+    def use(self, it_function, **kwargs):
+        """Provides integration with itertools methods; pass corresponding parameters as kwargs"""
         import inspect
-
-        # TODO: keep for explicit checks?? Remove and add better docstring for usage?
-        if args:
-            raise ValueError("Use keyword arguments only")
 
         if self._handle_no_signature_functions(it_function, **kwargs):
             return self

@@ -41,7 +41,6 @@ class FileStream(BaseStream):
     def _read_csv(path, **kwargs):
         import csv
 
-        # TODO: why newline=""??
         with open(path, newline="") as f:
             delimiter = "\t" if path.suffix == ".tsv" else ","
             return tuple(csv.DictReader(f, delimiter=delimiter, **kwargs))

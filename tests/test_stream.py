@@ -192,47 +192,42 @@ def test_concat_empty():
 def test_concat_linear_collections():
     assert Stream.concat(Stream.of(1, 2, 3), [5, 6]).to_list() == [1, 2, 3, 5, 6]
     assert Stream.concat((1, 2, 3), [5, 6]).to_list() == [1, 2, 3, 5, 6]
-    assert Stream.concat({1, 2, 3}, [5, 6]).to_list() == [1, 2, 3, 5, 6]
+    assert Stream.concat({1, 2, 3}, (5, 6)).to_list() == [1, 2, 3, 5, 6]
 
     assert Stream.concat([1, 2, 3], [(5, 6), [8]]).to_list() == [1, 2, 3, (5, 6), [8]]
     assert Stream.concat([1, 2, 3], [(5, 6), [8]]).flatten().to_list() == [1, 2, 3, 5, 6, 8]
 
 
 def test_concat_dicts_to_stream():
+    first_dict = {"x": 1, "y": 2}
+    second_dict = {"p": 33, "q": 44, "r": 55}
+    items_list = [
+        Item(key="x", value=1),
+        Item(key="y", value=2),
+        Item(key="p", value=33),
+        Item(key="q", value=44),
+        Item(key="r", value=55),
+    ]
     # two dicts
-    assert Stream.concat({"x": 1, "y": 2}, {"p": 33, "q": 44, "r": 55}).to_list() == [
-        Item(key="x", value=1),
-        Item(key="y", value=2),
-        Item(key="p", value=33),
-        Item(key="q", value=44),
-        Item(key="r", value=55),
-    ]
+    assert Stream.concat(first_dict, second_dict).to_list() == items_list
     # two streams of dicts
-    assert Stream({"x": 1, "y": 2}).concat(Stream({"p": 33, "q": 44, "r": 55})).to_list() == [
-        Item(key="x", value=1),
-        Item(key="y", value=2),
-        Item(key="p", value=33),
-        Item(key="q", value=44),
-        Item(key="r", value=55),
-    ]
+    assert Stream(first_dict).concat(Stream(second_dict)).to_list() == items_list
     # dict to stream of dict
-    assert Stream({"x": 1, "y": 2}).concat({"p": 33, "q": 44, "r": 55}).to_list() == [
-        Item(key="x", value=1),
-        Item(key="y", value=2),
-        Item(key="p", value=33),
-        Item(key="q", value=44),
-        Item(key="r", value=55),
-    ]
+    assert Stream(first_dict).concat(second_dict).to_list() == items_list
     # dict to empty stream
-    assert Stream.concat(Stream.empty(), {"p": 33, "q": 44, "r": 55}).to_list() == [
+    assert Stream.concat(Stream.empty(), second_dict).to_list() == [
         Item(key="p", value=33),
         Item(key="q", value=44),
         Item(key="r", value=55),
     ]
 
-    assert Stream({"x": 1, "y": 2}).concat(Stream({"p": 33, "q": 44, "r": 55})).to_dict(
-        lambda x: (x.key, x.value)
-    ) == {"x": 1, "y": 2, "p": 33, "q": 44, "r": 55}
+    assert Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: (x.key, x.value)) == {
+        "x": 1,
+        "y": 2,
+        "p": 33,
+        "q": 44,
+        "r": 55,
+    }
 
 
 def test_concat_raises_non_iterable():
@@ -249,22 +244,20 @@ def test_prepend_collection():
 
 
 def test_prepend_dict():
+    second_dict = {"x": 3, "y": 4}
+    first_dict = {"a": 1, "b": 2}
+    items_list = [
+        Item(key="a", value=1),
+        Item(key="b", value=2),
+        Item(key="x", value=3),
+        Item(key="y", value=4),
+    ]
     # two streams of dicts
-    assert Stream({"x": 3, "y": 4}).prepend(Stream({"a": 1, "b": 2})).to_list() == [
-        Item(key="a", value=1),
-        Item(key="b", value=2),
-        Item(key="x", value=3),
-        Item(key="y", value=4),
-    ]
+    assert Stream(second_dict).prepend(Stream(first_dict)).to_list() == items_list
     # dict to stream of dict
-    assert Stream({"x": 3, "y": 4}).prepend({"a": 1, "b": 2}).to_list() == [
-        Item(key="a", value=1),
-        Item(key="b", value=2),
-        Item(key="x", value=3),
-        Item(key="y", value=4),
-    ]
+    assert Stream(second_dict).prepend(first_dict).to_list() == items_list
 
-    assert Stream({"x": 3, "y": 4}).prepend({"a": 1, "b": 2}).filter(lambda x: x.value % 2 == 0).map(
+    assert Stream(second_dict).prepend(first_dict).filter(lambda x: x.value % 2 == 0).map(
         lambda x: x.key
     ).to_list() == ["b", "y"]
 

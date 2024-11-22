@@ -1,5 +1,0 @@
------------------------------------
-- FileStream -> rename of()/of_csv() methods -> process, read etc
-- add flag 'raw' -> not to convert dict items to Item classes (could be used in normal Stream with default false)
-- add **kwargs to csv methods
-- add save to file method -> override same file or create new -> prompt for name etc

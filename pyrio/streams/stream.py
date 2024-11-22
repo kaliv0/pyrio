@@ -1,7 +1,7 @@
-from pyrio.base_stream import BaseStream
-from pyrio.decorator import pre_call, handle_consumed
-from pyrio.iterator import Iterator
-from pyrio.itertools_mixin import ItertoolsMixin
+from pyrio.streams.base_stream import BaseStream
+from pyrio.utils.decorator import pre_call, handle_consumed
+from pyrio.iterators.iterator import Iterator
+from pyrio.iterators.itertools_mixin import ItertoolsMixin
 
 
 @pre_call(handle_consumed)

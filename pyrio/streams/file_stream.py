@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from pyrio.base_stream import BaseStream
-from pyrio.exception import UnsupportedFileTypeError
+from pyrio.streams.base_stream import BaseStream
+from pyrio.utils.exception import UnsupportedFileTypeError
 
 
 class FileStream(BaseStream):

@@ -2,7 +2,7 @@ from collections.abc import Iterable, Sized
 import itertools as it
 import operator
 
-from pyrio.optional import Optional
+from pyrio.utils.optional import Optional
 
 
 class ItertoolsMixin:

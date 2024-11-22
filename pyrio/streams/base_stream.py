@@ -1,10 +1,10 @@
 from typing import Mapping
 
-from pyrio.decorator import pre_call, handle_consumed
-from pyrio.exception import IllegalStateError
-from pyrio.iterator import Iterator
-from pyrio.optional import Optional
-from pyrio.utils import Item
+from pyrio.utils.decorator import pre_call, handle_consumed
+from pyrio.utils.exception import IllegalStateError
+from pyrio.iterators.iterator import Iterator
+from pyrio.utils.optional import Optional
+from pyrio.utils.dict_item import Item
 
 
 @pre_call(handle_consumed)

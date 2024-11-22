@@ -1,6 +1,6 @@
 from functools import wraps
 
-from pyrio.exception import IllegalStateError
+from pyrio.utils.exception import IllegalStateError
 
 TERMINAL_FUNCTIONS = [
     "for_each",
@@ -38,7 +38,7 @@ def pre_call(function_decorator):
 def handle_consumed(func):
     @wraps(func)
     def wrapper(*args, **kw):
-        from pyrio.base_stream import BaseStream
+        from pyrio.streams.base_stream import BaseStream
 
         if not args or not isinstance(args[0], BaseStream):
             return func(*args, **kw)

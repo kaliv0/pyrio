@@ -1,7 +1,7 @@
 from typing import Mapping
 from collections.abc import Iterable
 
-from pyrio.utils import Item
+from pyrio.utils.dict_item import Item
 
 
 class Iterator:

@@ -5,10 +5,8 @@ from operator import itemgetter
 
 import pytest
 
-from pyrio import Stream
-from pyrio import Optional
-from pyrio.exception import IllegalStateError
-from pyrio.utils import Item
+from pyrio import Stream, Optional, Item
+from pyrio.utils.exception import IllegalStateError
 
 
 def test_stream():
@@ -248,6 +246,7 @@ def test_prepend_collection():
     assert Stream([2, 3, 4]).prepend([1]).to_list() == [1, 2, 3, 4]
     assert Stream([2, 3, 4]).prepend((0, 1)).to_list() == [0, 1, 2, 3, 4]
     assert Stream([3, 4, 5]).prepend(([0, 1], 2)).to_list() == [[0, 1], 2, 3, 4, 5]
+
 
 def test_prepend_dict():
     # two streams of dicts

@@ -1,10 +1,4 @@
-- check if you need explicit __init__ in child classes
-
-- Iterator -> concat with dict
-    -> previously iterated over the keys only
-    -> currently returns key/val tuples
-    -> created separate method -> concat_dict -> yields Items instead of tuples
-
+-----------------------------------
 - FileStream -> rename of()/of_csv() methods -> process, read etc
 - add flag 'raw' -> not to convert dict items to Item classes (could be used in normal Stream with default false)
 - add **kwargs to csv methods

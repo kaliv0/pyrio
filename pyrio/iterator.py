@@ -9,14 +9,6 @@ class Iterator:
     def concat(*streams):
         for iterable in streams:
             if isinstance(iterable, Mapping):
-                yield from iterable.items()
-            else:
-                yield from iterable
-
-    @staticmethod
-    def concat_dict(*streams):
-        for iterable in streams:
-            if isinstance(iterable, Mapping):
                 yield from (Item(k, v) for k, v in iterable.items())
             else:
                 yield from iterable

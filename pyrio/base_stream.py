@@ -36,19 +36,9 @@ class BaseStream:
         """Concatenates several streams together or adds new streams/collections to the current one"""
         return BaseStream(Iterator.concat(*streams))
 
-    @staticmethod
-    def concat_dict(*streams):
-        """Concatenates several streams from Mapping-type collections together or adds new streams/collections to the current one"""
-        return BaseStream(Iterator.concat_dict(*streams))
-
     def prepend(self, iterable):
         """Prepends iterable to current stream"""
         self.iterable = Iterator.concat(iterable, self.iterable)
-        return self
-
-    def prepend_dict(self, iterable):
-        """Prepends Mapping-type collection to current stream"""
-        self.iterable = Iterator.concat_dict(iterable, self.iterable)
         return self
 
     def filter(self, predicate):
@@ -268,7 +258,7 @@ class BaseStream:
         iterator = iter(self.iterable)
         exhausted = False
 
-        def _grouper(target_key):
+        def _grouper(target_key):  # noqa
             nonlocal curr_value, curr_key, exhausted
             yield curr_value
             for curr_value in iterator:

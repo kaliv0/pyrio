@@ -1,8 +1,8 @@
 from typing import Mapping
 
+from pyrio.iterators.iterator import Iterator
 from pyrio.utils.decorator import pre_call, handle_consumed
 from pyrio.utils.exception import IllegalStateError
-from pyrio.iterators.iterator import Iterator
 from pyrio.utils.optional import Optional
 from pyrio.utils.dict_item import Item
 

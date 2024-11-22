@@ -49,7 +49,7 @@ def handle_consumed(func):
 
         result = func(*args, **kw)
         if is_consumed is False and func.__name__ in TERMINAL_FUNCTIONS:
-            args[0]._is_consumed = True
+            args[0]._is_consumed = True  # noqa
         return result
 
     return wrapper

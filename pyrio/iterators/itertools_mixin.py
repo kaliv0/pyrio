@@ -12,6 +12,7 @@ class ItertoolsMixin:
         """Provides integration with itertools methods"""
         import inspect
 
+        # TODO: keep for explicit checks?? Remove and add better docstring for usage?
         if args:
             raise ValueError("Use keyword arguments only")
 

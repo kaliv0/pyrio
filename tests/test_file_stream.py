@@ -1,3 +1,4 @@
+from decimal import Decimal
 from operator import itemgetter
 from pathlib import Path
 
@@ -10,14 +11,14 @@ from pyrio.utils.exception import IllegalStateError, UnsupportedFileTypeError
 def test_invalid_path_error():
     file_path = "./foo/bar.xyz"
     with pytest.raises(FileNotFoundError) as e:
-        FileStream.of(file_path)
+        FileStream(file_path)
     assert str(e.value) == f"No such file or directory: '{file_path}'"
 
 
 def test_path_is_dir_error():
     file_path = "./tests/resources/"
     with pytest.raises(IsADirectoryError) as e:
-        FileStream.of(file_path)
+        FileStream(file_path)
     assert str(e.value) == f"Given path '{file_path}' is a directory"
 
 
@@ -31,7 +32,7 @@ def test_path_is_dir_error():
 )
 def test_file_type_error(file_path):
     with pytest.raises(UnsupportedFileTypeError) as e:
-        FileStream.of(file_path)
+        FileStream(file_path)
     assert str(e.value) == f"Unsupported file type: '{Path(file_path).suffix}'"
 
 
@@ -44,8 +45,8 @@ def test_file_type_error(file_path):
         "./tests/resources/foo.xml",
     ],
 )
-def test_json(file_path):
-    assert FileStream.of(file_path).map(lambda x: f"{x.key}=>{x.value}").to_tuple() == (
+def test_read_files(file_path):
+    assert FileStream(file_path).map(lambda x: f"{x.key}=>{x.value}").to_tuple() == (
         "abc=>xyz",
         "qwerty=>42",
     )
@@ -59,14 +60,14 @@ def test_json(file_path):
     ],
 )
 def test_csv(file_path):
-    assert FileStream.of_csv(file_path).map(lambda x: f"fizz: {x['fizz']}, buzz: {x['buzz']}").to_tuple() == (
+    assert FileStream(file_path).map(lambda x: f"fizz: {x['fizz']}, buzz: {x['buzz']}").to_tuple() == (
         "fizz: 42, buzz: 45",
         "fizz: aaa, buzz: bbb",
     )
 
 
 def test_nested_json():
-    assert FileStream.of("./tests/resources/nested.json").map(
+    assert FileStream("./tests/resources/nested.json").map(
         lambda x: x.value["second"]
     ).flatten().to_list() == [
         1,
@@ -78,7 +79,7 @@ def test_nested_json():
 
 def test_complex_pipeline():
     assert (
-        FileStream.of("./tests/resources/long.json")
+        FileStream("./tests/resources/long.json")
         .filter(lambda x: "a" in x.key)
         .map(lambda x: (x.key, sum(x.value) * 10))
         .sorted(itemgetter(1), reverse=True)
@@ -87,7 +88,7 @@ def test_complex_pipeline():
 
 
 def test_reusing_stream():
-    stream = FileStream.of("./tests/resources/foo.json")
+    stream = FileStream("./tests/resources/foo.json")
     assert stream._is_consumed is False
 
     result = stream.map(lambda x: f"{x.key}=>{x.value}").tail(1).to_tuple()
@@ -101,8 +102,8 @@ def test_reusing_stream():
 
 def test_concat():
     assert (
-        FileStream.of("./tests/resources/long.json")
-        .concat(FileStream.of("./tests/resources/foo.json"))
+        FileStream("./tests/resources/long.json")
+        .concat(FileStream("./tests/resources/foo.json"))
         .map(lambda x: f"{x.key}: {x.value}")
     ).to_tuple() == (
         "a: [1, 2]",
@@ -133,7 +134,7 @@ def test_prepend():
         .to_tuple()
     )
     assert (
-        FileStream.of("./tests/resources/long.json")
+        FileStream("./tests/resources/long.json")
         .prepend(json_dict)
         .map(lambda x: f"key={x.key}, value={x.value}")
     ).to_tuple() == (
@@ -151,3 +152,22 @@ def test_prepend():
         "key=z, value=[3]",
         "key=zzz, value=None",
     )
+
+
+@pytest.mark.parametrize(
+    "file_path",
+    ["./tests/resources/parse_float.toml", "./tests/resources/parse_float.json"],
+)
+def test_process(file_path):
+    def check_type(x):
+        match x.key:
+            case "a":
+                return isinstance(x.value, str)
+            case "b":
+                return isinstance(x.value, bool)
+            case "x" | "y":
+                return isinstance(x.value, Decimal)
+            case _:
+                return False
+
+    assert FileStream.process(file_path, parse_float=Decimal).all_match(check_type)

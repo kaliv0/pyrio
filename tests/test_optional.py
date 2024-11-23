@@ -3,8 +3,8 @@ from contextlib import redirect_stdout
 
 import pytest
 
-from pyrio.exception import NoSuchElementError, NullPointerError
 from pyrio import Optional
+from pyrio.utils.exception import NoSuchElementError, NullPointerError
 
 
 def test_optional_get_raises():

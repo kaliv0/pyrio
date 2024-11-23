@@ -337,8 +337,10 @@ Stream(["ABC", "D", "EF"]).round_robin().to_list()
 --------------------------------------------
 ### Querying files with FileStream
 - working with <i>json</i>, <i>toml</i>, <i>yaml</i>, <i>xml</i> files
+<br>NB: FileStream reads data as series of key/value tuples from underlying dict_items view
+<br>(This draw-back in the current API design is caused by the unfortunate removal of tuple parameter unpacking with PEP 3113)
 ```python
-FileStream("path/to/file").map(lambda x: f"{x.key}=>{x.value}").to_tuple()
+FileStream("path/to/file").map(lambda x: f"{x[0]}=>{x[1]}").to_tuple()
 ```
 ```shell
 (
@@ -350,8 +352,8 @@ FileStream("path/to/file").map(lambda x: f"{x.key}=>{x.value}").to_tuple()
 from operator import itemgetter
 
 (FileStream("path/to/file")
-    .filter(lambda x: "a" in x.key)
-    .map(lambda x: (x.key, sum(x.value) * 10))
+    .filter(lambda x: "a" in x[0])
+    .map(lambda x: (x[0], sum(x[1]) * 10))
     .sorted(itemgetter(1), reverse=True)
     .map(lambda x: f"{str(x[1])}::{x[0]}")
     .to_list()) 
@@ -359,8 +361,6 @@ from operator import itemgetter
 ```shell
 ["230::xza", "110::abba", "30::a"]
 ```
-FileStream reads data as series of Item objects with key/value attributes.
-
 - querying <i>csv</i> and <i>tsv</i> files
 <br>(each row is read as a dict with keys taken from the header row)
 ```python

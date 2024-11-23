@@ -1,4 +1,4 @@
-from pyrio.exception import NoSuchElementError, NullPointerError
+from pyrio.utils.exception import NoSuchElementError, NullPointerError
 
 
 class Optional:

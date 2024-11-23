@@ -1,12 +1,12 @@
 import io
+import json
 from contextlib import redirect_stdout
 from operator import itemgetter
 
 import pytest
 
-from pyrio import Stream
-from pyrio import Optional
-from pyrio.exception import IllegalStateError
+from pyrio import Stream, Optional
+from pyrio.utils.exception import IllegalStateError
 
 
 def test_stream():
@@ -37,6 +37,58 @@ def test_constant():
     assert Stream.constant(8).limit(3).to_list() == [8, 8, 8]
 
 
+def test_iterable_from_string():
+    json_str = '{"Name": "Jennifer Smith", "Phone": "555-123-4568", "Email": "jen123@gmail.com"}'
+    json_dict = json.loads(json_str)
+    assert Stream(json_dict).filter(lambda x: len(x[0]) < 6).map(lambda x: x[0]).to_tuple() == (
+        "Name",
+        "Phone",
+        "Email",
+    )
+    assert Stream(json_dict).map(lambda x: f"***{x[1]}***").to_tuple() == (
+        "***Jennifer Smith***",
+        "***555-123-4568***",
+        "***jen123@gmail.com***",
+    )
+
+
+def test_empty_json_from_string():
+    empty_json = "{}"
+    assert Stream(json.loads(empty_json)).to_tuple() == ()
+
+
+def test_nested_json_from_string():
+    nested_json = """
+    {
+        "user": {
+            "Name": "John", 
+            "Phone": "555-123-4568", 
+            "Security Number": "3450678"
+        }, 
+        "super_user": {
+            "Name": "sudo", 
+            "Email": "admin@sudo.su",
+            "Some Other Number": "000-0011" 
+            
+        },
+        "fraud": {
+            "Name": "Freud", 
+            "Email": "ziggy@psycho.au"
+        }    
+    }
+    """
+    assert (
+        Stream(json.loads(nested_json))
+        .filter(lambda outer: "user" in outer[0])
+        .flat_map(
+            lambda outer: (
+                Stream(outer[1]).filter(lambda inner: len(inner[0]) < 6).map(lambda inner: inner[1]).to_list()
+            )
+        )
+        .to_tuple()
+    ) == ("John", "555-123-4568", "sudo", "admin@sudo.su")
+
+
 def test_filter():
     assert Stream([1, 2, 3, 4, 5, 6]).filter(lambda x: x % 2 == 0).to_list() == [2, 4, 6]
 
@@ -47,6 +99,10 @@ def test_map():
 
 def test_map_lambda():
     assert Stream([1, 2, 3]).map(lambda x: x + 5).to_list() == [6, 7, 8]
+
+
+def test_map_dict():
+    assert Stream({"x": 1, "y": 2}).map(lambda x: x[0] + str(x[1])).to_list() == ["x1", "y2"]
 
 
 def test_filter_map():
@@ -157,14 +213,91 @@ def test_tail_negative_count():
     assert str(e.value) == "Tail count cannot be negative"
 
 
+# ### concat ###
+def test_concat():
+    assert Stream.concat(Stream.of(1, 2, 3), Stream.of(4, 5, 6)).to_list() == [1, 2, 3, 4, 5, 6]
+
+
+def test_concat_to_existing_stream():
+    assert Stream.of(1, 2, 3).concat([4, 5]).to_list() == [1, 2, 3, 4, 5]
+
+
+def test_concat_empty():
+    assert Stream.concat(Stream.empty(), Stream.of(1, 2, 3)).to_list() == [1, 2, 3]
+    assert Stream.concat(Stream.empty(), Stream.empty()).to_list() == []
+
+
+def test_concat_linear_collections():
+    assert Stream.concat(Stream.of(1, 2, 3), [5, 6]).to_list() == [1, 2, 3, 5, 6]
+    assert Stream.concat((1, 2, 3), [5, 6]).to_list() == [1, 2, 3, 5, 6]
+    assert Stream.concat({1, 2, 3}, (5, 6)).to_list() == [1, 2, 3, 5, 6]
+
+    assert Stream.concat([1, 2, 3], [(5, 6), [8]]).to_list() == [1, 2, 3, (5, 6), [8]]
+    assert Stream.concat([1, 2, 3], [(5, 6), [8]]).flatten().to_list() == [1, 2, 3, 5, 6, 8]
+
+
+def test_concat_dicts_to_stream():
+    first_dict = {"x": 1, "y": 2}
+    second_dict = {"p": 33, "q": 44, "r": 55}
+    items_list = [
+        ("x", 1),
+        ("y", 2),
+        ("p", 33),
+        ("q", 44),
+        ("r", 55),
+    ]
+    # two dicts
+    assert Stream.concat(first_dict, second_dict).to_list() == items_list
+    # two streams of dicts
+    assert Stream(first_dict).concat(Stream(second_dict)).to_list() == items_list
+    # dict to stream of dict
+    assert Stream(first_dict).concat(second_dict).to_list() == items_list
+    # dict to empty stream
+    assert Stream.concat(Stream.empty(), second_dict).to_list() == [
+        ("p", 33),
+        ("q", 44),
+        ("r", 55),
+    ]
+
+    assert Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: (x[0], x[1])) == {
+        "x": 1,
+        "y": 2,
+        "p": 33,
+        "q": 44,
+        "r": 55,
+    }
+
+
+def test_concat_raises_non_iterable():
+    with pytest.raises(TypeError) as e:
+        Stream.concat([1, 2, 3], 5).to_list()
+    assert str(e.value) == "'int' object is not iterable"
+
+
 # ### prepend ###
-def test_prepend():
-    assert Stream([2, 3, 4]).prepend(1).to_list() == [1, 2, 3, 4]
-    assert Stream([2, 3, 4]).prepend(0, 1).to_list() == [0, 1, 2, 3, 4]
-
-
 def test_prepend_collection():
-    assert Stream([2, 3, 4]).prepend([0, 1]).to_list() == [[0, 1], 2, 3, 4]
+    assert Stream([2, 3, 4]).prepend([1]).to_list() == [1, 2, 3, 4]
+    assert Stream([2, 3, 4]).prepend((0, 1)).to_list() == [0, 1, 2, 3, 4]
+    assert Stream([3, 4, 5]).prepend(([0, 1], 2)).to_list() == [[0, 1], 2, 3, 4, 5]
+
+
+def test_prepend_dict():
+    second_dict = {"x": 3, "y": 4}
+    first_dict = {"a": 1, "b": 2}
+    items_list = [
+        ("a", 1),
+        ("b", 2),
+        ("x", 3),
+        ("y", 4),
+    ]
+    # two streams of dicts
+    assert Stream(second_dict).prepend(Stream(first_dict)).to_list() == items_list
+    # dict to stream of dict
+    assert Stream(second_dict).prepend(first_dict).to_list() == items_list
+
+    assert Stream(second_dict).prepend(first_dict).filter(lambda x: x[1] % 2 == 0).map(
+        lambda x: x[0]
+    ).to_list() == ["b", "y"]
 
 
 # ### flat ###
@@ -335,35 +468,6 @@ def test_quantify():
 
 def test_quantify_default_predicate():
     assert Stream([None, 1, "", 3, 0]).quantify() == 2
-
-
-# ### concat ###
-def test_concat():
-    assert Stream.concat(Stream.of(1, 2, 3), Stream.of(4, 5, 6)).to_list() == [1, 2, 3, 4, 5, 6]
-
-
-def test_concat_to_existing_stream():
-    assert Stream.of(1, 2, 3).concat([4, 5]).to_list() == [1, 2, 3, 4, 5]
-
-
-def test_concat_empty():
-    assert Stream.concat(Stream.empty(), Stream.of(1, 2, 3)).to_list() == [1, 2, 3]
-    assert Stream.concat(Stream.empty(), Stream.empty()).to_list() == []
-
-
-def test_concat_collections():
-    assert Stream.concat(Stream.of(1, 2, 3), [5, 6]).to_list() == [1, 2, 3, 5, 6]
-    assert Stream.concat((1, 2, 3), [5, 6]).to_list() == [1, 2, 3, 5, 6]
-    assert Stream.concat({1, 2, 3}, [5, 6]).to_list() == [1, 2, 3, 5, 6]
-
-    assert Stream.concat([1, 2, 3], [(5, 6), [8]]).to_list() == [1, 2, 3, (5, 6), [8]]
-    assert Stream.concat([1, 2, 3], [(5, 6), [8]]).flatten().to_list() == [1, 2, 3, 5, 6, 8]
-
-
-def test_concat_raises_non_iterable():
-    with pytest.raises(TypeError) as e:
-        Stream.concat([1, 2, 3], 5).to_list()
-    assert str(e.value) == "'int' object is not iterable"
 
 
 # ### find ###

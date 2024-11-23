@@ -1,8 +1,15 @@
+from typing import Mapping
+from collections.abc import Iterable
+
+
 class Iterator:
     @staticmethod
     def concat(*streams):
         for iterable in streams:
-            yield from iterable
+            if isinstance(iterable, Mapping):
+                yield from iterable.items()
+            else:
+                yield from iterable
 
     @staticmethod
     def filter(iterable, predicate):
@@ -24,13 +31,10 @@ class Iterator:
     @staticmethod
     def flat_map(iterable, mapper):
         for i in iterable:
-            for j in mapper(i):
-                yield j
+            yield from mapper(i)
 
     @staticmethod
     def flatten(iterable):
-        from collections.abc import Iterable
-
         for i in iterable:
             if isinstance(i, str) or not isinstance(i, Iterable):
                 yield i

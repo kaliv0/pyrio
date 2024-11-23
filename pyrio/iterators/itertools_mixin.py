@@ -2,18 +2,15 @@ from collections.abc import Iterable, Sized
 import itertools as it
 import operator
 
-from pyrio.optional import Optional
+from pyrio.utils.optional import Optional
 
 
 class ItertoolsMixin:
-    _iterable: Iterable | Sized
+    iterable: Iterable | Sized
 
-    def use(self, it_function, *args, **kwargs):
-        """Provides integration with itertools methods"""
+    def use(self, it_function, **kwargs):
+        """Provides integration with itertools methods; pass corresponding parameters as kwargs"""
         import inspect
-
-        if args:
-            raise ValueError("Use keyword arguments only")
 
         if self._handle_no_signature_functions(it_function, **kwargs):
             return self
@@ -31,14 +28,14 @@ class ItertoolsMixin:
             return False
 
         if it_function.__name__ in ("product", "zip_longest"):
-            if isinstance(self._iterable, range):
-                self._iterable = it_function(self._iterable, **kwargs)
+            if isinstance(self.iterable, range):
+                self.iterable = it_function(self.iterable, **kwargs)
             else:
-                self._iterable = it_function(*self._iterable, **kwargs)
+                self.iterable = it_function(*self.iterable, **kwargs)
             return True
 
         # functions like 'chain' don't expect key-word arguments
-        self._iterable = it_function(self._iterable, *kwargs.values())
+        self.iterable = it_function(self.iterable, *kwargs.values())
         return True
 
     def _handle_no_kwargs_functions(self, signature, it_function, **kwargs):
@@ -46,41 +43,41 @@ class ItertoolsMixin:
 
         # handle functions that take only iterable as arg
         if len(signature.keys()) == 1 and "iterable" in signature:
-            self._iterable = it_function(self._iterable)
+            self.iterable = it_function(self.iterable)
             return True
 
         # handle functions that take no kwargs
         if it_function.__name__ in NO_KWARGS_FUNCTIONS:
             if it_function.__name__ == "tee":
-                self._iterable = it_function(self._iterable, *kwargs.values())
+                self.iterable = it_function(self.iterable, *kwargs.values())
             else:
-                self._iterable = it_function(*kwargs.values(), self._iterable)
+                self.iterable = it_function(*kwargs.values(), self.iterable)
             return True
         return False
 
     def _handle_default_signature_functions(self, signature, it_function, **kwargs):
         if "iterable" in signature:
-            kwargs["iterable"] = self._iterable
+            kwargs["iterable"] = self.iterable
         elif "data" in signature:
-            kwargs["data"] = self._iterable
-        self._iterable = it_function(**kwargs)
+            kwargs["data"] = self.iterable
+        self.iterable = it_function(**kwargs)
         return self
 
     # ### 'recipes' ###
     # https://docs.python.org/3/library/itertools.html#itertools-recipes
     def tabulate(self, mapper, start=0):
         """Returns function(0), function(1), ..."""
-        self._iterable = map(mapper, it.count(start))
+        self.iterable = map(mapper, it.count(start))
         return self
 
     def repeat_func(self, operation, times=None):
         """Repeats calls to func with specified arguments"""
-        self._iterable = it.starmap(operation, it.repeat(self._iterable, times=times))
+        self.iterable = it.starmap(operation, it.repeat(self.iterable, times=times))
         return self
 
     def ncycles(self, count=0):
         """Returns the stream elements n times"""
-        self._iterable = it.chain.from_iterable(it.repeat(tuple(self._iterable), count))
+        self.iterable = it.chain.from_iterable(it.repeat(tuple(self.iterable), count))
         return self
 
     def consume(self, n=None):
@@ -88,41 +85,41 @@ class ItertoolsMixin:
         import collections
 
         if n is None:
-            self._iterable = collections.deque(self._iterable, maxlen=0)
+            self.iterable = collections.deque(self.iterable, maxlen=0)
             return self
         if n < 0:
             raise ValueError("Consume boundary cannot be negative")
-        self._iterable = it.islice(self._iterable, n, len(self._iterable))
+        self.iterable = it.islice(self.iterable, n, len(self.iterable))
         return self
 
     def take_nth(self, idx, default=None):
         """Returns Optional with the nth element of the stream or a default value"""
         if idx < 0:
-            idx = len(self._iterable) + idx
-        return Optional.of_nullable(next(it.islice(self._iterable, idx, None), default))
+            idx = len(self.iterable) + idx
+        return Optional.of_nullable(next(it.islice(self.iterable, idx, None), default))
 
     def all_equal(self, key=None):
         """Returns True if all elements of the stream are equal to each other"""
-        return len(list(it.islice(it.groupby(self._iterable, key), 2))) <= 1
+        return len(list(it.islice(it.groupby(self.iterable, key), 2))) <= 1
 
     def view(self, start=0, stop=None, step=None):
         """Provides access to a selected part of the stream"""
         if start < 0:
-            start = len(self._iterable) + start
+            start = len(self.iterable) + start
 
         if stop and stop < 0:
-            stop = len(self._iterable) + stop
+            stop = len(self.iterable) + stop
 
         if step and step < 0:
             raise ValueError("Step must be a positive integer or None")
 
-        self._iterable = it.islice(self._iterable, start, stop, step)
+        self.iterable = it.islice(self.iterable, start, stop, step)
         return self
 
     # ### unique ###
     def unique(self, key=None, reverse=False):
         """Yields unique elements in sorted order. Supports unhashable inputs"""
-        self._iterable = self._unique(sorted(self._iterable, key=key, reverse=reverse), key=key)
+        self.iterable = self._unique(sorted(self.iterable, key=key, reverse=reverse), key=key)
         return self
 
     @staticmethod
@@ -131,12 +128,12 @@ class ItertoolsMixin:
 
     def unique_just_seen(self, key=None):
         """Yields unique elements, preserving order. Remembers only the element just seen"""
-        self._iterable = map(next, map(operator.itemgetter(1), it.groupby(self._iterable, key)))
+        self.iterable = map(next, map(operator.itemgetter(1), it.groupby(self.iterable, key)))
         return self
 
     def unique_ever_seen(self, key=None):
         """Yields unique elements, preserving order. Remembers all elements ever seen"""
-        self._iterable = self._unique_ever_seen(self._iterable, key)
+        self.iterable = self._unique_ever_seen(self.iterable, key)
         return self
 
     @staticmethod
@@ -153,7 +150,7 @@ class ItertoolsMixin:
         """Collects data into overlapping fixed-length chunks or blocks"""
         if n < 0:
             raise ValueError("Window size cannot be negative")
-        self._iterable = self._sliding_window(self._iterable, n)
+        self.iterable = self._sliding_window(self.iterable, n)
         return self
 
     @staticmethod
@@ -167,11 +164,11 @@ class ItertoolsMixin:
 
     def grouper(self, n, *, incomplete="fill", fill_value=None):
         """Collects data into non-overlapping fixed-length chunks or blocks"""
-        self._iterable = self._grouper(n, incomplete, fill_value)
+        self.iterable = self._grouper(n, incomplete, fill_value)
         return self
 
     def _grouper(self, n, incomplete="fill", fill_value=None):
-        iterators = [iter(self._iterable)] * n
+        iterators = [iter(self.iterable)] * n
         match incomplete:
             case "fill":
                 return it.zip_longest(*iterators, fillvalue=fill_value)
@@ -186,7 +183,7 @@ class ItertoolsMixin:
 
     def round_robin(self):
         """Visits input iterables in a cycle until each is exhausted"""
-        self._iterable = self._round_robin(self._iterable)
+        self.iterable = self._round_robin(self.iterable)
         return self
 
     @staticmethod
@@ -200,19 +197,19 @@ class ItertoolsMixin:
     def partition(self, predicate):
         """Partitions entries into false entries and true entries.
         Returns a stream of two nested generators"""
-        true_iter, false_iter = it.tee(self._iterable)
-        self._iterable = filter(predicate, true_iter), it.filterfalse(predicate, false_iter)
+        true_iter, false_iter = it.tee(self.iterable)
+        self.iterable = filter(predicate, true_iter), it.filterfalse(predicate, false_iter)
         return self
 
     def subslices(self):
         """Returns all contiguous non-empty sub-slices"""
-        slices = it.starmap(slice, it.combinations(range(len(self._iterable) + 1), 2))
-        self._iterable = map(operator.getitem, it.repeat(self._iterable), slices)  # noqa
+        slices = it.starmap(slice, it.combinations(range(len(self.iterable) + 1), 2))
+        self.iterable = map(operator.getitem, it.repeat(self.iterable), slices)  # noqa
         return self
 
     def find_indices(self, value, start=0, stop=None):
         """Returns indices where a value occurs in a sequence or iterable"""
-        self._iterable = self._find_indices(self._iterable, value, start, stop)
+        self.iterable = self._find_indices(self.iterable, value, start, stop)
         return self
 
     @staticmethod

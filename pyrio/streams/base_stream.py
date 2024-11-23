@@ -4,7 +4,6 @@ from pyrio.iterators.iterator import Iterator
 from pyrio.utils.decorator import pre_call, handle_consumed
 from pyrio.utils.exception import IllegalStateError
 from pyrio.utils.optional import Optional
-from pyrio.utils.dict_item import Item
 
 
 @pre_call(handle_consumed)
@@ -19,7 +18,7 @@ class BaseStream:
     @property
     def iterable(self):
         if isinstance(self._iterable, Mapping):
-            return (Item(key=k, value=v) for k, v in self._iterable.items())
+            return self._iterable.items()
         return self._iterable
 
     @iterable.setter

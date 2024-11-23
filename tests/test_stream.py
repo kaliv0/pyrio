@@ -5,7 +5,7 @@ from operator import itemgetter
 
 import pytest
 
-from pyrio import Stream, Optional, Item
+from pyrio import Stream, Optional
 from pyrio.utils.exception import IllegalStateError
 
 
@@ -38,17 +38,55 @@ def test_constant():
 
 
 def test_iterable_from_string():
-    json_str = """{
-        "Name": "Jennifer Smith",
-        "Security Number": 7867567898,
-        "Phone": "555-123-4568",
-        "Email": "jen123@gmail.com",
-        "Hobbies":["Reading", "Sketching", "Horse Riding"]
-        }"""
-    iterable = json.loads(json_str)
+    json_str = '{"Name": "Jennifer Smith", "Phone": "555-123-4568", "Email": "jen123@gmail.com"}'
+    json_dict = json.loads(json_str)
+    assert Stream(json_dict).filter(lambda x: len(x[0]) < 6).map(lambda x: x[0]).to_tuple() == (
+        "Name",
+        "Phone",
+        "Email",
+    )
+    assert Stream(json_dict).map(lambda x: f"***{x[1]}***").to_tuple() == (
+        "***Jennifer Smith***",
+        "***555-123-4568***",
+        "***jen123@gmail.com***",
+    )
+
+
+def test_empty_json_from_string():
+    empty_json = "{}"
+    assert Stream(json.loads(empty_json)).to_tuple() == ()
+
+
+def test_nested_json_from_string():
+    nested_json = """
+    {
+        "user": {
+            "Name": "John", 
+            "Phone": "555-123-4568", 
+            "Security Number": "3450678"
+        }, 
+        "super_user": {
+            "Name": "sudo", 
+            "Email": "admin@sudo.su",
+            "Some Other Number": "000-0011" 
+            
+        },
+        "fraud": {
+            "Name": "Freud", 
+            "Email": "ziggy@psycho.au"
+        }    
+    }
+    """
     assert (
-        Stream(iterable).filter(lambda x: len(x.key) < 6).map(lambda x: f"***{x.value}***").to_tuple()
-    ) == ("***Jennifer Smith***", "***555-123-4568***", "***jen123@gmail.com***")
+        Stream(json.loads(nested_json))
+        .filter(lambda outer: "user" in outer[0])
+        .flat_map(
+            lambda outer: (
+                Stream(outer[1]).filter(lambda inner: len(inner[0]) < 6).map(lambda inner: inner[1]).to_list()
+            )
+        )
+        .to_tuple()
+    ) == ("John", "555-123-4568", "sudo", "admin@sudo.su")
 
 
 def test_filter():
@@ -64,7 +102,7 @@ def test_map_lambda():
 
 
 def test_map_dict():
-    assert Stream({"x": 1, "y": 2}).map(lambda x: x.key + str(x.value)).to_list() == ["x1", "y2"]
+    assert Stream({"x": 1, "y": 2}).map(lambda x: x[0] + str(x[1])).to_list() == ["x1", "y2"]
 
 
 def test_filter_map():
@@ -202,11 +240,11 @@ def test_concat_dicts_to_stream():
     first_dict = {"x": 1, "y": 2}
     second_dict = {"p": 33, "q": 44, "r": 55}
     items_list = [
-        Item(key="x", value=1),
-        Item(key="y", value=2),
-        Item(key="p", value=33),
-        Item(key="q", value=44),
-        Item(key="r", value=55),
+        ("x", 1),
+        ("y", 2),
+        ("p", 33),
+        ("q", 44),
+        ("r", 55),
     ]
     # two dicts
     assert Stream.concat(first_dict, second_dict).to_list() == items_list
@@ -216,12 +254,12 @@ def test_concat_dicts_to_stream():
     assert Stream(first_dict).concat(second_dict).to_list() == items_list
     # dict to empty stream
     assert Stream.concat(Stream.empty(), second_dict).to_list() == [
-        Item(key="p", value=33),
-        Item(key="q", value=44),
-        Item(key="r", value=55),
+        ("p", 33),
+        ("q", 44),
+        ("r", 55),
     ]
 
-    assert Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: (x.key, x.value)) == {
+    assert Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: (x[0], x[1])) == {
         "x": 1,
         "y": 2,
         "p": 33,
@@ -247,18 +285,18 @@ def test_prepend_dict():
     second_dict = {"x": 3, "y": 4}
     first_dict = {"a": 1, "b": 2}
     items_list = [
-        Item(key="a", value=1),
-        Item(key="b", value=2),
-        Item(key="x", value=3),
-        Item(key="y", value=4),
+        ("a", 1),
+        ("b", 2),
+        ("x", 3),
+        ("y", 4),
     ]
     # two streams of dicts
     assert Stream(second_dict).prepend(Stream(first_dict)).to_list() == items_list
     # dict to stream of dict
     assert Stream(second_dict).prepend(first_dict).to_list() == items_list
 
-    assert Stream(second_dict).prepend(first_dict).filter(lambda x: x.value % 2 == 0).map(
-        lambda x: x.key
+    assert Stream(second_dict).prepend(first_dict).filter(lambda x: x[1] % 2 == 0).map(
+        lambda x: x[0]
     ).to_list() == ["b", "y"]
 
 

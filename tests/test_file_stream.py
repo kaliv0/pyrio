@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from pyrio import FileStream, Stream, Item
+from pyrio import FileStream, Stream
 from pyrio.utils.exception import IllegalStateError, UnsupportedFileTypeError
 
 
@@ -46,7 +46,7 @@ def test_file_type_error(file_path):
     ],
 )
 def test_read_files(file_path):
-    assert FileStream(file_path).map(lambda x: f"{x.key}=>{x.value}").to_tuple() == (
+    assert FileStream(file_path).map(lambda x: f"{x[0]}=>{x[1]}").to_tuple() == (
         "abc=>xyz",
         "qwerty=>42",
     )
@@ -67,9 +67,7 @@ def test_csv(file_path):
 
 
 def test_nested_json():
-    assert FileStream("./tests/resources/nested.json").map(
-        lambda x: x.value["second"]
-    ).flatten().to_list() == [
+    assert FileStream("./tests/resources/nested.json").map(lambda x: x[1]["second"]).flatten().to_list() == [
         1,
         2,
         3,
@@ -80,8 +78,8 @@ def test_nested_json():
 def test_complex_pipeline():
     assert (
         FileStream("./tests/resources/long.json")
-        .filter(lambda x: "a" in x.key)
-        .map(lambda x: (x.key, sum(x.value) * 10))
+        .filter(lambda x: "a" in x[0])
+        .map(lambda x: (x[0], sum(x[1]) * 10))
         .sorted(itemgetter(1), reverse=True)
         .map(lambda x: f"{str(x[1])}::{x[0]}")
     ).to_list() == ["230::xza", "110::abba", "30::a"]
@@ -91,12 +89,12 @@ def test_reusing_stream():
     stream = FileStream("./tests/resources/foo.json")
     assert stream._is_consumed is False
 
-    result = stream.map(lambda x: f"{x.key}=>{x.value}").tail(1).to_tuple()
+    result = stream.map(lambda x: f"{x[0]}=>{x[1]}").tail(1).to_tuple()
     assert result == ("qwerty=>42",)
     assert stream._is_consumed
 
     with pytest.raises(IllegalStateError) as e:
-        stream.map(lambda x: x.value * 10).to_list()
+        stream.map(lambda x: x[1] * 10).to_list()
     assert str(e.value) == "Stream object already consumed"
 
 
@@ -104,7 +102,7 @@ def test_concat():
     assert (
         FileStream("./tests/resources/long.json")
         .concat(FileStream("./tests/resources/foo.json"))
-        .map(lambda x: f"{x.key}: {x.value}")
+        .map(lambda x: f"{x[0]}: {x[1]}")
     ).to_tuple() == (
         "a: [1, 2]",
         "b: [2, 3, 4]",
@@ -120,23 +118,19 @@ def test_concat():
 
 
 def test_prepend():
-    json_dict = (
-        Stream(
-            {
-                "Name": "Jennifer Smith",
-                "Security Number": 7867567898,
-                "Phone": "555-123-4568",
-                "Email": "jen123@gmail.com",
-                "Hobbies": ["Reading", "Sketching", "Horse Riding"],
-            }
-        )
-        .map(lambda x: Item(x.key, x.value))
-        .to_tuple()
-    )
+    json_dict = Stream(
+        {
+            "Name": "Jennifer Smith",
+            "Security Number": 7867567898,
+            "Phone": "555-123-4568",
+            "Email": "jen123@gmail.com",
+            "Hobbies": ["Reading", "Sketching", "Horse Riding"],
+        }
+    ).to_tuple()
     assert (
         FileStream("./tests/resources/long.json")
         .prepend(json_dict)
-        .map(lambda x: f"key={x.key}, value={x.value}")
+        .map(lambda x: f"key={x[0]}, value={x[1]}")
     ).to_tuple() == (
         "key=Name, value=Jennifer Smith",
         "key=Security Number, value=7867567898",
@@ -160,13 +154,13 @@ def test_prepend():
 )
 def test_process(file_path):
     def check_type(x):
-        match x.key:
+        match x[0]:
             case "a":
-                return isinstance(x.value, str)
+                return isinstance(x[1], str)
             case "b":
-                return isinstance(x.value, bool)
+                return isinstance(x[1], bool)
             case "x" | "y":
-                return isinstance(x.value, Decimal)
+                return isinstance(x[1], Decimal)
             case _:
                 return False
 

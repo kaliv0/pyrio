@@ -1,15 +1,13 @@
 from typing import Mapping
 from collections.abc import Iterable
 
-from pyrio.utils.dict_item import Item
-
 
 class Iterator:
     @staticmethod
     def concat(*streams):
         for iterable in streams:
             if isinstance(iterable, Mapping):
-                yield from (Item(k, v) for k, v in iterable.items())
+                yield from iterable.items()
             else:
                 yield from iterable
 

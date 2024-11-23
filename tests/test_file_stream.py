@@ -165,3 +165,20 @@ def test_process(file_path):
                 return False
 
     assert FileStream.process(file_path, parse_float=Decimal).all_match(check_type)
+
+
+def test_save():
+    json_dict = (
+        Stream(
+            {
+                "Name": "Jennifer Smith",
+                "Security Number": 7867567898,
+                "Phone": "555-123-4568",
+                "Email": "jen123@gmail.com",
+                "Hobbies": ["Reading", "Sketching", "Horse Riding"],
+            }
+        )
+        .filter(lambda x: len(x[0]) < 6)
+        .to_tuple()
+    )
+    FileStream("./tests/resources/nested.json").prepend(json_dict).save("./tests/resources/test.toml")

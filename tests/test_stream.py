@@ -119,23 +119,23 @@ def test_filter_map_falsy():
     ]
 
 
-# def test_reduce():
-#     assert Stream([1, 2, 3]).reduce(lambda acc, val: acc + val, identity=3).get() == 9
-#
-#
-# def test_reduce_no_identity_provided():
-#     assert Stream([1, 2, 3]).reduce(lambda acc, val: acc + val).get() == 6
-#
-#
-# def test_reduce_empty_collection():
-#     assert Stream([]).reduce(lambda acc, val: acc + val).is_empty()
-#
-#
-# def test_for_each():
-#     f = io.StringIO()
-#     with redirect_stdout(f):
-#         Stream([1, 2, 3, 4]).for_each(lambda x: print(f"{'#' * x} ", end=""))
-#     assert f.getvalue() == "# ## ### #### "
+def test_reduce():
+    assert Stream([1, 2, 3]).reduce(lambda acc, val: acc + val, identity=3).get() == 9
+
+
+def test_reduce_no_identity_provided():
+    assert Stream([1, 2, 3]).reduce(lambda acc, val: acc + val).get() == 6
+
+
+def test_reduce_empty_collection():
+    assert Stream([]).reduce(lambda acc, val: acc + val).is_empty()
+
+
+def test_for_each():
+    f = io.StringIO()
+    with redirect_stdout(f):
+        Stream([1, 2, 3, 4]).for_each(lambda x: print(f"{'#' * x} ", end=""))
+    assert f.getvalue() == "# ## ### #### "
 
 
 def test_peek():
@@ -449,20 +449,20 @@ def test_reusing_stream():
     assert str(e.value) == "Stream object already consumed"
 
 
-# def test_compare_with():
-#     assert Stream([1, 2]).compare_with(Stream([1, 2]))
-#     assert Stream([1, 2]).compare_with(Stream([2, 1])) is False
-#     assert Stream([1, 2]).compare_with(Stream([3, 4])) is False
-#
-#
-# def test_compare_with_custom_key(Foo):
-#     fizz = Foo("fizz", 1)
-#     buzz = Foo("buzz", 2)
-#     comparator = lambda x, y: x.num == y.num  # noqa
-#
-#     assert Stream([fizz, buzz]).compare_with(Stream([fizz, buzz]), comparator)
-#     assert Stream([buzz, fizz]).compare_with(Stream([fizz, buzz]), comparator) is False
-#     assert Stream([fizz, buzz]).compare_with(Stream([buzz]), comparator) is False
+def test_compare_with():
+    assert Stream([1, 2]).compare_with(Stream([1, 2]))
+    assert Stream([1, 2]).compare_with(Stream([2, 1])) is False
+    assert Stream([1, 2]).compare_with(Stream([3, 4])) is False
+
+
+def test_compare_with_custom_key(Foo):
+    fizz = Foo("fizz", 1)
+    buzz = Foo("buzz", 2)
+    comparator = lambda x, y: x.num == y.num  # noqa
+
+    assert Stream([fizz, buzz]).compare_with(Stream([fizz, buzz]), comparator)
+    assert Stream([buzz, fizz]).compare_with(Stream([fizz, buzz]), comparator) is False
+    assert Stream([fizz, buzz]).compare_with(Stream([buzz]), comparator) is False
 
 
 def test_quantify():

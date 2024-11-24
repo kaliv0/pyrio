@@ -1,6 +1,6 @@
-from typing import Mapping
+from collections.abc import Mapping
 
-from pyrio.iterators.iterator import Iterator
+from pyrio.iterators.generator import Generator
 from pyrio.utils.decorator import pre_call, handle_consumed
 from pyrio.utils.dict_item import Item
 from pyrio.utils.exception import IllegalStateError
@@ -34,55 +34,46 @@ class BaseStream:
     @staticmethod
     def concat(*streams):
         """Concatenates several streams together or adds new streams/collections to the current one"""
-        return BaseStream(Iterator.concat(*streams))
+        return BaseStream(Generator.concat(*streams))
 
     def prepend(self, iterable):
         """Prepends iterable to current stream"""
-        self.iterable = Iterator.concat(iterable, self.iterable)
+        self.iterable = Generator.concat(iterable, self.iterable)
         return self
 
     def filter(self, predicate):
         """Filters values in stream based on given predicate function"""
-        self.iterable = Iterator.filter(self.iterable, predicate)
+        self.iterable = Generator.filter(self.iterable, predicate)
         return self
 
     def map(self, mapper):
         """Returns a stream consisting of the results of applying the given function to the elements of this stream"""
-        self.iterable = Iterator.map(self.iterable, mapper)
+        self.iterable = Generator.map(self.iterable, mapper)
         return self
 
     def filter_map(self, mapper, *, falsy=False):
         """Filters out all None or falsy values and applies mapper function to the elements of the stream"""
-        self.iterable = Iterator.filter_map(self.iterable, mapper, falsy)
+        self.iterable = Generator.filter_map(self.iterable, mapper, falsy)
         return self
 
     def flat_map(self, mapper):
         """Maps each element of the stream and yields the elements of the produced iterators"""
-        self.iterable = Iterator.flat_map(self.iterable, mapper)
+        self.iterable = Generator.flat_map(self.iterable, mapper)
         return self
 
     def flatten(self):
         """Converts a Stream of multidimensional collection into a one-dimensional"""
-        self.iterable = Iterator.flatten(self.iterable)
+        self.iterable = Generator.flatten(self.iterable)
         return self
-
-    def for_each(self, operation):
-        """Performs an action for each element of this stream"""
-        return Iterator.for_each(self.iterable, operation)
 
     def peek(self, operation):
         """Performs the provided operation on each element of the stream without consuming it"""
-        self.iterable = Iterator.peek(self.iterable, operation)
+        self.iterable = Generator.peek(self.iterable, operation)
         return self
-
-    def reduce(self, accumulator, identity=None):
-        """Reduces the elements to a single one, by repeatedly applying a reducing operation.
-        Returns Optional with the result, if any, or None"""
-        return Optional.of_nullable(Iterator.reduce(self.iterable, accumulator, identity))
 
     def distinct(self):
         """Returns a stream with the distinct elements of the current one"""
-        self.iterable = Iterator.distinct(self.iterable)
+        self.iterable = Generator.distinct(self.iterable)
         return self
 
     def count(self):
@@ -101,38 +92,44 @@ class BaseStream:
         """Discards the first n elements of the stream and returns a new stream with the remaining ones"""
         if count < 0:
             raise ValueError("Skip count cannot be negative")
-        self.iterable = Iterator.skip(self.iterable, count)
+        self.iterable = Generator.skip(self.iterable, count)
         return self
 
     def limit(self, count):
         """Returns a stream with the first n elements, or fewer if the underlying iterator ends sooner"""
         if count < 0:
             raise ValueError("Limit count cannot be negative")
-        self.iterable = Iterator.limit(self.iterable, count)
+        self.iterable = Generator.limit(self.iterable, count)
         return self
 
     def head(self, count):
         """Alias for 'limit'"""
         if count < 0:
             raise ValueError("Head count cannot be negative")
-        self.iterable = Iterator.limit(self.iterable, count)
+        self.iterable = Generator.limit(self.iterable, count)
         return self
 
     def tail(self, count):
         """Returns a stream with the last n elements, or fewer if the underlying iterator ends sooner"""
         if count < 0:
             raise ValueError("Tail count cannot be negative")
-        self.iterable = Iterator.tail(self.iterable, count)
+        self.iterable = Generator.tail(self.iterable, count)
         return self
 
     def take_while(self, predicate):
         """Returns a stream that yields elements based on a predicate"""
-        self.iterable = Iterator.take_while(self.iterable, predicate)
+        self.iterable = Generator.take_while(self.iterable, predicate)
         return self
 
     def drop_while(self, predicate):
         """Returns a stream that skips elements based on a predicate and yields the remaining ones"""
-        self.iterable = Iterator.drop_while(self.iterable, predicate)
+        self.iterable = Generator.drop_while(self.iterable, predicate)
+        return self
+
+    def sorted(self, comparator=None, *, reverse=False):
+        """Sorts the elements of the current stream according to natural order or based on the given comparator.
+        If 'reverse' flag is True, the elements are sorted in descending order"""
+        self.iterable = Generator.sorted(self.iterable, comparator, reverse)
         return self
 
     def find_first(self, predicate=None):
@@ -172,15 +169,31 @@ class BaseStream:
         """Returns the maximum element of the stream according to the given comparator"""
         return Optional.of_nullable(max(self.iterable, key=comparator, default=default))
 
+    def for_each(self, operation):
+        """Performs an action for each element of this stream"""
+        for i in self.iterable:
+            operation(i)
+
+    def reduce(self, accumulator, identity=None):
+        """Reduces the elements to a single one, by repeatedly applying a reducing operation.
+        Returns Optional with the result, if any, or None"""
+        if len(self.iterable) == 0:
+            return Optional.of_nullable(identity)
+
+        curr_iter = iter(self.iterable)
+        if identity is None:
+            identity = next(curr_iter)
+
+        for i in curr_iter:
+            identity = accumulator(identity, i)
+        return Optional.of_nullable(identity)
+
     def compare_with(self, other, comparator=None):
         """Compares current stream with another one based on a given comparator"""
-        return Iterator.compare_with(self.iterable, other, comparator)
-
-    def sorted(self, comparator=None, *, reverse=False):
-        """Sorts the elements of the current stream according to natural order or based on the given comparator.
-        If 'reverse' flag is True, the elements are sorted in descending order"""
-        self.iterable = Iterator.sorted(self.iterable, comparator, reverse)
-        return self
+        for i, j in zip(self.iterable, other):
+            if (comparator and not comparator(i, j)) or i != j:
+                return False
+        return True
 
     # ### collectors ###
     def collect(self, collection_type, dict_collector=None, dict_merger=None):

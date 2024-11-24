@@ -1,3 +1,8 @@
 writing
 - toml
     - doesn't support null -> pass lambda to handle??
+
+-----------------
+Iterator -> rename Generator
+    -> move 'reduce', 'for_each', 'compare_with' to BaseStream
+    -> use decorator to map DictItems

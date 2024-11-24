@@ -1,0 +1,27 @@
+{
+  "someone": {
+    "Name": "John",
+    "Phone": "555-123-4568",
+    "Security Number": "3450678",
+    "Email": {
+          "primary": "johnny@bravo.cash"
+    }
+  },
+  "super_user": {
+    "Name": "sudo",
+    "Email": "admin@sudo.su",
+    "Some Other Number": "000-0011"
+  },
+  "fraud": {
+    "Name": "Freud",
+    "Email": {
+      "primary": "ziggy@psycho.au",
+      "secondary": "piggy@pigsty.org"
+    },
+    "Foo": [
+      1,
+      2,
+      3
+    ]
+  }
+}

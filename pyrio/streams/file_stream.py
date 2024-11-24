@@ -5,10 +5,10 @@ from pyrio.utils.exception import UnsupportedFileTypeError
 
 
 class FileStream(BaseStream):
-    # NB: how naughty can it be?!
+    # NB: Dirty deeds for nice-looking API's
     def __init__(self, file_path):  # noqa
         """Creates Stream from a file"""
-        ...
+        pass
 
     def __new__(cls, file_path, **kwargs):
         obj = super().__new__(cls)
@@ -82,7 +82,7 @@ class FileStream(BaseStream):
                 case ".toml":
                     import tomli_w
 
-                    output = self.to_dict(lambda x: (x[0], x[1]))
+                    output = self.to_dict(lambda x: (x.key, x.value))
                     tomli_w.dump(output, f, **kwargs)
 
                 # case ".json":

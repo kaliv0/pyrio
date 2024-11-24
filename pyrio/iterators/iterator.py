@@ -1,9 +1,12 @@
 from typing import Mapping
 from collections.abc import Iterable
 
+from pyrio.utils.decorator import map_dict_items
+
 
 class Iterator:
     @staticmethod
+    @map_dict_items
     def concat(*streams):
         for iterable in streams:
             if isinstance(iterable, Mapping):

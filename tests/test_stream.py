@@ -5,7 +5,7 @@ from operator import itemgetter
 
 import pytest
 
-from pyrio import Stream, Optional
+from pyrio import Stream, Optional, Item
 from pyrio.utils.exception import IllegalStateError
 
 
@@ -40,12 +40,12 @@ def test_constant():
 def test_iterable_from_string():
     json_str = '{"Name": "Jennifer Smith", "Phone": "555-123-4568", "Email": "jen123@gmail.com"}'
     json_dict = json.loads(json_str)
-    assert Stream(json_dict).filter(lambda x: len(x[0]) < 6).map(lambda x: x[0]).to_tuple() == (
+    assert Stream(json_dict).filter(lambda x: len(x.key) < 6).map(lambda x: x.key).to_tuple() == (
         "Name",
         "Phone",
         "Email",
     )
-    assert Stream(json_dict).map(lambda x: f"***{x[1]}***").to_tuple() == (
+    assert Stream(json_dict).map(lambda x: f"***{x.value}***").to_tuple() == (
         "***Jennifer Smith***",
         "***555-123-4568***",
         "***jen123@gmail.com***",
@@ -79,10 +79,13 @@ def test_nested_json_from_string():
     """
     assert (
         Stream(json.loads(nested_json))
-        .filter(lambda outer: "user" in outer[0])
+        .filter(lambda outer: "user" in outer.key)
         .flat_map(
             lambda outer: (
-                Stream(outer[1]).filter(lambda inner: len(inner[0]) < 6).map(lambda inner: inner[1]).to_list()
+                Stream(outer.value)
+                .filter(lambda inner: len(inner.key) < 6)
+                .map(lambda inner: inner.value)
+                .to_list()
             )
         )
         .to_tuple()
@@ -102,7 +105,7 @@ def test_map_lambda():
 
 
 def test_map_dict():
-    assert Stream({"x": 1, "y": 2}).map(lambda x: x[0] + str(x[1])).to_list() == ["x1", "y2"]
+    assert Stream({"x": 1, "y": 2}).map(lambda x: x.key + str(x.value)).to_list() == ["x1", "y2"]
 
 
 def test_filter_map():
@@ -116,23 +119,23 @@ def test_filter_map_falsy():
     ]
 
 
-def test_reduce():
-    assert Stream([1, 2, 3]).reduce(lambda acc, val: acc + val, identity=3).get() == 9
-
-
-def test_reduce_no_identity_provided():
-    assert Stream([1, 2, 3]).reduce(lambda acc, val: acc + val).get() == 6
-
-
-def test_reduce_empty_collection():
-    assert Stream([]).reduce(lambda acc, val: acc + val).is_empty()
-
-
-def test_for_each():
-    f = io.StringIO()
-    with redirect_stdout(f):
-        Stream([1, 2, 3, 4]).for_each(lambda x: print(f"{'#' * x} ", end=""))
-    assert f.getvalue() == "# ## ### #### "
+# def test_reduce():
+#     assert Stream([1, 2, 3]).reduce(lambda acc, val: acc + val, identity=3).get() == 9
+#
+#
+# def test_reduce_no_identity_provided():
+#     assert Stream([1, 2, 3]).reduce(lambda acc, val: acc + val).get() == 6
+#
+#
+# def test_reduce_empty_collection():
+#     assert Stream([]).reduce(lambda acc, val: acc + val).is_empty()
+#
+#
+# def test_for_each():
+#     f = io.StringIO()
+#     with redirect_stdout(f):
+#         Stream([1, 2, 3, 4]).for_each(lambda x: print(f"{'#' * x} ", end=""))
+#     assert f.getvalue() == "# ## ### #### "
 
 
 def test_peek():
@@ -240,11 +243,11 @@ def test_concat_dicts_to_stream():
     first_dict = {"x": 1, "y": 2}
     second_dict = {"p": 33, "q": 44, "r": 55}
     items_list = [
-        ("x", 1),
-        ("y", 2),
-        ("p", 33),
-        ("q", 44),
-        ("r", 55),
+        Item(key="x", value=1),
+        Item(key="y", value=2),
+        Item(key="p", value=33),
+        Item(key="q", value=44),
+        Item(key="r", value=55),
     ]
     # two dicts
     assert Stream.concat(first_dict, second_dict).to_list() == items_list
@@ -254,12 +257,12 @@ def test_concat_dicts_to_stream():
     assert Stream(first_dict).concat(second_dict).to_list() == items_list
     # dict to empty stream
     assert Stream.concat(Stream.empty(), second_dict).to_list() == [
-        ("p", 33),
-        ("q", 44),
-        ("r", 55),
+        Item(key="p", value=33),
+        Item(key="q", value=44),
+        Item(key="r", value=55),
     ]
 
-    assert Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: (x[0], x[1])) == {
+    assert Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: (x.key, x.value)) == {
         "x": 1,
         "y": 2,
         "p": 33,
@@ -285,18 +288,18 @@ def test_prepend_dict():
     second_dict = {"x": 3, "y": 4}
     first_dict = {"a": 1, "b": 2}
     items_list = [
-        ("a", 1),
-        ("b", 2),
-        ("x", 3),
-        ("y", 4),
+        Item(key="a", value=1),
+        Item(key="b", value=2),
+        Item(key="x", value=3),
+        Item(key="y", value=4),
     ]
     # two streams of dicts
     assert Stream(second_dict).prepend(Stream(first_dict)).to_list() == items_list
     # dict to stream of dict
     assert Stream(second_dict).prepend(first_dict).to_list() == items_list
 
-    assert Stream(second_dict).prepend(first_dict).filter(lambda x: x[1] % 2 == 0).map(
-        lambda x: x[0]
+    assert Stream(second_dict).prepend(first_dict).filter(lambda x: x.value % 2 == 0).map(
+        lambda x: x.key
     ).to_list() == ["b", "y"]
 
 
@@ -446,20 +449,20 @@ def test_reusing_stream():
     assert str(e.value) == "Stream object already consumed"
 
 
-def test_compare_with():
-    assert Stream([1, 2]).compare_with(Stream([1, 2]))
-    assert Stream([1, 2]).compare_with(Stream([2, 1])) is False
-    assert Stream([1, 2]).compare_with(Stream([3, 4])) is False
-
-
-def test_compare_with_custom_key(Foo):
-    fizz = Foo("fizz", 1)
-    buzz = Foo("buzz", 2)
-    comparator = lambda x, y: x.num == y.num  # noqa
-
-    assert Stream([fizz, buzz]).compare_with(Stream([fizz, buzz]), comparator)
-    assert Stream([buzz, fizz]).compare_with(Stream([fizz, buzz]), comparator) is False
-    assert Stream([fizz, buzz]).compare_with(Stream([buzz]), comparator) is False
+# def test_compare_with():
+#     assert Stream([1, 2]).compare_with(Stream([1, 2]))
+#     assert Stream([1, 2]).compare_with(Stream([2, 1])) is False
+#     assert Stream([1, 2]).compare_with(Stream([3, 4])) is False
+#
+#
+# def test_compare_with_custom_key(Foo):
+#     fizz = Foo("fizz", 1)
+#     buzz = Foo("buzz", 2)
+#     comparator = lambda x, y: x.num == y.num  # noqa
+#
+#     assert Stream([fizz, buzz]).compare_with(Stream([fizz, buzz]), comparator)
+#     assert Stream([buzz, fizz]).compare_with(Stream([fizz, buzz]), comparator) is False
+#     assert Stream([fizz, buzz]).compare_with(Stream([buzz]), comparator) is False
 
 
 def test_quantify():

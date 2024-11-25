@@ -155,7 +155,7 @@ def test_prepend(json_dict):
         "key=Name, value=Jennifer Smith",
         "key=Security_Number, value=7867567898",
         "key=Phone, value=555-123-4568",
-        "key=Email, value=jen123@gmail.com",
+        "key=Email, value={'primary': 'jen123@gmail.com'}",
         "key=Hobbies, value=['Reading', 'Sketching', 'Horse Riding']",
         "key=Job, value=None",
         "key=a, value=[1, 2]",
@@ -188,11 +188,14 @@ def test_process(file_path):
     assert FileStream.process(file_path, parse_float=Decimal).all_match(check_type)
 
 
+# ### save to file ###
 def test_save_toml(tmp_file_dir, json_dict):
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
     tmp_file_path = tmp_file_dir / "test.toml"
     FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
-        tmp_file_path, handle_null=lambda x: Item(x.key, "Unknown") if x.value is None else x
+        tmp_file_path,
+        handle_null=lambda x: Item(x.key, "Unknown") if x.value is None else x,
+        encoding="utf-8",
     )
     assert (
         tmp_file_path.read_text(encoding="utf-8")
@@ -205,32 +208,47 @@ def test_save_toml_default_handle_null(tmp_file_dir, json_dict):
     tmp_file_path = tmp_file_dir / "test_default_handle_null.toml"
     FileStream("./tests/resources/foo.toml").concat(in_memory_dict).save(tmp_file_path)
     assert (
-        tmp_file_path.read_text(encoding="utf-8")
+        tmp_file_path.read_text()
         == open("./tests/resources/save_output/test_default_handle_null.toml").read()
     )
 
 
-def test_save(tmp_file_dir, json_dict):
+@pytest.mark.parametrize(
+    "file_path",
+    [
+        "test.json",
+        "test.yaml",
+    ],
+)
+def test_save(tmp_file_dir, file_path, json_dict):
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
-    tmp_file_path = tmp_file_dir / "test.json"
+    tmp_file_path = tmp_file_dir / file_path
     FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
-        tmp_file_path, indent=2
+        tmp_file_path, encoding="utf-8", indent=2
     )
     assert (
         tmp_file_path.read_text(encoding="utf-8")
-        == open("./tests/resources/save_output/test.json").read()
+        == open(f"./tests/resources/save_output/{file_path}").read()
     )
 
 
-def test_save_handle_null(tmp_file_dir, json_dict):
+@pytest.mark.parametrize(
+    "file_path",
+    [
+        "test_handle_null.json",
+        "test_handle_null.yaml",
+    ],
+)
+def test_save_handle_null(tmp_file_dir, file_path, json_dict):
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
-    tmp_file_path = tmp_file_dir / "test_handle_null.json"
+    tmp_file_path = tmp_file_dir / file_path
     FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
         tmp_file_path,
         handle_null=lambda x: Item(x.key, "Unknown") if x.value is None else x,
+        encoding="utf-8",
         indent=2,
     )
     assert (
         tmp_file_path.read_text(encoding="utf-8")
-        == open("./tests/resources/save_output/test_handle_null.json").read()
+        == open(f"./tests/resources/save_output/{file_path}").read()
     )

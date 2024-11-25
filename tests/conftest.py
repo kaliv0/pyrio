@@ -17,7 +17,7 @@ def json_dict():
         "Name": "Jennifer Smith",
         "Security_Number": 7867567898,
         "Phone": "555-123-4568",
-        "Email": "jen123@gmail.com",
+        "Email": {"primary": "jen123@gmail.com"},
         "Hobbies": ["Reading", "Sketching", "Horse Riding"],
         "Job": None,
     }

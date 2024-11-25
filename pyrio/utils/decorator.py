@@ -60,19 +60,15 @@ def handle_consumed(func):
 def map_dict_items(func):
     @wraps(func)
     def wrapper(*args, **kw):
-        gen = func(*args, **kw)
-        try:
-            el = next(gen)
-        except StopIteration:
-            return
+        if not any(isinstance(arg, Mapping) for arg in args):
+            return func(*args, **kw)
 
-        if any(isinstance(arg, Mapping) for arg in args):
-            yield el if isinstance(el, Item) else Item(el[0], el[1])
-            for i in gen:
-                yield i if isinstance(i, Item) else Item(i[0], i[1])
-        else:
-            yield el
-            for val in gen:
-                yield val
+        remapped = []
+        for arg in args:
+            if isinstance(arg, Mapping):
+                remapped.append((Item(k, v) for k, v in arg.items()))
+            else:
+                remapped.append(arg)
+        return func(*remapped, **kw)
 
     return wrapper

@@ -60,7 +60,9 @@ def test_read_files(file_path):
     ],
 )
 def test_csv(file_path):
-    assert FileStream(file_path).map(lambda x: f"fizz: {x['fizz']}, buzz: {x['buzz']}").to_tuple() == (
+    assert FileStream(file_path).map(
+        lambda x: f"fizz: {x['fizz']}, buzz: {x['buzz']}"
+    ).to_tuple() == (
         "fizz: 42, buzz: 45",
         "fizz: aaa, buzz: bbb",
     )
@@ -207,4 +209,6 @@ def test_save():
         .filter(lambda x: len(x.key) < 6)
         .to_tuple()
     )
-    FileStream("./tests/resources/nested.json").prepend(json_dict).save("./tests/resources/test.toml")
+    FileStream("./tests/resources/nested.json").prepend(json_dict).save(
+        "./tests/resources/test.toml"
+    )

@@ -1,4 +1,4 @@
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable
 
 from pyrio.utils.decorator import map_dict_items
 
@@ -8,10 +8,7 @@ class Generator:
     @map_dict_items
     def concat(*streams):
         for iterable in streams:
-            if isinstance(iterable, Mapping):
-                yield from iterable.items()
-            else:
-                yield from iterable
+            yield from iterable
 
     @staticmethod
     def filter(iterable, predicate):

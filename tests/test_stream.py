@@ -405,7 +405,9 @@ def test_sorted_reverse():
 
 
 def test_sorted_comparator_function():
-    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sorted(itemgetter(1)).to_list() == [
+    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sorted(
+        itemgetter(1)
+    ).to_list() == [
         ("1", 10),
         ("2", 20),
         ("3", 30),
@@ -431,9 +433,9 @@ def test_sorted_comparator_and_reverse():
 
 
 def test_complex_pipeline():
-    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sorted(itemgetter(1), reverse=True).to_dict(
-        lambda x: (x[0], x[1])
-    ) == {"5": 50, "3": 30, "2": 20, "1": 10}
+    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sorted(
+        itemgetter(1), reverse=True
+    ).to_dict(lambda x: (x[0], x[1])) == {"5": 50, "3": 30, "2": 20, "1": 10}
 
 
 def test_reusing_stream():
@@ -619,7 +621,9 @@ def test_to_dict(Foo):
 
 def test_to_dict_merger(Foo):
     coll = [Foo("fizz", 1), Foo("fizz", 2), Foo("buzz", 2)]
-    assert Stream(coll).to_dict(collector=lambda x: (x.name, x.num), merger=lambda old, new: old) == {
+    assert Stream(coll).to_dict(
+        collector=lambda x: (x.name, x.num), merger=lambda old, new: old
+    ) == {
         "fizz": 1,
         "buzz": 2,
     }

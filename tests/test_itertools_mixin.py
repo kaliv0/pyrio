@@ -7,7 +7,9 @@ from pyrio import Stream
 
 
 def test_accumulate():
-    assert Stream.of(1, 2, 3, 4, 5).use(it.accumulate).to_list() == list(it.accumulate([1, 2, 3, 4, 5]))
+    assert Stream.of(1, 2, 3, 4, 5).use(it.accumulate).to_list() == list(
+        it.accumulate([1, 2, 3, 4, 5])
+    )
     assert Stream.of(1, 2, 3, 4, 5).use(it.accumulate, initial=100).to_list() == list(
         it.accumulate([1, 2, 3, 4, 5], initial=100)
     )
@@ -20,7 +22,9 @@ def test_accumulate():
 
 def test_batched():
     flattened_data = ["roses", "red", "violets", "blue", "sugar", "sweet"]
-    assert Stream(flattened_data).use(it.batched, n=2).to_list() == list(it.batched(flattened_data, 2))
+    assert Stream(flattened_data).use(it.batched, n=2).to_list() == list(
+        it.batched(flattened_data, 2)
+    )
 
 
 def test_chain():
@@ -48,7 +52,9 @@ def test_combinations_with_replacement():
 def test_compress():
     data = "ABCDEF"
     selectors = [1, 0, 1, 0, 1, 1]
-    assert Stream(data).use(it.compress, selectors=selectors).to_list() == list(it.compress(data, selectors))
+    assert Stream(data).use(it.compress, selectors=selectors).to_list() == list(
+        it.compress(data, selectors)
+    )
 
 
 def test_count():
@@ -101,7 +107,9 @@ def test_itertools_groupby():
 def test_itertools_islice():
     letters = "ABCDEFG"
     assert Stream(letters).use(it.islice, stop=2).to_list() == list(it.islice(letters, 2))
-    assert Stream(letters).use(it.islice, start=2, stop=None).to_list() == list(it.islice(letters, 2, None))
+    assert Stream(letters).use(it.islice, start=2, stop=None).to_list() == list(
+        it.islice(letters, 2, None)
+    )
     assert Stream(letters).use(it.islice, start=0, stop=None, step=2).to_list() == list(
         it.islice(letters, 0, None, 2)
     )
@@ -113,13 +121,19 @@ def test_itertools_pairwise():
 
 
 def test_permutations():
-    assert Stream(range(3)).use(it.permutations, r=3).to_list() == list(it.permutations(range(3), r=3))
+    assert Stream(range(3)).use(it.permutations, r=3).to_list() == list(
+        it.permutations(range(3), r=3)
+    )
 
 
 def test_product():
     assert Stream.of("ABCD", "xy").use(it.product).to_list() == list(it.product("ABCD", "xy"))
-    assert Stream.of([1, 2, 3, 4], [5, 6]).use(it.product).to_list() == list(it.product([1, 2, 3, 4], [5, 6]))
-    assert Stream(range(3)).use(it.product, repeat=2).to_list() == list(it.product(range(3), repeat=2))
+    assert Stream.of([1, 2, 3, 4], [5, 6]).use(it.product).to_list() == list(
+        it.product([1, 2, 3, 4], [5, 6])
+    )
+    assert Stream(range(3)).use(it.product, repeat=2).to_list() == list(
+        it.product(range(3), repeat=2)
+    )
 
 
 def test_repeat():
@@ -340,7 +354,11 @@ def test_grouper_default_incomplete():
 
 
 def test_grouper_default_fillvalue():
-    assert Stream("ABCDEFG").grouper(3).to_list() == [("A", "B", "C"), ("D", "E", "F"), ("G", None, None)]
+    assert Stream("ABCDEFG").grouper(3).to_list() == [
+        ("A", "B", "C"),
+        ("D", "E", "F"),
+        ("G", None, None),
+    ]
 
 
 def test_grouper_strict():
@@ -350,7 +368,10 @@ def test_grouper_strict():
 
 
 def test_grouper_ignore():
-    assert Stream("ABCDEFG").grouper(3, incomplete="ignore").to_list() == [("A", "B", "C"), ("D", "E", "F")]
+    assert Stream("ABCDEFG").grouper(3, incomplete="ignore").to_list() == [
+        ("A", "B", "C"),
+        ("D", "E", "F"),
+    ]
 
 
 def test_grouper_invalid_incomplete_flag():
@@ -388,7 +409,12 @@ def test_unique_custom_key_reversed(Foo):
     fizz = Foo("fizz", 3)
     buzz = Foo("buzz", 4)
     coll = [foo, bar, fizz, buzz, foo, bar]
-    assert Stream(coll).unique(key=lambda x: x.num, reverse=True).to_list() == [buzz, fizz, bar, foo]
+    assert Stream(coll).unique(key=lambda x: x.num, reverse=True).to_list() == [
+        buzz,
+        fizz,
+        bar,
+        foo,
+    ]
 
 
 def test_unique_just_seen():
@@ -396,7 +422,13 @@ def test_unique_just_seen():
 
 
 def test_unique_just_seen_custom_key():
-    assert Stream("ABBcCAD").unique_just_seen(key=str.casefold).to_list() == ["A", "B", "c", "A", "D"]
+    assert Stream("ABBcCAD").unique_just_seen(key=str.casefold).to_list() == [
+        "A",
+        "B",
+        "c",
+        "A",
+        "D",
+    ]
 
 
 def test_unique_just_seen_empty_collection():

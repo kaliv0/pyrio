@@ -204,14 +204,20 @@ def test_save(tmp_file_dir):
                 "Phone": "555-123-4568",
                 "Email": "jen123@gmail.com",
                 "Hobbies": ["Reading", "Sketching", "Horse Riding"],
+                "Job": None,
             }
         )
         .filter(lambda x: len(x.key) < 6)
         .to_tuple()
     )
     tmp_file_path = tmp_file_dir / "test.toml"
-    FileStream("./tests/resources/nested.json").prepend(json_dict).save(tmp_file_path)
+    FileStream("./tests/resources/nested.json").prepend(json_dict).save(
+        tmp_file_path, handle_null=lambda x: Item(x.key, "Unknown") if x.value is None else x
+    )
     assert (
         tmp_file_path.read_text(encoding="utf-8")
         == open("./tests/resources/save_output/test.toml").read()
     )
+
+
+# TODO: add test with default handle_null()

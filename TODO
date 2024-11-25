@@ -1,5 +1,5 @@
 writing
 - toml
-    - doesn't support null -> pass lambda to handle??
+- handle_null for all types -> mandatory for toml, optional for others (what about csv?)
 
 - add description for FileStream.process() in README

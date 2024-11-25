@@ -195,7 +195,6 @@ def test_save_toml(tmp_file_dir, json_dict):
     FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
         tmp_file_path,
         handle_null=lambda x: Item(x.key, "Unknown") if x.value is None else x,
-        encoding="utf-8",
     )
     assert (
         tmp_file_path.read_text(encoding="utf-8")
@@ -214,17 +213,14 @@ def test_save_toml_default_handle_null(tmp_file_dir, json_dict):
 
 
 @pytest.mark.parametrize(
-    "file_path",
-    [
-        "test.json",
-        "test.yaml",
-    ],
+    "file_path, indent",
+    [("test.json", 2), ("test.yaml", 2), ("test.xml", 4)],
 )
-def test_save(tmp_file_dir, file_path, json_dict):
+def test_save(tmp_file_dir, file_path, indent, json_dict):
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
     tmp_file_path = tmp_file_dir / file_path
     FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
-        tmp_file_path, encoding="utf-8", indent=2
+        tmp_file_path, encoding="utf-8", indent=indent
     )
     assert (
         tmp_file_path.read_text(encoding="utf-8")
@@ -233,20 +229,17 @@ def test_save(tmp_file_dir, file_path, json_dict):
 
 
 @pytest.mark.parametrize(
-    "file_path",
-    [
-        "test_handle_null.json",
-        "test_handle_null.yaml",
-    ],
+    "file_path, indent",
+    [("test_handle_null.json", 2), ("test_handle_null.yaml", 2), ("test_handle_null.xml", 4)],
 )
-def test_save_handle_null(tmp_file_dir, file_path, json_dict):
+def test_save_handle_null(tmp_file_dir, file_path, indent, json_dict):
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
     tmp_file_path = tmp_file_dir / file_path
     FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
         tmp_file_path,
         handle_null=lambda x: Item(x.key, "Unknown") if x.value is None else x,
         encoding="utf-8",
-        indent=2,
+        indent=indent,
     )
     assert (
         tmp_file_path.read_text(encoding="utf-8")

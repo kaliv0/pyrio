@@ -1,8 +1,42 @@
+import importlib
 from pathlib import Path
 
 from pyrio.utils.dict_item import Item
 from pyrio.streams.base_stream import BaseStream
 from pyrio.utils.exception import UnsupportedFileTypeError
+
+WRITE_CONFIG = {
+    ".toml": {
+        "import_mod": "tomli_w",
+        "callable": "dump",
+        "write_mode": "wb",
+        "default_null_handler": lambda x: Item(x.key, "N/A") if x.value is None else x,
+    },
+    ".json": {
+        "import_mod": "json",
+        "callable": "dump",
+        "write_mode": "w",
+        "default_null_handler": None,
+    },
+    ".yaml": {
+        "import_mod": "yaml",
+        "callable": "dump",
+        "write_mode": "w",
+        "default_null_handler": None,
+    },
+    ".yml": {
+        "import_mod": "yaml",
+        "callable": "dump",
+        "write_mode": "w",
+        "default_null_handler": None,
+    },
+    ".xml": {
+        "import_mod": "xmltodict",
+        "callable": "unparse",
+        "write_mode": "w",
+        "default_null_handler": None,
+    },
+}
 
 
 class FileStream(BaseStream):
@@ -50,6 +84,7 @@ class FileStream(BaseStream):
 
     @staticmethod
     def _read_binary(path, **kwargs):
+        # TODO: refactor with READ_CONFIG?
         with open(path, "rb") as f:
             match path.suffix:
                 case ".toml":
@@ -68,7 +103,9 @@ class FileStream(BaseStream):
                 case ".xml":
                     import xmltodict
 
-                    return xmltodict.parse(f, **kwargs).get("root")
+                    return xmltodict.parse(f, **kwargs).get(
+                        "root"
+                    )  # TODO: what if in rare cases it's not root -> user should point?
                 case _:
                     raise UnsupportedFileTypeError(f"Unsupported file type: '{path.suffix}'")
 
@@ -83,40 +120,24 @@ class FileStream(BaseStream):
 
         # if path.suffix in {".csv", ".tsv"}:
         #     return self._save_csv(path, **kwargs)
-        return self._save(path, handle_null, **kwargs)
+        return self._write_to_file(path, handle_null, encoding, **kwargs)
 
-    # TODO: rename -> binary for toml, not for json
-    def _save(self, path, handle_null=None, encoding=None, **kwargs):
-        match path.suffix:
-            case ".toml":
-                import tomli_w
+    def _write_to_file(self, path, handle_null=None, encoding=None, **kwargs):
+        if path.suffix not in WRITE_CONFIG:
+            raise UnsupportedFileTypeError(f"Unsupported file type: '{path.suffix}'")
 
-                if handle_null is None:
-                    handle_null = lambda x: Item(x.key, "N/A") if x.value is None else x  # noqa
+        config = WRITE_CONFIG[path.suffix]
+        dump = getattr(importlib.import_module(config["import_mod"]), config["callable"])
 
-                output = self.map(handle_null).to_dict(lambda x: (x.key, x.value))
-                with open(path, "wb", encoding=encoding) as f:
-                    tomli_w.dump(output, f, **kwargs)
+        if null_handler := handle_null or config["default_null_handler"]:
+            # FIXME: reconsider
+            self.map(null_handler)
 
-            case ".json":
-                import json
+        output = self.to_dict(lambda x: (x.key, x.value))
+        if path.suffix == ".xml":
+            # TODO: give user access to 'root' and 'pretty' params?
+            output = {"root": output}
+            kwargs["pretty"] = True
 
-                if handle_null:
-                    self.map(handle_null)  # FIXME
-
-                output = self.to_dict(lambda x: (x.key, x.value))
-                with open(path, "w", encoding=encoding) as f:
-                    json.dump(output, f, **kwargs)
-
-            case ".yaml" | ".yml":
-                import yaml
-
-                if handle_null:
-                    self.map(handle_null)  # FIXME
-
-                output = self.to_dict(lambda x: (x.key, x.value))
-                with open(path, "w", encoding=encoding) as f:
-                    yaml.dump(output, f, **kwargs)
-
-            case _:
-                raise UnsupportedFileTypeError(f"Unsupported file type: '{path.suffix}'")
+        with open(path, config["write_mode"], encoding=encoding) as f:
+            dump(output, f, **kwargs)

@@ -188,7 +188,7 @@ def test_process(file_path):
     assert FileStream.process(file_path, parse_float=Decimal).all_match(check_type)
 
 
-def test_save(tmp_file_dir, json_dict):
+def test_save_toml(tmp_file_dir, json_dict):
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
     tmp_file_path = tmp_file_dir / "test.toml"
     FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
@@ -207,4 +207,30 @@ def test_save_toml_default_handle_null(tmp_file_dir, json_dict):
     assert (
         tmp_file_path.read_text(encoding="utf-8")
         == open("./tests/resources/save_output/test_default_handle_null.toml").read()
+    )
+
+
+def test_save(tmp_file_dir, json_dict):
+    in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
+    tmp_file_path = tmp_file_dir / "test.json"
+    FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
+        tmp_file_path, indent=2
+    )
+    assert (
+        tmp_file_path.read_text(encoding="utf-8")
+        == open("./tests/resources/save_output/test.json").read()
+    )
+
+
+def test_save_handle_null(tmp_file_dir, json_dict):
+    in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
+    tmp_file_path = tmp_file_dir / "test_handle_null.json"
+    FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
+        tmp_file_path,
+        handle_null=lambda x: Item(x.key, "Unknown") if x.value is None else x,
+        indent=2,
+    )
+    assert (
+        tmp_file_path.read_text(encoding="utf-8")
+        == open("./tests/resources/save_output/test_handle_null.json").read()
     )

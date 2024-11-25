@@ -85,29 +85,36 @@ class FileStream(BaseStream):
         #     return self._save_csv(path, **kwargs)
         return self._save_binary(path, handle_null, **kwargs)
 
+    # TODO: rename -> binary for toml, not for json
     def _save_binary(self, path, handle_null=None, **kwargs):
-        with open(path, "wb") as f:
-            match path.suffix:
-                case ".toml":
-                    import tomli_w
+        match path.suffix:
+            case ".toml":
+                import tomli_w
 
-                    if handle_null is None:
-                        handle_null = lambda x: Item(x.key, "N/A") if x.value is None else x  # noqa
+                if handle_null is None:
+                    handle_null = lambda x: Item(x.key, "N/A") if x.value is None else x  # noqa
 
-                    output = self.map(handle_null).to_dict(lambda x: (x.key, x.value))
+                output = self.map(handle_null).to_dict(lambda x: (x.key, x.value))
+                with open(path, "wb") as f:
                     tomli_w.dump(output, f, **kwargs)
 
-                # case ".json":
-                #     import json
-                #
-                #     return json.load(f, **kwargs)
-                # case ".yaml" | ".yml":
-                #     import yaml
-                #
-                #     return yaml.safe_load(f)
-                # case ".xml":
-                #     import xmltodict
-                #
-                #     return xmltodict.parse(f, **kwargs).get("root")
-                case _:
-                    raise UnsupportedFileTypeError(f"Unsupported file type: '{path.suffix}'")
+            case ".json":
+                import json
+
+                if handle_null:
+                    self.map(handle_null)  # FIXME
+
+                output = self.to_dict(lambda x: (x.key, x.value))
+                with open(path, "w", encoding="utf-8") as f:
+                    json.dump(output, f, **kwargs)
+
+            # case ".yaml" | ".yml":
+            #     import yaml
+            #
+            #     return yaml.safe_load(f)
+            # case ".xml":
+            #     import xmltodict
+            #
+            #     return xmltodict.parse(f, **kwargs).get("root")
+            case _:
+                raise UnsupportedFileTypeError(f"Unsupported file type: '{path.suffix}'")

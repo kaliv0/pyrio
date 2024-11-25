@@ -1,7 +1,9 @@
 abc = "xyz"
 qwerty = 42
 Name = "Jennifer Smith"
-"Security Number" = 7867567898
+Security_Number = 7867567898
+Phone = "555-123-4568"
+Email = "jen123@gmail.com"
 Hobbies = [
     "Reading",
     "Sketching",

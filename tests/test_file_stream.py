@@ -145,27 +145,19 @@ def test_concat():
     )
 
 
-def test_prepend():
-    json_dict = Stream(
-        {
-            # TODO: extract json_dict as conf and re-use
-            "Name": "Jennifer Smith",
-            "Security Number": 7867567898,
-            "Phone": "555-123-4568",
-            "Email": "jen123@gmail.com",
-            "Hobbies": ["Reading", "Sketching", "Horse Riding"],
-        }
-    ).to_tuple()
+def test_prepend(json_dict):
+    in_memory_dict = Stream(json_dict).to_tuple()
     assert (
         FileStream("./tests/resources/long.json")
-        .prepend(json_dict)
+        .prepend(in_memory_dict)
         .map(lambda x: f"key={x.key}, value={x.value}")
     ).to_tuple() == (
         "key=Name, value=Jennifer Smith",
-        "key=Security Number, value=7867567898",
+        "key=Security_Number, value=7867567898",
         "key=Phone, value=555-123-4568",
         "key=Email, value=jen123@gmail.com",
         "key=Hobbies, value=['Reading', 'Sketching', 'Horse Riding']",
+        "key=Job, value=None",
         "key=a, value=[1, 2]",
         "key=b, value=[2, 3, 4]",
         "key=abba, value=[5, 6]",
@@ -196,23 +188,10 @@ def test_process(file_path):
     assert FileStream.process(file_path, parse_float=Decimal).all_match(check_type)
 
 
-def test_save(tmp_file_dir):
-    json_dict = (
-        Stream(
-            {
-                "Name": "Jennifer Smith",
-                "Security Number": 7867567898,
-                "Phone": "555-123-4568",
-                "Email": "jen123@gmail.com",
-                "Hobbies": ["Reading", "Sketching", "Horse Riding"],
-                "Job": None,
-            }
-        )
-        .filter(lambda x: len(x.key) < 6)
-        .to_tuple()
-    )
+def test_save(tmp_file_dir, json_dict):
+    in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
     tmp_file_path = tmp_file_dir / "test.toml"
-    FileStream("./tests/resources/nested.json").prepend(json_dict).save(
+    FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
         tmp_file_path, handle_null=lambda x: Item(x.key, "Unknown") if x.value is None else x
     )
     assert (
@@ -221,17 +200,10 @@ def test_save(tmp_file_dir):
     )
 
 
-def test_save_toml_default_handle_null(tmp_file_dir):
-    json_dict = Stream(
-        {
-            "Name": "Jennifer Smith",
-            "Security Number": 7867567898,
-            "Hobbies": ["Reading", "Sketching", "Horse Riding"],
-            "Job": None,
-        }
-    ).to_tuple()
+def test_save_toml_default_handle_null(tmp_file_dir, json_dict):
+    in_memory_dict = Stream(json_dict).to_tuple()
     tmp_file_path = tmp_file_dir / "test_default_handle_null.toml"
-    FileStream("./tests/resources/foo.toml").concat(json_dict).save(tmp_file_path)
+    FileStream("./tests/resources/foo.toml").concat(in_memory_dict).save(tmp_file_path)
     assert (
         tmp_file_path.read_text(encoding="utf-8")
         == open("./tests/resources/save_output/test_default_handle_null.toml").read()

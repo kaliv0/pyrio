@@ -195,7 +195,7 @@ def test_process(file_path):
     assert FileStream.process(file_path, parse_float=Decimal).all_match(check_type)
 
 
-def test_save():
+def test_save(tmp_file_dir):
     json_dict = (
         Stream(
             {
@@ -209,6 +209,9 @@ def test_save():
         .filter(lambda x: len(x.key) < 6)
         .to_tuple()
     )
-    FileStream("./tests/resources/nested.json").prepend(json_dict).save(
-        "./tests/resources/test.toml"
+    tmp_file_path = tmp_file_dir / "test.toml"
+    FileStream("./tests/resources/nested.json").prepend(json_dict).save(tmp_file_path)
+    assert (
+        tmp_file_path.read_text(encoding="utf-8")
+        == open("./tests/resources/save_output/test.toml").read()
     )

@@ -5,7 +5,7 @@ from pyrio.utils.exception import UnsupportedFileTypeError
 
 
 class FileStream(BaseStream):
-    # NB: Dirty deeds for nice-looking API's
+    # NB: Dirty deeds for a nice-looking API
     def __init__(self, file_path):  # noqa
         """Creates Stream from a file"""
         pass
@@ -14,12 +14,14 @@ class FileStream(BaseStream):
         obj = super().__new__(cls)
         iterable = cls._read_file(file_path, **kwargs)
         super(cls, obj).__init__(iterable)
+        obj.file_path = file_path
         return obj
 
     @classmethod
     def process(cls, file_path, **kwargs):
         return cls.__new__(cls, file_path, **kwargs)
 
+    # ### reading from file ###
     @classmethod
     def _read_file(cls, file_path, **kwargs):
         path = cls._read_file_path(file_path)
@@ -69,9 +71,15 @@ class FileStream(BaseStream):
                 case _:
                     raise UnsupportedFileTypeError(f"Unsupported file type: '{path.suffix}'")
 
+    # ### writing to file ###
     def save(self, file_path=None, **kwargs):
-        # TODO: validate path -> if None, re-use same file
+        if file_path is None:
+            file_path = self.file_path
+        # TODO: refactor -> of we re-using file parsing to Path object is already done and check for is_dir() is redundant
         path = Path(file_path)
+        if path.is_dir():
+            raise IsADirectoryError(f"Given path '{file_path}' is a directory")
+
         # if path.suffix in {".csv", ".tsv"}:
         #     return self._save_csv(path, **kwargs)
         return self._save_binary(path, **kwargs)

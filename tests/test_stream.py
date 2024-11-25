@@ -218,25 +218,21 @@ def test_tail_negative_count():
 
 # ### concat ###
 def test_concat():
-    assert Stream.concat(Stream.of(1, 2, 3), Stream.of(4, 5, 6)).to_list() == [1, 2, 3, 4, 5, 6]
-
-
-def test_concat_to_existing_stream():
-    assert Stream.of(1, 2, 3).concat([4, 5]).to_list() == [1, 2, 3, 4, 5]
+    assert Stream.of(1, 2, 3).concat(Stream.of(4, 5, 6)).to_list() == [1, 2, 3, 4, 5, 6]
+    assert Stream([1, 2, 3]).concat([4, 5]).to_list() == [1, 2, 3, 4, 5]
 
 
 def test_concat_empty():
-    assert Stream.concat(Stream.empty(), Stream.of(1, 2, 3)).to_list() == [1, 2, 3]
+    assert Stream.empty().concat(Stream.of(1, 2, 3)).to_list() == [1, 2, 3]
     assert Stream.concat(Stream.empty(), Stream.empty()).to_list() == []
 
 
 def test_concat_linear_collections():
-    assert Stream.concat(Stream.of(1, 2, 3), [5, 6]).to_list() == [1, 2, 3, 5, 6]
-    assert Stream.concat((1, 2, 3), [5, 6]).to_list() == [1, 2, 3, 5, 6]
-    assert Stream.concat({1, 2, 3}, (5, 6)).to_list() == [1, 2, 3, 5, 6]
-
-    assert Stream.concat([1, 2, 3], [(5, 6), [8]]).to_list() == [1, 2, 3, (5, 6), [8]]
-    assert Stream.concat([1, 2, 3], [(5, 6), [8]]).flatten().to_list() == [1, 2, 3, 5, 6, 8]
+    assert Stream((1, 2, 3)).concat([5, 6]).to_list() == [1, 2, 3, 5, 6]
+    assert Stream([1, 2, 3]).concat([(5, 6), [8]]).to_list() == [1, 2, 3, (5, 6), [8]]
+    assert Stream([1, 2, 3]).concat([(5, 6), [8]]).flatten().to_list() == [1, 2, 3, 5, 6, 8]
+    # hacky but works as Stream.of() is passed as self
+    assert Stream.concat(Stream.of(1, 2, 3)).concat((5, 6), {7}).to_list() == [1, 2, 3, 5, 6, 7]
 
 
 def test_concat_dicts_to_stream():
@@ -249,19 +245,15 @@ def test_concat_dicts_to_stream():
         Item(key="q", value=44),
         Item(key="r", value=55),
     ]
-    # two dicts
-    assert Stream.concat(first_dict, second_dict).to_list() == items_list
-    # two streams of dicts
+    assert Stream.empty().concat(first_dict, second_dict).to_list() == items_list
     assert Stream(first_dict).concat(Stream(second_dict)).to_list() == items_list
-    # dict to stream of dict
     assert Stream(first_dict).concat(second_dict).to_list() == items_list
-    # dict to empty stream
+
     assert Stream.concat(Stream.empty(), second_dict).to_list() == [
         Item(key="p", value=33),
         Item(key="q", value=44),
         Item(key="r", value=55),
     ]
-
     assert Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: (x.key, x.value)) == {
         "x": 1,
         "y": 2,
@@ -273,7 +265,7 @@ def test_concat_dicts_to_stream():
 
 def test_concat_raises_non_iterable():
     with pytest.raises(TypeError) as e:
-        Stream.concat([1, 2, 3], 5).to_list()
+        Stream([1, 2, 3]).concat(5).to_list()
     assert str(e.value) == "'int' object is not iterable"
 
 
@@ -282,6 +274,7 @@ def test_prepend_collection():
     assert Stream([2, 3, 4]).prepend([1]).to_list() == [1, 2, 3, 4]
     assert Stream([2, 3, 4]).prepend((0, 1)).to_list() == [0, 1, 2, 3, 4]
     assert Stream([3, 4, 5]).prepend(([0, 1], 2)).to_list() == [[0, 1], 2, 3, 4, 5]
+    assert Stream([3, 4, 5]).prepend(Stream.of([0, 1], 2)).to_list() == [[0, 1], 2, 3, 4, 5]
 
 
 def test_prepend_dict():

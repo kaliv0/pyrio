@@ -52,16 +52,18 @@ Stream.constant(42)
 ```
 
 - concat
-<br>(concatenate several streams together or add new streams to the current one)
+<br>(concatenate new streams/iterables with the current one)
 ```python
-Stream.concat((1, 2, 3), [5, 6]).to_list()
-Stream.of(1, 2, 3).concat([4, 5]).to_list()
+Stream.of(1, 2, 3).concat(Stream.of(4, 5)).to_list()
+Stream([1, 2, 3]).concat([5, 6]).to_list()
 ```
 
 - prepend
-<br>(prepend iterable to current stream)
+<br>(prepend new stream/iterable to the current one)
 ```python
 Stream([2, 3, 4]).prepend(0, 1).to_list()
+Stream.of(3, 4, 5).prepend(Stream.of([0, 1], 2)).to_list()
+
 ```
 --------------------------------------------
 ### Intermediate operations

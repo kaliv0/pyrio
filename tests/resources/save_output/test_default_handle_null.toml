@@ -1,0 +1,10 @@
+abc = "xyz"
+qwerty = 42
+Name = "Jennifer Smith"
+"Security Number" = 7867567898
+Hobbies = [
+    "Reading",
+    "Sketching",
+    "Horse Riding",
+]
+Job = "N/A"

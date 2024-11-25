@@ -148,6 +148,7 @@ def test_concat():
 def test_prepend():
     json_dict = Stream(
         {
+            # TODO: extract json_dict as conf and re-use
             "Name": "Jennifer Smith",
             "Security Number": 7867567898,
             "Phone": "555-123-4568",
@@ -220,4 +221,18 @@ def test_save(tmp_file_dir):
     )
 
 
-# TODO: add test with default handle_null()
+def test_save_toml_default_handle_null(tmp_file_dir):
+    json_dict = Stream(
+        {
+            "Name": "Jennifer Smith",
+            "Security Number": 7867567898,
+            "Hobbies": ["Reading", "Sketching", "Horse Riding"],
+            "Job": None,
+        }
+    ).to_tuple()
+    tmp_file_path = tmp_file_dir / "test_default_handle_null.toml"
+    FileStream("./tests/resources/foo.toml").concat(json_dict).save(tmp_file_path)
+    assert (
+        tmp_file_path.read_text(encoding="utf-8")
+        == open("./tests/resources/save_output/test_default_handle_null.toml").read()
+    )

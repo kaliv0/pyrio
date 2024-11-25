@@ -31,10 +31,10 @@ class BaseStream:
         """Creates empty Stream"""
         return cls([])
 
-    @staticmethod
-    def concat(*streams):
+    def concat(self, *streams):
         """Concatenates several streams together or adds new streams/collections to the current one"""
-        return BaseStream(Generator.concat(*streams))
+        self.iterable = Generator.concat(self.iterable, *streams)
+        return self
 
     def prepend(self, iterable):
         """Prepends iterable to current stream"""

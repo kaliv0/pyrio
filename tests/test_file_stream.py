@@ -185,7 +185,9 @@ def test_process(file_path):
             case _:
                 return False
 
-    assert FileStream.process(file_path, parse_float=Decimal).all_match(check_type)
+    assert FileStream.process(file_path, f_read_options={"parse_float": Decimal}).all_match(
+        check_type
+    )
 
 
 # ### save to file ###
@@ -222,7 +224,7 @@ def test_save(tmp_file_dir, file_path, indent, json_dict):
     FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
         tmp_file_path,
         f_open_options={"encoding": "utf-8"},
-        f_save_options={"indent": indent},
+        f_write_options={"indent": indent},
     )
     assert (
         tmp_file_path.read_text(encoding="utf-8")
@@ -241,7 +243,7 @@ def test_save_handle_null(tmp_file_dir, file_path, indent, json_dict):
         tmp_file_path,
         null_handler=lambda x: Item(x.key, "Unknown") if x.value is None else x,
         f_open_options={"encoding": "utf-8"},
-        f_save_options={"indent": indent},
+        f_write_options={"indent": indent},
     )
     assert (
         tmp_file_path.read_text(encoding="utf-8")

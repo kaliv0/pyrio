@@ -194,7 +194,7 @@ def test_save_toml(tmp_file_dir, json_dict):
     tmp_file_path = tmp_file_dir / "test.toml"
     FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
         tmp_file_path,
-        handle_null=lambda x: Item(x.key, "Unknown") if x.value is None else x,
+        null_handler=lambda x: Item(x.key, "Unknown") if x.value is None else x,
     )
     assert (
         tmp_file_path.read_text(encoding="utf-8")
@@ -202,13 +202,13 @@ def test_save_toml(tmp_file_dir, json_dict):
     )
 
 
-def test_save_toml_default_handle_null(tmp_file_dir, json_dict):
+def test_save_toml_default_null_handler(tmp_file_dir, json_dict):
     in_memory_dict = Stream(json_dict).to_tuple()
-    tmp_file_path = tmp_file_dir / "test_default_handle_null.toml"
+    tmp_file_path = tmp_file_dir / "test_default_null_handler.toml"
     FileStream("./tests/resources/foo.toml").concat(in_memory_dict).save(tmp_file_path)
     assert (
         tmp_file_path.read_text()
-        == open("./tests/resources/save_output/test_default_handle_null.toml").read()
+        == open("./tests/resources/save_output/test_default_null_handler.toml").read()
     )
 
 
@@ -220,7 +220,9 @@ def test_save(tmp_file_dir, file_path, indent, json_dict):
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
     tmp_file_path = tmp_file_dir / file_path
     FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
-        tmp_file_path, encoding="utf-8", indent=indent
+        tmp_file_path,
+        f_open_options={"encoding": "utf-8"},
+        f_save_options={"indent": indent},
     )
     assert (
         tmp_file_path.read_text(encoding="utf-8")
@@ -230,16 +232,16 @@ def test_save(tmp_file_dir, file_path, indent, json_dict):
 
 @pytest.mark.parametrize(
     "file_path, indent",
-    [("test_handle_null.json", 2), ("test_handle_null.yaml", 2), ("test_handle_null.xml", 4)],
+    [("test_null_handler.json", 2), ("test_null_handler.yaml", 2), ("test_null_handler.xml", 4)],
 )
 def test_save_handle_null(tmp_file_dir, file_path, indent, json_dict):
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
     tmp_file_path = tmp_file_dir / file_path
     FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
         tmp_file_path,
-        handle_null=lambda x: Item(x.key, "Unknown") if x.value is None else x,
-        encoding="utf-8",
-        indent=indent,
+        null_handler=lambda x: Item(x.key, "Unknown") if x.value is None else x,
+        f_open_options={"encoding": "utf-8"},
+        f_save_options={"indent": indent},
     )
     assert (
         tmp_file_path.read_text(encoding="utf-8")

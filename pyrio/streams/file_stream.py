@@ -78,7 +78,7 @@ class FileStream(BaseStream):
     def _read_csv(path, **kwargs):
         import csv
 
-        with open(path, newline="") as f:
+        with open(path) as f:
             delimiter = "\t" if path.suffix == ".tsv" else ","
             return tuple(csv.DictReader(f, delimiter=delimiter, **kwargs))
 
@@ -90,7 +90,6 @@ class FileStream(BaseStream):
                 case ".toml":
                     import tomllib
 
-                    # TODO: add checks for ill-formated file content?
                     return tomllib.load(f, **kwargs)
                 case ".json":
                     import json
@@ -103,14 +102,14 @@ class FileStream(BaseStream):
                 case ".xml":
                     import xmltodict
 
-                    return xmltodict.parse(f, **kwargs).get(
-                        "root"
-                    )  # TODO: what if in rare cases it's not root -> user should point?
+                    return xmltodict.parse(f, **kwargs).get("root")
+                    # TODO: what if in rare cases it's not root -> user should point? -> or simply keep the root
                 case _:
                     raise UnsupportedFileTypeError(f"Unsupported file type: '{path.suffix}'")
 
+    #####################################################################################################################################################
     # ### writing to file ###
-    def save(self, file_path=None, handle_null=None, encoding=None, **kwargs):
+    def save(self, file_path=None, null_handler=None, f_open_options=None, f_save_options=None):
         if file_path is None:
             file_path = self.file_path
         # TODO: refactor -> of we re-using file parsing to Path object is already done and check for is_dir() is redundant
@@ -120,24 +119,23 @@ class FileStream(BaseStream):
 
         # if path.suffix in {".csv", ".tsv"}:
         #     return self._save_csv(path, **kwargs)
-        return self._write_to_file(path, handle_null, encoding, **kwargs)
+        return self._write_file(path, null_handler, f_open_options, f_save_options)
 
-    def _write_to_file(self, path, handle_null=None, encoding=None, **kwargs):
+    def _write_file(self, path, null_handler=None, f_open_options=None, f_save_options=None):
         if path.suffix not in WRITE_CONFIG:
             raise UnsupportedFileTypeError(f"Unsupported file type: '{path.suffix}'")
 
         config = WRITE_CONFIG[path.suffix]
         dump = getattr(importlib.import_module(config["import_mod"]), config["callable"])
 
-        if null_handler := handle_null or config["default_null_handler"]:
-            # FIXME: reconsider
-            self.map(null_handler)
+        if existing_null_handler := null_handler or config["default_null_handler"]:
+            self.map(existing_null_handler)
 
         output = self.to_dict(lambda x: (x.key, x.value))
         if path.suffix == ".xml":
-            # TODO: give user access to 'root' and 'pretty' params?
+            # TODO: give user access to 'root' param -> use dicttoxml library for more options??
             output = {"root": output}
-            kwargs["pretty"] = True
+            f_save_options["pretty"] = True
 
-        with open(path, config["write_mode"], encoding=encoding) as f:
-            dump(output, f, **kwargs)
+        with open(path, config["write_mode"], **(f_open_options or {})) as f:
+            dump(output, f, **(f_save_options or {}))

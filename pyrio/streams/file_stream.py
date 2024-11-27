@@ -70,7 +70,6 @@ class FileStream(BaseStream):
         obj.file_path = file_path
         return obj
 
-    # TODO: add description for FileStream.process() in README
     @classmethod
     def process(cls, file_path, f_open_options=None, f_read_options=None, **kwargs):
         return cls.__new__(cls, file_path, f_open_options, f_read_options, **kwargs)
@@ -78,20 +77,11 @@ class FileStream(BaseStream):
     # ### reading from file ###
     @classmethod
     def _read_file(cls, file_path, f_open_options=None, f_read_options=None, **kwargs):
-        path = cls._read_file_path(file_path)
+        path = cls._get_file_path(file_path)
 
         if path.suffix in {".csv", ".tsv"}:
             return cls._read_csv(path, f_open_options, f_read_options, **kwargs)
         return cls._read_binary(path, f_open_options, f_read_options, **kwargs)
-
-    @staticmethod
-    def _read_file_path(file_path):
-        path = Path(file_path)
-        if not path.exists():
-            raise FileNotFoundError(f"No such file or directory: '{file_path}'")
-        if path.is_dir():
-            raise IsADirectoryError(f"Given path '{file_path}' is a directory")
-        return path
 
     @staticmethod
     def _read_csv(path, f_open_options=None, f_read_options=None, **kwargs):
@@ -116,28 +106,21 @@ class FileStream(BaseStream):
         with open(path, config["read_mode"], **(f_open_options or {})) as f:
             content = load(f, **(f_read_options or {}))
             if suffix == ".xml":
-                # TODO: add description
                 if kwargs.get("include_root", None):
                     return content
                 # NB: return dict (instead of dict_view) to re-map it later as Item records
-                # works for custom-root xml tags
                 return next(iter(content.values()))
             return content
 
     #####################################################################################################################################################
     # ### writing to file ###
-    # TODO: put null_handler inside f_write_options?!
     def save(
         self, file_path=None, null_handler=None, f_open_options=None, f_write_options=None, **kwargs
     ):
         if file_path is None:
             file_path = self.file_path
-        # TODO: refactor -> of we re-using file parsing to Path object is already done and check for is_dir() is redundant
-        path = Path(file_path)
-        if path.is_dir():
-            raise IsADirectoryError(f"Given path '{file_path}' is a directory")
+        path = self._get_file_path(file_path, read_mode=False)
 
-        # TODO: implement
         # if path.suffix in {".csv", ".tsv"}:
         #     return self._save_csv(path, **kwargs)
         return self._write_file(path, null_handler, f_open_options, f_write_options, **kwargs)
@@ -156,10 +139,20 @@ class FileStream(BaseStream):
             self.map(existing_null_handler)
 
         output = self.to_dict(lambda x: (x.key, x.value))
-        root = kwargs.get("xml_root", "root")  # TODO: add description
+        root = kwargs.get("xml_root", "root")
         if suffix == ".xml":
             output = {root: output}
             f_write_options["pretty"] = True
 
         with open(path, config["write_mode"], **(f_open_options or {})) as f:
             dump(output, f, **(f_write_options or {}))
+
+    # ### helpers ###
+    @staticmethod
+    def _get_file_path(file_path, read_mode=True):
+        path = Path(file_path)
+        if read_mode and path.exists() is False:
+            raise FileNotFoundError(f"No such file or directory: '{file_path}'")
+        if path.is_dir():
+            raise IsADirectoryError(f"Given path '{file_path}' is a directory")
+        return path

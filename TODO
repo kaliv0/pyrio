@@ -1,0 +1,9 @@
+test update same file (don't pass file_path to save())
+    add logic if dumping crashes to restore original file -> use logic from file manager with tmp bak file
+
+add descriptions in README
+    xml -> read include_root / write custom xml_root
+
+add description for FileStream.process()
+
+implement write to csv/tsv

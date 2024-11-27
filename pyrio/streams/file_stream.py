@@ -22,11 +22,6 @@ READ_CONFIG = {
         "callable": "safe_load",
         "read_mode": "r",
     },
-    ".yml": {
-        "import_mod": "yaml",
-        "callable": "safe_load",
-        "read_mode": "r",
-    },
     ".xml": {
         "import_mod": "xmltodict",
         "callable": "parse",
@@ -48,12 +43,6 @@ WRITE_CONFIG = {
         "default_null_handler": None,
     },
     ".yaml": {
-        "import_mod": "yaml",
-        "callable": "dump",
-        "write_mode": "w",
-        "default_null_handler": None,
-    },
-    ".yml": {
         "import_mod": "yaml",
         "callable": "dump",
         "write_mode": "w",
@@ -117,16 +106,16 @@ class FileStream(BaseStream):
 
     @staticmethod
     def _read_binary(path, f_open_options=None, f_read_options=None):
-        if path.suffix not in READ_CONFIG:
-            raise UnsupportedFileTypeError(f"Unsupported file type: '{path.suffix}'")
+        suffix = ".yaml" if path.suffix == ".yml" else path.suffix
+        if suffix not in READ_CONFIG:
+            raise UnsupportedFileTypeError(f"Unsupported file type: '{suffix}'")
 
-        config = READ_CONFIG[path.suffix]
+        config = READ_CONFIG[suffix]
         load = getattr(importlib.import_module(config["import_mod"]), config["callable"])
 
-        # TODO: extract read_mode??
         with open(path, config["read_mode"], **(f_open_options or {})) as f:
             content = load(f, **(f_read_options or {}))
-            if path.suffix == ".xml":
+            if suffix == ".xml":
                 # TODO: what if in rare cases it's not root -> user should point? -> or simply keep the root?
                 return content.get("root")
             return content
@@ -148,17 +137,18 @@ class FileStream(BaseStream):
         return self._write_file(path, null_handler, f_open_options, f_write_options)
 
     def _write_file(self, path, null_handler=None, f_open_options=None, f_write_options=None):
-        if path.suffix not in WRITE_CONFIG:
-            raise UnsupportedFileTypeError(f"Unsupported file type: '{path.suffix}'")
+        suffix = ".yaml" if path.suffix == ".yml" else path.suffix
+        if suffix not in WRITE_CONFIG:
+            raise UnsupportedFileTypeError(f"Unsupported file type: '{suffix}'")
 
-        config = WRITE_CONFIG[path.suffix]
+        config = WRITE_CONFIG[suffix]
         dump = getattr(importlib.import_module(config["import_mod"]), config["callable"])
 
         if existing_null_handler := null_handler or config["default_null_handler"]:
             self.map(existing_null_handler)
 
         output = self.to_dict(lambda x: (x.key, x.value))
-        if path.suffix == ".xml":
+        if suffix == ".xml":
             # TODO: give user access to 'root' param -> use dicttoxml library for more options??
             output = {"root": output}
             f_write_options["pretty"] = True

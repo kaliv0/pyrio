@@ -61,6 +61,21 @@ def test_read_yml():
     )
 
 
+def test_read_xml_custom_root():
+    assert FileStream("./tests/resources/custom_root.xml").map(
+        lambda x: f"{x.key}=>{x.value}"
+    ).to_tuple() == (
+        "abc=>xyz",
+        "qwerty=>42",
+    )
+
+
+def test_read_xml_include_root():
+    assert FileStream.process("./tests/resources/custom_root.xml", include_root=True).map(
+        lambda x: f"root={x.key}: inner_records={str(x.value)}"
+    ).to_list() == ["root=my-root: inner_records={'abc': 'xyz', 'qwerty': '42'}"]
+
+
 @pytest.mark.parametrize(
     "file_path",
     [
@@ -253,6 +268,25 @@ def test_save_handle_null(tmp_file_dir, file_path, indent, json_dict):
         null_handler=lambda x: Item(x.key, "Unknown") if x.value is None else x,
         f_open_options={"encoding": "utf-8"},
         f_write_options={"indent": indent},
+    )
+    assert (
+        tmp_file_path.read_text(encoding="utf-8")
+        == open(f"./tests/resources/save_output/{file_path}").read()
+    )
+
+
+def test_save_custom_xml_root(tmp_file_dir, json_dict):
+    file_path = "custom_root.xml"
+    tmp_file_path = tmp_file_dir / file_path
+    indent = 4
+
+    in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
+    FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
+        tmp_file_path,
+        null_handler=lambda x: Item(x.key, "Unknown") if x.value is None else x,
+        f_open_options={"encoding": "utf-8"},
+        f_write_options={"indent": indent},
+        xml_root="my-root",
     )
     assert (
         tmp_file_path.read_text(encoding="utf-8")

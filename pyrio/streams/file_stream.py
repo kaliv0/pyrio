@@ -15,7 +15,7 @@ READ_CONFIG = {
     ".json": {
         "import_mod": "json",
         "callable": "load",
-        "read_mode": "r",  # TODO: unify all to be "rb"
+        "read_mode": "r",
     },
     ".yaml": {
         "import_mod": "yaml",
@@ -63,26 +63,26 @@ class FileStream(BaseStream):
         """Creates Stream from a file"""
         pass
 
-    def __new__(cls, file_path, f_open_options=None, f_read_options=None):
+    def __new__(cls, file_path, f_open_options=None, f_read_options=None, **kwargs):
         obj = super().__new__(cls)
-        iterable = cls._read_file(file_path, f_open_options, f_read_options)
+        iterable = cls._read_file(file_path, f_open_options, f_read_options, **kwargs)
         super(cls, obj).__init__(iterable)
         obj.file_path = file_path
         return obj
 
     # TODO: add description for FileStream.process() in README
     @classmethod
-    def process(cls, file_path, f_open_options=None, f_read_options=None):
-        return cls.__new__(cls, file_path, f_open_options, f_read_options)
+    def process(cls, file_path, f_open_options=None, f_read_options=None, **kwargs):
+        return cls.__new__(cls, file_path, f_open_options, f_read_options, **kwargs)
 
     # ### reading from file ###
     @classmethod
-    def _read_file(cls, file_path, f_open_options=None, f_read_options=None):
+    def _read_file(cls, file_path, f_open_options=None, f_read_options=None, **kwargs):
         path = cls._read_file_path(file_path)
 
         if path.suffix in {".csv", ".tsv"}:
-            return cls._read_csv(path, f_open_options, f_read_options)
-        return cls._read_binary(path, f_open_options, f_read_options)
+            return cls._read_csv(path, f_open_options, f_read_options, **kwargs)
+        return cls._read_binary(path, f_open_options, f_read_options, **kwargs)
 
     @staticmethod
     def _read_file_path(file_path):
@@ -94,7 +94,7 @@ class FileStream(BaseStream):
         return path
 
     @staticmethod
-    def _read_csv(path, f_open_options=None, f_read_options=None):
+    def _read_csv(path, f_open_options=None, f_read_options=None, **kwargs):
         import csv
 
         if f_read_options is None:
@@ -105,7 +105,7 @@ class FileStream(BaseStream):
             return tuple(csv.DictReader(f, **f_read_options))
 
     @staticmethod
-    def _read_binary(path, f_open_options=None, f_read_options=None):
+    def _read_binary(path, f_open_options=None, f_read_options=None, **kwargs):
         suffix = ".yaml" if path.suffix == ".yml" else path.suffix
         if suffix not in READ_CONFIG:
             raise UnsupportedFileTypeError(f"Unsupported file type: '{suffix}'")
@@ -116,14 +116,20 @@ class FileStream(BaseStream):
         with open(path, config["read_mode"], **(f_open_options or {})) as f:
             content = load(f, **(f_read_options or {}))
             if suffix == ".xml":
-                # TODO: what if in rare cases it's not root -> user should point? -> or simply keep the root?
-                return content.get("root")
+                # TODO: add description
+                if kwargs.get("include_root", None):
+                    return content
+                # NB: return dict (instead of dict_view) to re-map it later as Item records
+                # works for custom-root xml tags
+                return next(iter(content.values()))
             return content
 
     #####################################################################################################################################################
     # ### writing to file ###
     # TODO: put null_handler inside f_write_options?!
-    def save(self, file_path=None, null_handler=None, f_open_options=None, f_write_options=None):
+    def save(
+        self, file_path=None, null_handler=None, f_open_options=None, f_write_options=None, **kwargs
+    ):
         if file_path is None:
             file_path = self.file_path
         # TODO: refactor -> of we re-using file parsing to Path object is already done and check for is_dir() is redundant
@@ -134,9 +140,11 @@ class FileStream(BaseStream):
         # TODO: implement
         # if path.suffix in {".csv", ".tsv"}:
         #     return self._save_csv(path, **kwargs)
-        return self._write_file(path, null_handler, f_open_options, f_write_options)
+        return self._write_file(path, null_handler, f_open_options, f_write_options, **kwargs)
 
-    def _write_file(self, path, null_handler=None, f_open_options=None, f_write_options=None):
+    def _write_file(
+        self, path, null_handler=None, f_open_options=None, f_write_options=None, **kwargs
+    ):
         suffix = ".yaml" if path.suffix == ".yml" else path.suffix
         if suffix not in WRITE_CONFIG:
             raise UnsupportedFileTypeError(f"Unsupported file type: '{suffix}'")
@@ -148,9 +156,9 @@ class FileStream(BaseStream):
             self.map(existing_null_handler)
 
         output = self.to_dict(lambda x: (x.key, x.value))
+        root = kwargs.get("xml_root", "root")  # TODO: add description
         if suffix == ".xml":
-            # TODO: give user access to 'root' param -> use dicttoxml library for more options??
-            output = {"root": output}
+            output = {root: output}
             f_write_options["pretty"] = True
 
         with open(path, config["write_mode"], **(f_open_options or {})) as f:

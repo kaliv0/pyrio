@@ -1,3 +1,4 @@
+import shutil
 from decimal import Decimal
 from operator import attrgetter
 from pathlib import Path
@@ -93,9 +94,12 @@ def test_csv(file_path):
 
 
 def test_nested_json():
-    assert FileStream("./tests/resources/nested.json").map(
-        lambda x: x.value["second"]
-    ).flatten().to_list() == [
+    assert FileStream("./tests/resources/nested.json").map(lambda x: x.value).flat_map(
+        lambda x: Stream(x)
+        .filter(lambda y: y.key == "second")
+        .flat_map(lambda z: z.value)
+        .to_tuple()
+    ).to_list() == [
         1,
         2,
         3,
@@ -291,4 +295,109 @@ def test_save_custom_xml_root(tmp_file_dir, json_dict):
     assert (
         tmp_file_path.read_text(encoding="utf-8")
         == open(f"./tests/resources/save_output/{file_path}").read()
+    )
+
+
+def test_update_file(tmp_file_dir, json_dict):
+    tmp_file_path = tmp_file_dir / "updated.json"
+    shutil.copyfile("./tests/resources/long.json", tmp_file_path)
+    (
+        FileStream(tmp_file_path)
+        .map(lambda x: Item(x.key, ", ".join((str(y) for y in x.value)) if x.value else x.value))
+        .save(
+            null_handler=lambda x: Item(x.key, "Unknown") if x.value is None else x,
+            f_write_options={"indent": 2},
+        )
+    )
+    assert (
+        tmp_file_path.read_text(encoding="utf-8")
+        == open("./tests/resources/save_output/updated.json").read()
+    )
+
+
+def test_filter_update_file(tmp_file_dir, json_dict):
+    tmp_file_path = tmp_file_dir / "filtered.toml"
+    shutil.copyfile("./tests/resources/test.toml", tmp_file_path)
+    (
+        FileStream(tmp_file_path)
+        .filter(lambda x: isinstance(x.value, str))
+        .sorted(comparator=lambda x: x.key, reverse=True)
+        .save()
+    )
+    assert (
+        tmp_file_path.read_text(encoding="utf-8")
+        == open("./tests/resources/save_output/filtered.toml").read()
+    )
+
+
+@pytest.mark.parametrize(
+    "file_path",
+    ["test.csv", "test.tsv"],
+)
+def test_save_csv(tmp_file_dir, file_path):
+    tmp_file_path = tmp_file_dir / file_path
+    FileStream("./tests/resources/bar.csv").save(tmp_file_path)
+    assert (
+        tmp_file_path.read_text(encoding="utf-8")
+        == open(f"./tests/resources/save_output/{file_path}").read()
+    )
+
+
+def test_save_convert_to_csv(tmp_file_dir):
+    tmp_file_path = tmp_file_dir / "converted.csv"
+    (
+        FileStream("./tests/resources/convertable.json")
+        .filter(
+            lambda x: (
+                Stream(x.value)
+                .find_first(lambda y: y.key == "name" and y.value == "Snake")
+                .or_else_get(lambda: None)
+            )
+            is None
+        )
+        .map(lambda x: x.value)
+        .save(tmp_file_path)
+    )
+    assert (
+        tmp_file_path.read_text(encoding="utf-8")
+        == open("./tests/resources/save_output/converted.csv").read()
+    )
+
+
+def test_save_to_csv_with_null_handler(tmp_file_dir):
+    def _null_handler(dict_obj):
+        return (
+            Stream(dict_obj)
+            .map(lambda x: Item(x.key, x.value or "N/A"))
+            .to_dict(lambda x: (x.key, x.value))
+        )
+
+    tmp_file_path = tmp_file_dir / "converted_null.csv"
+    (
+        FileStream("./tests/resources/convertable.json")
+        .filter(
+            lambda x: (
+                Stream(x.value)
+                .find_first(lambda y: y.key == "name" and y.value == "Snake")
+                .or_else_get(lambda: None)
+            )
+        )
+        .map(lambda x: x.value)
+        .save(tmp_file_path, null_handler=_null_handler)
+    )
+    assert (
+        tmp_file_path.read_text(encoding="utf-8")
+        == open("./tests/resources/save_output/converted_null.csv").read()
+    )
+
+
+def test_save_empty_csv(tmp_file_dir):
+    tmp_file_path = tmp_file_dir / "dead.csv"
+    shutil.copyfile("./tests/resources/bar.csv", tmp_file_path)
+    stream = FileStream(tmp_file_path)
+    stream._iterable = tuple()
+    stream.save()
+    assert (
+        tmp_file_path.read_text(encoding="utf-8")
+        == open("./tests/resources/save_output/empty.csv").read()
     )

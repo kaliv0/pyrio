@@ -6,4 +6,11 @@ add descriptions in README
 
 add description for FileStream.process()
 
-implement write to csv/tsv
+-----------
+test .tsv
+test read/write empty files -> only csv tested so far
+    -> json, yaml and xml cannot read blank file
+
+test complex cases -> create new csv by modifying another one
+                   -> from other formats
+

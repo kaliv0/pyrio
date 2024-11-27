@@ -23,4 +23,4 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
-tmp_path_retention_policy = "none"
+tmp_path_retention_policy = "all"

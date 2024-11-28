@@ -261,6 +261,13 @@ def test_concat_dicts_to_stream():
         "q": 44,
         "r": 55,
     }
+    assert Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: x) == {
+        "x": 1,
+        "y": 2,
+        "p": 33,
+        "q": 44,
+        "r": 55,
+    }
 
 
 def test_concat_raises_non_iterable():
@@ -614,13 +621,15 @@ def test_to_dict(Foo):
 
 def test_to_dict_via_dict_items(Foo):
     first_dict = {"x": 1, "y": 2}
-    second_dict = {"p": 33, "q": 44, "r": 55}
-    assert Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: x) == {
+    second_dict = {"p": 33, "q": 44, "r": None}
+    assert Stream(first_dict).concat(Stream(second_dict)).to_dict(
+        lambda x: Item(x.key, x.value or 0)
+    ) == {
         "x": 1,
         "y": 2,
         "p": 33,
         "q": 44,
-        "r": 55,
+        "r": 0,
     }
 
     coll = [Foo("jazz", 11), Foo("mambo", 22)]

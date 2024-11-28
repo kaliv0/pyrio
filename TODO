@@ -1,12 +1,12 @@
 add descriptions in README
     xml -> read include_root / write custom xml_root
     FileStream.process()
-    alternative approach to_dict with Items
+    f_open_opts
+    f_read
+    f_write
 
------------
-? test read/write empty files -> only csv tested so far
-    -> json, yaml and xml cannot read blank file
+show complex pipeline for combining files
+update file (crash mechanism?)
 
-test complex cases -> from combining other formats
 at the end -> flip back tmp_path_retention_policy
 

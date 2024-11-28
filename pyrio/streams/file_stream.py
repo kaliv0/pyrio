@@ -5,6 +5,7 @@ from pyrio.utils.dict_item import Item
 from pyrio.streams.base_stream import BaseStream
 from pyrio.utils.exception import UnsupportedFileTypeError
 
+
 TEMP_PATH = "{file_path}.bak"
 GENERIC_READ_CONFIG = {
     ".toml": {
@@ -113,7 +114,6 @@ class FileStream(BaseStream):
                 return next(iter(content.values()))
             return content
 
-    #####################################################################################################################################################
     # ### writing to file ###
     def save(
         self, file_path=None, null_handler=None, f_open_options=None, f_write_options=None, **kwargs

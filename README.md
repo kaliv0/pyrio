@@ -215,6 +215,20 @@ Stream(collection).to_dict(collector=lambda x: (x.name, x.num), merger=lambda ol
 {"fizz": 1, "buzz": 2}
 ```
 
+<i>to_dict</i> method also supports creating dictionaries from dict Item objects
+```shell
+first_dict = {"x": 1, "y": 2}
+second_dict = {"p": 33, "q": 44, "r": None}
+assert Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: Item(x.key, x.value or 0)) 
+```
+```shell
+{"x": 1, "y": 2, "p": 33, "q": 44, "r": 0}
+```
+e.g. you could combine streams of dicts by writing:
+```shell
+assert Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: x)) 
+```
+
 - alternative for working with collectors is using the <i>collect</i> method
 ```python
 Stream([1, 2, 3]).collect(tuple)
@@ -339,10 +353,9 @@ Stream(["ABC", "D", "EF"]).round_robin().to_list()
 --------------------------------------------
 ### Querying files with FileStream
 - working with <i>json</i>, <i>toml</i>, <i>yaml</i>, <i>xml</i> files
-<br>NB: FileStream reads data as series of key/value tuples from underlying dict_items view
-<br>(This draw-back in the current API design is caused by the unfortunate removal of tuple parameter unpacking with PEP 3113)
+<br>NB: FileStream reads data as series of Item objects from underlying dict_items view
 ```python
-FileStream("path/to/file").map(lambda x: f"{x[0]}=>{x[1]}").to_tuple()
+FileStream("path/to/file").map(lambda x: f"{x.key}=>{x.value}").to_tuple()
 ```
 ```shell
 (
@@ -351,13 +364,14 @@ FileStream("path/to/file").map(lambda x: f"{x[0]}=>{x[1]}").to_tuple()
 )
 ```
 ```python
-from operator import itemgetter
+from operator import attrgetter
+from pyrio import Item
 
 (FileStream("path/to/file")
-    .filter(lambda x: "a" in x[0])
-    .map(lambda x: (x[0], sum(x[1]) * 10))
-    .sorted(itemgetter(1), reverse=True)
-    .map(lambda x: f"{str(x[1])}::{x[0]}")
+    .filter(lambda x: "a" in x.key)
+    .map(lambda x: Item(x.key, sum(x.value) * 10))
+    .sorted(attrgetter("value"), reverse=True)
+    .map(lambda x: f"{str(x.value)}::{x.key}")
     .to_list()) 
 ```
 ```shell
@@ -381,4 +395,10 @@ FileStream("path/to/file").map(itemgetter('fizz', 'buzz')).to_tuple()
 ```
 ```shell
 (('42', '45'), ('aaa', 'bbb'))
+```
+you could query the nested dicts by creating streams out of them
+```python
+(FileStream("path/to/file")
+.map(lambda x: (Stream(x).to_dict(lambda y: Item(y.key, y.value or "Unknown"))))
+.save())
 ```

@@ -378,7 +378,7 @@ from pyrio import Item
 ["230::xza", "110::abba", "30::a"]
 ```
 - querying <i>csv</i> and <i>tsv</i> files
-<br>(each row is read as a dict with keys taken from the header row)
+<br>(each row is read as a dict with keys taken from the header)
 ```python
 FileStream("path/to/file").map(lambda x: f"fizz: {x['fizz']}, buzz: {x['buzz']}").to_tuple() 
 ```
@@ -396,15 +396,15 @@ FileStream("path/to/file").map(itemgetter('fizz', 'buzz')).to_tuple()
 ```shell
 (('42', '45'), ('aaa', 'bbb'))
 ```
-you could query the nested dicts by creating streams out of them
+You could query the nested dicts by creating streams out of them
 ```python
 (FileStream("path/to/file")
     .map(lambda x: (Stream(x).to_dict(lambda y: Item(y.key, y.value or "Unknown"))))
     .save())
 ```
-- reading a file with <i>process</i>
-<br>pass extra <i>f_open_options</i> (for the underlying <i>open file</i> function)
-<br> and <i>f_read_options</i> (to be passed to the corresponding library function that is loading the file content e.g. tomllib, json)
+- reading a file with <i>process()</i> method
+  - use extra <i>f_open_options</i> (for the underlying <i>open file</i> function)
+  - <i>f_read_options</i> (to be passed to the corresponding library function that is loading the file content e.g. tomllib, json)
 ```python
 from decimal import Decimal
 
@@ -417,7 +417,7 @@ from decimal import Decimal
 ```shell
 ['foo', True, Decimal('1.22'), Decimal('5.456367654369698986')]
 ```
-to include the <i>root</i> tag when loading an <i>.xml</i> file pass <i>'include_root=True'</i>
+To include the <i>root</i> tag when loading an <i>.xml</i> file pass <i>'include_root=True'</i>
 ```python
 FileStream.process("path/to/custom_root.xml", include_root=True).map(
     lambda x: f"root={x.key}: inner_records={str(x.value)}"
@@ -428,24 +428,24 @@ FileStream.process("path/to/custom_root.xml", include_root=True).map(
 ```
 --------------------------------------------
 - saving to a file
-<br>save the contents of a FileStream by passing a <i>file_path</i> to the <i>save()</i> method
+<br>(write the contents of a FileStream by passing a <i>file_path</i> to the <i>save()</i> method)
 ```python
 in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
 FileStream("path/to/file.json").prepend(in_memory_dict).save("./tests/resources/updated.json")
 ```
-if no path is given, the source file for the FileStream will be updated
+If no path is given, the source file for the FileStream will be updated
 ```python
 FileStream("path/to/file.json").concat(in_memory_dict).save()
 ```
 NB: if while updating the file something goes wrong, the original content will be restored/preserved
 - handle null values
-pass null_handler function to replace null values
+<br>(pass <i>null_handler</i> function to replace null values)
 ```python
 FileStream("path/to/test.toml").save(null_handler=lambda x: Item(x.key, x.value or "N/A"))
 ```
-(especially useful for writing <i>.toml</i> files which don't allow None values)
+NB: useful for writing <i>.toml</i> files which don't allow None values
 - passing advanced <i>file open</i> and <i>write</i> options
-similar to the <i>process</i> method you could provide 
+<br>similarly to the <i>process</i> method you could provide 
   - <i>f_open_options</i> (for the underlying <i>open</i> function)
   - <i>f_write_options</i> (passed to the corresponding library that will 'dump' the contents of the stream e.g. tomli-w, pyyaml)
 ```python
@@ -455,7 +455,7 @@ FileStream("path/to/file.json").concat(in_memory_dict).save(
     f_write_options={"indent": 4},
 )
 ```
-to add <i>custom root</i> tag when saving an <i>.xml</i> file pass <i>'xml_root="my-custom-root"'</i>
+To add <i>custom root</i> tag when saving an <i>.xml</i> file pass <i>'xml_root="my-custom-root"'</i>
 ```python
 FileStream("path/to/file.json").concat(in_memory_dict).save(
     file_path="path/to/custom.xml",
@@ -486,3 +486,6 @@ FileStream("path/to/file.json").concat(in_memory_dict).save(
 )
 ```
 or how hideous can it get?
+<p align="center">
+  <img src="https://github.com/kaliv0/pyrio/blob/main/assets/Chubby.jpg?raw=true" width="400" alt="Chubby">
+</p>

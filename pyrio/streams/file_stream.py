@@ -74,6 +74,7 @@ class FileStream(BaseStream):
 
     @classmethod
     def process(cls, file_path, f_open_options=None, f_read_options=None, **kwargs):
+        """Creates Stream from a file with advanced 'reading' options passed by the user"""
         return cls.__new__(cls, file_path, f_open_options, f_read_options, **kwargs)
 
     # ### reading from file ###
@@ -119,6 +120,7 @@ class FileStream(BaseStream):
     def save(
         self, file_path=None, null_handler=None, f_open_options=None, f_write_options=None, **kwargs
     ):
+        """Writes Stream to a new file (or updates an existing one) with advanced 'writing' options passed by the user"""
         path, tmp_path = self._prepare_file_paths(file_path)
         if path.suffix in {".csv", ".tsv"}:
             return self._write_csv(
@@ -141,7 +143,7 @@ class FileStream(BaseStream):
             f_write_options = {}
         f_write_options["delimiter"] = "\t" if path.suffix == ".tsv" else ","
         f_write_options["fieldnames"] = output[0].keys() if output else ()
-        with self.atomic_write(path, tmp_path, "w", f_open_options) as f:
+        with self._atomic_write(path, tmp_path, "w", f_open_options) as f:
             writer = csv.DictWriter(f, **f_write_options)
             writer.writeheader()
             writer.writerows(output)
@@ -165,7 +167,7 @@ class FileStream(BaseStream):
             f_write_options["pretty"] = True
 
         dump = getattr(importlib.import_module(config["import_mod"]), config["callable"])
-        with self.atomic_write(path, tmp_path, config["write_mode"], f_open_options) as f:
+        with self._atomic_write(path, tmp_path, config["write_mode"], f_open_options) as f:
             dump(output, f, **(f_write_options or {}))
 
     # ### helpers ###
@@ -188,7 +190,7 @@ class FileStream(BaseStream):
         return path, tmp_path
 
     @contextmanager
-    def atomic_write(self, path, tmp_path, mode="w", f_open_options=None):
+    def _atomic_write(self, path, tmp_path, mode="w", f_open_options=None):
         try:
             with open(tmp_path, mode, **(f_open_options or {})) as f:
                 yield f

@@ -1,16 +1,13 @@
 test update same file (don't pass file_path to save())
-    add logic if dumping crashes to restore original file -> use logic from file manager with tmp bak file
 
 add descriptions in README
     xml -> read include_root / write custom xml_root
-
-add description for FileStream.process()
+    FileStream.process()
 
 -----------
-test .tsv
-test read/write empty files -> only csv tested so far
+? test read/write empty files -> only csv tested so far
     -> json, yaml and xml cannot read blank file
 
-test complex cases -> create new csv by modifying another one
-                   -> from other formats
+test complex cases -> from combining other formats
+at the end -> flip back tmp_path_retention_policy
 

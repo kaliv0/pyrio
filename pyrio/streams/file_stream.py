@@ -6,7 +6,7 @@ from pyrio.streams.base_stream import BaseStream
 from pyrio.utils.exception import UnsupportedFileTypeError
 
 TEMP_PATH = "{file_path}.bak"
-READ_CONFIG = {
+GENERIC_READ_CONFIG = {
     ".toml": {
         "import_mod": "tomllib",
         "callable": "load",
@@ -29,7 +29,7 @@ READ_CONFIG = {
     },
 }
 
-WRITE_CONFIG = {
+GENERIC_WRITE_CONFIG = {
     ".toml": {
         "import_mod": "tomli_w",
         "callable": "dump",
@@ -81,7 +81,7 @@ class FileStream(BaseStream):
 
         if path.suffix in {".csv", ".tsv"}:
             return cls._read_csv(path, f_open_options, f_read_options, **kwargs)
-        return cls._read_binary(path, f_open_options, f_read_options, **kwargs)
+        return cls._read_generic(path, f_open_options, f_read_options, **kwargs)
 
     @staticmethod
     def _read_csv(path, f_open_options=None, f_read_options=None, **kwargs):
@@ -89,21 +89,20 @@ class FileStream(BaseStream):
 
         if f_open_options is None:
             f_open_options = {}
-        f_open_options["newline"] = ""  # TODO
+        f_open_options["newline"] = ""
         if f_read_options is None:
             f_read_options = {}
         f_read_options["delimiter"] = "\t" if path.suffix == ".tsv" else ","
         with open(path, **(f_open_options or {})) as f:
             return tuple(csv.DictReader(f, **f_read_options))
 
-    # TODO: rename method
     @staticmethod
-    def _read_binary(path, f_open_options=None, f_read_options=None, **kwargs):
+    def _read_generic(path, f_open_options=None, f_read_options=None, **kwargs):
         suffix = ".yaml" if path.suffix == ".yml" else path.suffix
-        if suffix not in READ_CONFIG:
+        if suffix not in GENERIC_READ_CONFIG:
             raise UnsupportedFileTypeError(f"Unsupported file type: '{suffix}'")
 
-        config = READ_CONFIG[suffix]
+        config = GENERIC_READ_CONFIG[suffix]
         load = getattr(importlib.import_module(config["import_mod"]), config["callable"])
         with open(path, config["read_mode"], **(f_open_options or {})) as f:
             content = load(f, **(f_read_options or {}))
@@ -124,7 +123,7 @@ class FileStream(BaseStream):
             return self._write_csv(
                 path, tmp_path, null_handler, f_open_options, f_write_options, **kwargs
             )
-        return self._write_file(
+        return self._write_generic(
             path, tmp_path, null_handler, f_open_options, f_write_options, **kwargs
         )
 
@@ -140,25 +139,24 @@ class FileStream(BaseStream):
             if f_write_options is None:
                 f_write_options = {}
             f_write_options["delimiter"] = "\t" if path.suffix == ".tsv" else ","
-            f_write_options["fieldnames"] = output[0].keys() if output else tuple()  # TODO
-
+            f_write_options["fieldnames"] = output[0].keys() if output else tuple()
             with open(tmp_path, "w", **(f_open_options or {})) as f:
                 writer = csv.DictWriter(f, **f_write_options)  # noqa
                 writer.writeheader()
                 writer.writerows(output)
         except (ValueError, Exception) as e:
             tmp_path.unlink(missing_ok=True)
-            raise e  # FIXME ??
+            raise e
         else:
             tmp_path.replace(path)
 
-    def _write_file(
+    def _write_generic(
         self, path, tmp_path, null_handler=None, f_open_options=None, f_write_options=None, **kwargs
     ):
         suffix = ".yaml" if path.suffix == ".yml" else path.suffix
-        if suffix not in WRITE_CONFIG:
+        if suffix not in GENERIC_WRITE_CONFIG:
             raise UnsupportedFileTypeError(f"Unsupported file type: '{suffix}'")
-        config = WRITE_CONFIG[suffix]
+        config = GENERIC_WRITE_CONFIG[suffix]
         if existing_null_handler := null_handler or config["default_null_handler"]:
             self.map(existing_null_handler)
 
@@ -176,7 +174,7 @@ class FileStream(BaseStream):
                 dump(output, f, **(f_write_options or {}))
         except (ValueError, Exception) as e:
             tmp_path.unlink(missing_ok=True)
-            raise e  # FIXME ??
+            raise e
         else:
             tmp_path.replace(path)
 

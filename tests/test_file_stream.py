@@ -401,3 +401,38 @@ def test_save_empty_csv(tmp_file_dir):
         tmp_file_path.read_text(encoding="utf-8")
         == open("./tests/resources/save_output/empty.csv").read()
     )
+
+
+def test_update_csv(tmp_file_dir):
+    tmp_file_path = tmp_file_dir / "updated.csv"
+    shutil.copyfile("./tests/resources/editable.csv", tmp_file_path)
+    (
+        FileStream(tmp_file_path)
+        .map(
+            lambda x: (
+                Stream(x)
+                .map(lambda y: Item(y.key, y.value or "Unknown"))
+                .to_dict(lambda y: (y.key, y.value))
+            )
+        )
+        .save(tmp_file_path)
+    )
+    assert (
+        tmp_file_path.read_text(encoding="utf-8")
+        == open("./tests/resources/save_output/updated.csv").read()
+    )
+
+
+def test_update_fails(tmp_file_dir):
+    def _raise(exception):
+        raise exception
+
+    tmp_file_path = tmp_file_dir / "fail.csv"
+    shutil.copyfile("./tests/resources/editable.csv", tmp_file_path)
+    with pytest.raises(IOError, match="Ooops Mr White..."):
+        FileStream(tmp_file_path).save(
+            tmp_file_path, null_handler=_raise(IOError("Ooops Mr White..."))
+        )
+    assert (
+        tmp_file_path.read_text(encoding="utf-8") == open("./tests/resources/editable.csv").read()
+    )

@@ -182,7 +182,7 @@ class FileStream(BaseStream):
     @staticmethod
     def _get_file_path(file_path, read_mode=True):
         path = Path(file_path)
-        if read_mode and path.exists() is False:
+        if read_mode and not path.exists():
             raise FileNotFoundError(f"No such file or directory: '{file_path}'")
         if path.is_dir():
             raise IsADirectoryError(f"Given path '{file_path}' is a directory")

@@ -1,15 +1,14 @@
-from typing import Mapping
 from collections.abc import Iterable
 
+from pyrio.utils.decorator import map_dict_items
 
-class Iterator:
+
+class Generator:
     @staticmethod
+    @map_dict_items
     def concat(*streams):
         for iterable in streams:
-            if isinstance(iterable, Mapping):
-                yield from iterable.items()
-            else:
-                yield from iterable
+            yield from iterable
 
     @staticmethod
     def filter(iterable, predicate):
@@ -33,32 +32,13 @@ class Iterator:
         for i in iterable:
             yield from mapper(i)
 
-    @staticmethod
-    def flatten(iterable):
+    @classmethod
+    def flatten(cls, iterable):
         for i in iterable:
             if isinstance(i, str) or not isinstance(i, Iterable):
                 yield i
             else:
-                yield from Iterator.flatten(i)
-
-    @staticmethod
-    def reduce(iterable, accumulator, identity=None):
-        if len(iterable) == 0:
-            return identity
-
-        idx = 0
-        if identity is None:
-            identity = iterable[0]
-            idx = 1
-
-        for i in iterable[idx:]:
-            identity = accumulator(identity, i)
-        return identity
-
-    @staticmethod
-    def for_each(iterable, operation):
-        for i in iterable:
-            operation(i)
+                yield from cls.flatten(i)
 
     @staticmethod
     def peek(iterable, operation):
@@ -130,10 +110,3 @@ class Iterator:
     def sorted(iterable, comparator=None, reverse=False):
         for i in sorted(iterable, key=comparator, reverse=reverse):
             yield i
-
-    @staticmethod
-    def compare_with(iterable, other_iterable, comparator=None):
-        for i, j in zip(iterable, other_iterable):
-            if (comparator and not comparator(i, j)) or i != j:
-                return False
-        return True

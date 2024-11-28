@@ -1,5 +1,7 @@
+from collections.abc import Mapping
 from functools import wraps
 
+from pyrio.utils.dict_item import Item
 from pyrio.utils.exception import IllegalStateError
 
 TERMINAL_FUNCTIONS = [
@@ -51,5 +53,22 @@ def handle_consumed(func):
         if is_consumed is False and func.__name__ in TERMINAL_FUNCTIONS:
             args[0]._is_consumed = True  # noqa
         return result
+
+    return wrapper
+
+
+def map_dict_items(func):
+    @wraps(func)
+    def wrapper(*args, **kw):
+        if not any(isinstance(arg, Mapping) for arg in args):
+            return func(*args, **kw)
+
+        remapped = []
+        for arg in args:
+            if isinstance(arg, Mapping):
+                remapped.append((Item(k, v) for k, v in arg.items()))
+            else:
+                remapped.append(arg)
+        return func(*remapped, **kw)
 
     return wrapper

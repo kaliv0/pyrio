@@ -1,0 +1,17 @@
+{
+  "first": {
+    "name": "Adam",
+    "phone": 1234009,
+    "email": "adam@eden.bliss"
+  },
+  "second": {
+    "name": "Eve",
+    "phone": 5678112,
+    "email": "eve@eden.bliss"
+  },
+  "third": {
+    "name": "Snake",
+    "phone": 666,
+    "email": null
+  }
+}

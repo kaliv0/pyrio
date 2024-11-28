@@ -1,9 +1,10 @@
+import builtins
 from collections.abc import Mapping
 
 from pyrio.iterators.generator import Generator
 from pyrio.utils.decorator import pre_call, handle_consumed
 from pyrio.utils.dict_item import Item
-from pyrio.utils.exception import IllegalStateError
+from pyrio.utils.exception import IllegalStateError, UnsupportedTypeError
 from pyrio.utils.optional import Optional
 
 
@@ -205,7 +206,6 @@ class BaseStream:
 
         The 'dict_merger' functions indicates in the case of a collision (duplicate keys), which entry should be kept.
         E.g. lambda old, new: new"""
-        import builtins
 
         match collection_type:
             case builtins.tuple:
@@ -242,12 +242,8 @@ class BaseStream:
         The 'merger' functions indicates in the case of a collision (duplicate keys), which entry should be kept.
         E.g. lambda old, new: new"""
         result = {}
-        for kv in (collector(i) for i in self.iterable):
-            if isinstance(kv, tuple):
-                k, v = kv[0], kv[1]
-            else:
-                k, v = kv.key, kv.value
-
+        for item in (collector(i) for i in self.iterable):
+            k, v = self._unpack_dict_item(item)
             if k in result:
                 if merger is None:
                     raise IllegalStateError(f"Key '{k}' already exists")
@@ -255,7 +251,21 @@ class BaseStream:
             result[k] = v
         return result
 
+    # @staticmethod
+    def _unpack_dict_item(self, item):  # noqa
+        match item:
+            case tuple():
+                return item[0], item[1]
+            case Item():
+                return item.key, item.value
+            case _:
+                raise UnsupportedTypeError(
+                    f"Cannot create dict items from '{item.__class__.__name__}' type"
+                )
+
     def group_by(self, classifier=None, collector=None):
+        """Performs a "group by" operation on the elements of the stream according to a classification function.
+        Returns the results in a dict built using collector function (optionally provided by the user or via a default one)"""
         if collector is None:
             return {key: list(group) for key, group in self._group_by(classifier)}
 

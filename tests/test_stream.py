@@ -6,7 +6,7 @@ from operator import itemgetter
 import pytest
 
 from pyrio import Stream, Optional, Item
-from pyrio.utils.exception import IllegalStateError
+from pyrio.utils.exception import IllegalStateError, UnsupportedTypeError
 
 
 def test_stream():
@@ -653,6 +653,11 @@ def test_to_dict_duplicate_key_no_merger_raises(Foo):
             collector=lambda x: (x.name, x.num),
         )
     assert str(e.value) == "Key 'fizz' already exists"
+
+
+def test_to_dict_raises():
+    with pytest.raises(UnsupportedTypeError, match="Cannot create dict items from 'int' type"):
+        Stream.of(("x", 1), ("b", 2)).to_dict(lambda x: x[1])
 
 
 def test_collect():

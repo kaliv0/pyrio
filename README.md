@@ -219,14 +219,14 @@ Stream(collection).to_dict(collector=lambda x: (x.name, x.num), merger=lambda ol
 ```shell
 first_dict = {"x": 1, "y": 2}
 second_dict = {"p": 33, "q": 44, "r": None}
-assert Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: Item(x.key, x.value or 0)) 
+Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: Item(x.key, x.value or 0)) 
 ```
 ```shell
 {"x": 1, "y": 2, "p": 33, "q": 44, "r": 0}
 ```
 e.g. you could combine streams of dicts by writing:
 ```shell
-assert Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: x)) 
+Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: x) 
 ```
 
 - alternative for working with collectors is using the <i>collect</i> method
@@ -399,6 +399,90 @@ FileStream("path/to/file").map(itemgetter('fizz', 'buzz')).to_tuple()
 you could query the nested dicts by creating streams out of them
 ```python
 (FileStream("path/to/file")
-.map(lambda x: (Stream(x).to_dict(lambda y: Item(y.key, y.value or "Unknown"))))
-.save())
+    .map(lambda x: (Stream(x).to_dict(lambda y: Item(y.key, y.value or "Unknown"))))
+    .save())
 ```
+- reading a file with <i>process</i>
+<br>pass extra <i>f_open_options</i> (for the underlying <i>open file</i> function)
+<br> and <i>f_read_options</i> (to be passed to the corresponding library function that is loading the file content e.g. tomllib, json)
+```python
+from decimal import Decimal
+
+(FileStream.process(
+    file_path="path/to/file.json", 
+    f_open_options={"encoding": "utf-8"}, 
+    f_read_options={"parse_float": Decimal})
+ .map(lambda x:x.value).to_list())
+```
+```shell
+['foo', True, Decimal('1.22'), Decimal('5.456367654369698986')]
+```
+to include the <i>root</i> tag when loading an <i>.xml</i> file pass <i>'include_root=True'</i>
+```python
+FileStream.process("path/to/custom_root.xml", include_root=True).map(
+    lambda x: f"root={x.key}: inner_records={str(x.value)}"
+).to_list()
+```
+```shell
+["root=custom-root: inner_records={'abc': 'xyz', 'qwerty': '42'}"]
+```
+--------------------------------------------
+- saving to a file
+<br>save the contents of a FileStream by passing a <i>file_path</i> to the <i>save()</i> method
+```python
+in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
+FileStream("path/to/file.json").prepend(in_memory_dict).save("./tests/resources/updated.json")
+```
+if no path is given, the source file for the FileStream will be updated
+```python
+FileStream("path/to/file.json").concat(in_memory_dict).save()
+```
+NB: if while updating the file something goes wrong, the original content will be restored/preserved
+- handle null values
+pass null_handler function to replace null values
+```python
+FileStream("path/to/test.toml").save(null_handler=lambda x: Item(x.key, x.value or "N/A"))
+```
+(especially useful for writing <i>.toml</i> files which don't allow None values)
+- passing advanced <i>file open</i> and <i>write</i> options
+similar to the <i>process</i> method you could provide 
+  - <i>f_open_options</i> (for the underlying <i>open</i> function)
+  - <i>f_write_options</i> (passed to the corresponding library that will 'dump' the contents of the stream e.g. tomli-w, pyyaml)
+```python
+FileStream("path/to/file.json").concat(in_memory_dict).save(
+    file_path="merged.xml",
+    f_open_options={"encoding": "utf-8"},
+    f_write_options={"indent": 4},
+)
+```
+to add <i>custom root</i> tag when saving an <i>.xml</i> file pass <i>'xml_root="my-custom-root"'</i>
+```python
+FileStream("path/to/file.json").concat(in_memory_dict).save(
+    file_path="path/to/custom.xml",
+    f_open_options={"encoding": "utf-8"},
+    f_write_options={"indent": 4},
+    xml_root="my-custom-root",
+)
+```
+--------------------------------------------
+- how far can we actually push it?
+```python
+(
+    FileStream("path/to/file.csv")
+    .concat(
+        FileStream("path/to/other/file.json")
+        .filter(
+            lambda x: (
+                Stream(x.value)
+                .find_first(lambda y: y.key == "name" and y.value != "Snake")
+                .or_else_get(lambda: None)
+            )
+            is not None
+        )
+        .map(lambda x: x.value)
+    )
+    .map(lambda x: (Stream(x).to_dict(lambda y: Item(y.key, y.value or "N/A"))))
+    .save("path/to/third/file.tsv")
+)
+```
+or how hideous can it get?

@@ -139,7 +139,7 @@ class FileStream(BaseStream):
             if f_write_options is None:
                 f_write_options = {}
             f_write_options["delimiter"] = "\t" if path.suffix == ".tsv" else ","
-            f_write_options["fieldnames"] = output[0].keys() if output else tuple()
+            f_write_options["fieldnames"] = output[0].keys() if output else ()
             with open(tmp_path, "w", **(f_open_options or {})) as f:
                 writer = csv.DictWriter(f, **f_write_options)  # noqa
                 writer.writeheader()

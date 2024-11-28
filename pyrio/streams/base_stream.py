@@ -191,10 +191,9 @@ class BaseStream:
 
     def compare_with(self, other, comparator=None):
         """Compares current stream with another one based on a given comparator"""
-        for i, j in zip(self.iterable, other):
-            if (comparator and not comparator(i, j)) or i != j:
-                return False
-        return True
+        return not any(
+            (comparator and not comparator(i, j)) or i != j for i, j in zip(self.iterable, other)
+        )
 
     # ### collectors ###
     def collect(self, collection_type, dict_collector=None, dict_merger=None):

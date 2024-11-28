@@ -1,4 +1,5 @@
 import importlib
+from contextlib import contextmanager
 from pathlib import Path
 
 from pyrio.utils.dict_item import Item
@@ -135,20 +136,15 @@ class FileStream(BaseStream):
         if null_handler:
             self.map(null_handler)
         output = self.to_tuple()
-        try:
-            if f_write_options is None:
-                f_write_options = {}
-            f_write_options["delimiter"] = "\t" if path.suffix == ".tsv" else ","
-            f_write_options["fieldnames"] = output[0].keys() if output else ()
-            with open(tmp_path, "w", **(f_open_options or {})) as f:
-                writer = csv.DictWriter(f, **f_write_options)  # noqa
-                writer.writeheader()
-                writer.writerows(output)
-        except (ValueError, Exception) as e:
-            tmp_path.unlink(missing_ok=True)
-            raise e
-        else:
-            tmp_path.replace(path)
+
+        if f_write_options is None:
+            f_write_options = {}
+        f_write_options["delimiter"] = "\t" if path.suffix == ".tsv" else ","
+        f_write_options["fieldnames"] = output[0].keys() if output else ()
+        with self.atomic_write(path, tmp_path, "w", f_open_options) as f:
+            writer = csv.DictWriter(f, **f_write_options)
+            writer.writeheader()
+            writer.writerows(output)
 
     def _write_generic(
         self, path, tmp_path, null_handler=None, f_open_options=None, f_write_options=None, **kwargs
@@ -169,14 +165,8 @@ class FileStream(BaseStream):
             f_write_options["pretty"] = True
 
         dump = getattr(importlib.import_module(config["import_mod"]), config["callable"])
-        try:
-            with open(tmp_path, config["write_mode"], **(f_open_options or {})) as f:
-                dump(output, f, **(f_write_options or {}))
-        except (ValueError, Exception) as e:
-            tmp_path.unlink(missing_ok=True)
-            raise e
-        else:
-            tmp_path.replace(path)
+        with self.atomic_write(path, tmp_path, config["write_mode"], f_open_options) as f:
+            dump(output, f, **(f_write_options or {}))
 
     # ### helpers ###
     @staticmethod
@@ -196,3 +186,13 @@ class FileStream(BaseStream):
         if tmp_path.exists():
             raise FileExistsError(f"Temporary file {tmp_path} already exists")
         return path, tmp_path
+
+    @contextmanager
+    def atomic_write(self, path, tmp_path, mode="w", f_open_options=None):
+        try:
+            with open(tmp_path, mode, **(f_open_options or {})) as f:
+                yield f
+            tmp_path.replace(path)
+        except (IOError, Exception) as e:
+            tmp_path.unlink(missing_ok=True)
+            raise e

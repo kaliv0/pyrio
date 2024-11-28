@@ -39,13 +39,13 @@ def test_constant():
 
 def test_iterable_from_string():
     json_str = '{"Name": "Jennifer Smith", "Phone": "555-123-4568", "Email": "jen123@gmail.com"}'
-    json_dict = json.loads(json_str)
-    assert Stream(json_dict).filter(lambda x: len(x.key) < 6).map(lambda x: x.key).to_tuple() == (
+    json_map = json.loads(json_str)
+    assert Stream(json_map).filter(lambda x: len(x.key) < 6).map(lambda x: x.key).to_tuple() == (
         "Name",
         "Phone",
         "Email",
     )
-    assert Stream(json_dict).map(lambda x: f"***{x.value}***").to_tuple() == (
+    assert Stream(json_map).map(lambda x: f"***{x.value}***").to_tuple() == (
         "***Jennifer Smith***",
         "***555-123-4568***",
         "***jen123@gmail.com***",
@@ -610,6 +610,21 @@ def test_to_set():
 def test_to_dict(Foo):
     coll = [Foo("fizz", 1), Foo("buzz", 2)]
     assert Stream(coll).to_dict(lambda x: (x.name, x.num)) == {"fizz": 1, "buzz": 2}
+
+
+def test_to_dict_via_dict_items(Foo):
+    first_dict = {"x": 1, "y": 2}
+    second_dict = {"p": 33, "q": 44, "r": 55}
+    assert Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: x) == {
+        "x": 1,
+        "y": 2,
+        "p": 33,
+        "q": 44,
+        "r": 55,
+    }
+
+    coll = [Foo("jazz", 11), Foo("mambo", 22)]
+    assert Stream(coll).to_dict(lambda x: Item(x.name, x.num)) == {"jazz": 11, "mambo": 22}
 
 
 def test_to_dict_merger(Foo):

@@ -242,7 +242,12 @@ class BaseStream:
         The 'merger' functions indicates in the case of a collision (duplicate keys), which entry should be kept.
         E.g. lambda old, new: new"""
         result = {}
-        for k, v in (collector(i) for i in self.iterable):
+        for kv in (collector(i) for i in self.iterable):
+            if isinstance(kv, tuple):
+                k, v = kv[0], kv[1]
+            else:
+                k, v = kv.key, kv.value
+
             if k in result:
                 if merger is None:
                     raise IllegalStateError(f"Key '{k}' already exists")

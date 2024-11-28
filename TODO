@@ -1,8 +1,7 @@
-test update same file (don't pass file_path to save())
-
 add descriptions in README
     xml -> read include_root / write custom xml_root
     FileStream.process()
+    alternative approach to_dict with Items
 
 -----------
 ? test read/write empty files -> only csv tested so far

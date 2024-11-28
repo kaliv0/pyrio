@@ -366,11 +366,7 @@ def test_save_convert_to_csv(tmp_file_dir):
 
 def test_save_to_csv_with_null_handler(tmp_file_dir):
     def _null_handler(dict_obj):
-        return (
-            Stream(dict_obj)
-            .map(lambda x: Item(x.key, x.value or "N/A"))
-            .to_dict(lambda x: (x.key, x.value))
-        )
+        return Stream(dict_obj).to_dict(lambda x: Item(x.key, x.value or "N/A"))
 
     tmp_file_path = tmp_file_dir / "converted_null.csv"
     (
@@ -408,13 +404,7 @@ def test_update_csv(tmp_file_dir):
     shutil.copyfile("./tests/resources/editable.csv", tmp_file_path)
     (
         FileStream(tmp_file_path)
-        .map(
-            lambda x: (
-                Stream(x)
-                .map(lambda y: Item(y.key, y.value or "Unknown"))
-                .to_dict(lambda y: (y.key, y.value))
-            )
-        )
+        .map(lambda x: (Stream(x).to_dict(lambda y: Item(y.key, y.value or "Unknown"))))
         .save(tmp_file_path)
     )
     assert (
@@ -435,4 +425,30 @@ def test_update_fails(tmp_file_dir):
         )
     assert (
         tmp_file_path.read_text(encoding="utf-8") == open("./tests/resources/editable.csv").read()
+    )
+
+
+def test_combine_files_into_csv(tmp_file_dir):
+    tmp_file_path = tmp_file_dir / "merged.csv"
+    shutil.copyfile("./tests/resources/combine.csv", tmp_file_path)
+    (
+        FileStream(tmp_file_path)
+        .concat(
+            FileStream("./tests/resources/convertable.json")
+            .filter(
+                lambda x: (
+                    Stream(x.value)
+                    .find_first(lambda y: y.key == "name" and y.value != "Snake")
+                    .or_else_get(lambda: None)
+                )
+                is not None
+            )
+            .map(lambda x: x.value)
+        )
+        .map(lambda x: (Stream(x).to_dict(lambda y: Item(y.key, y.value or "N/A"))))
+        .save(tmp_file_path)
+    )
+    assert (
+        tmp_file_path.read_text(encoding="utf-8")
+        == open("./tests/resources/save_output/merged.csv").read()
     )

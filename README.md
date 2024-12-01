@@ -216,11 +216,11 @@ Stream(collection).to_dict(collector=lambda x: (x.name, x.num), merger=lambda ol
 {"fizz": 1, "buzz": 2}
 ```
 
-<i>to_dict</i> method also supports creating dictionaries from dict Item objects
+<i>to_dict</i> method also supports creating dictionaries from dict DictItem objects
 ```shell
 first_dict = {"x": 1, "y": 2}
 second_dict = {"p": 33, "q": 44, "r": None}
-Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: Item(x.key, x.value or 0)) 
+Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: DictItem(x.key, x.value or 0)) 
 ```
 ```shell
 {"x": 1, "y": 2, "p": 33, "q": 44, "r": 0}
@@ -355,7 +355,7 @@ Stream(["ABC", "D", "EF"]).round_robin().to_list()
 ### FileStreams
 #### Querying files
 - working with <i>json</i>, <i>toml</i>, <i>yaml</i>, <i>xml</i> files
-<br>NB: FileStream reads data as series of Item objects from underlying dict_items view
+<br>NB: FileStream reads data as series of DictItem objects from underlying dict_items view
 ```python
 FileStream("path/to/file").map(lambda x: f"{x.key}=>{x.value}").to_tuple()
 ```
@@ -367,11 +367,11 @@ FileStream("path/to/file").map(lambda x: f"{x.key}=>{x.value}").to_tuple()
 ```
 ```python
 from operator import attrgetter
-from pyrio import Item
+from pyrio import DictItem
 
 (FileStream("path/to/file")
     .filter(lambda x: "a" in x.key)
-    .map(lambda x: Item(x.key, sum(x.value) * 10))
+    .map(lambda x: DictItem(x.key, sum(x.value) * 10))
     .sorted(attrgetter("value"), reverse=True)
     .map(lambda x: f"{str(x.value)}::{x.key}")
     .to_list()) 
@@ -401,7 +401,7 @@ FileStream("path/to/file").map(itemgetter('fizz', 'buzz')).to_tuple()
 You could query the nested dicts by creating streams out of them
 ```python
 (FileStream("path/to/file")
-    .map(lambda x: (Stream(x).to_dict(lambda y: Item(y.key, y.value or "Unknown"))))
+    .map(lambda x: (Stream(x).to_dict(lambda y: DictItem(y.key, y.value or "Unknown"))))
     .save())
 ```
 - reading a file with <i>process()</i> method
@@ -443,7 +443,7 @@ NB: if while updating the file something goes wrong, the original content will b
 - handle null values
 <br>(pass <i>null_handler</i> function to replace null values)
 ```python
-FileStream("path/to/test.toml").save(null_handler=lambda x: Item(x.key, x.value or "N/A"))
+FileStream("path/to/test.toml").save(null_handler=lambda x: DictItem(x.key, x.value or "N/A"))
 ```
 NB: useful for writing <i>.toml</i> files which don't allow None values
 - passing advanced <i>file open</i> and <i>write</i> options
@@ -483,7 +483,7 @@ FileStream("path/to/file.json").concat(in_memory_dict).save(
         )
         .map(lambda x: x.value)
     )
-    .map(lambda x: (Stream(x).to_dict(lambda y: Item(y.key, y.value or "N/A"))))
+    .map(lambda x: (Stream(x).to_dict(lambda y: DictItem(y.key, y.value or "N/A"))))
     .save("path/to/third/file.tsv")
 )
 ```

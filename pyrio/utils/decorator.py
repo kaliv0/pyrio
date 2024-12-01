@@ -1,7 +1,7 @@
 from collections.abc import Mapping
 from functools import wraps
 
-from pyrio.utils.dict_item import Item
+from pyrio.utils.dict_item import DictItem
 from pyrio.utils.exception import IllegalStateError
 
 TERMINAL_FUNCTIONS = [
@@ -66,7 +66,7 @@ def map_dict_items(func):
         remapped = []
         for arg in args:
             if isinstance(arg, Mapping):
-                remapped.append((Item(k, v) for k, v in arg.items()))
+                remapped.append((DictItem(k, v) for k, v in arg.items()))
             else:
                 remapped.append(arg)
         return func(*remapped, **kw)

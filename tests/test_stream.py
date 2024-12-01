@@ -5,7 +5,7 @@ from operator import itemgetter
 
 import pytest
 
-from pyrio import Stream, Optional, Item
+from pyrio import Stream, Optional, DictItem
 from pyrio.utils.exception import IllegalStateError, UnsupportedTypeError
 
 
@@ -57,6 +57,7 @@ def test_empty_json_from_string():
     assert Stream(json.loads(empty_json)).to_tuple() == ()
 
 
+# TODO: move next two tests
 def test_nested_json_from_string(nested_json):
     assert (
         Stream(json.loads(nested_json))
@@ -232,20 +233,20 @@ def test_concat_dicts_to_stream():
     first_dict = {"x": 1, "y": 2}
     second_dict = {"p": 33, "q": 44, "r": 55}
     items_list = [
-        Item(key="x", value=1),
-        Item(key="y", value=2),
-        Item(key="p", value=33),
-        Item(key="q", value=44),
-        Item(key="r", value=55),
+        DictItem(key="x", value=1),
+        DictItem(key="y", value=2),
+        DictItem(key="p", value=33),
+        DictItem(key="q", value=44),
+        DictItem(key="r", value=55),
     ]
     assert Stream.empty().concat(first_dict, second_dict).to_list() == items_list
     assert Stream(first_dict).concat(Stream(second_dict)).to_list() == items_list
     assert Stream(first_dict).concat(second_dict).to_list() == items_list
 
     assert Stream.concat(Stream.empty(), second_dict).to_list() == [
-        Item(key="p", value=33),
-        Item(key="q", value=44),
-        Item(key="r", value=55),
+        DictItem(key="p", value=33),
+        DictItem(key="q", value=44),
+        DictItem(key="r", value=55),
     ]
     assert Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: (x.key, x.value)) == {
         "x": 1,
@@ -281,10 +282,10 @@ def test_prepend_dict():
     second_dict = {"x": 3, "y": 4}
     first_dict = {"a": 1, "b": 2}
     items_list = [
-        Item(key="a", value=1),
-        Item(key="b", value=2),
-        Item(key="x", value=3),
-        Item(key="y", value=4),
+        DictItem(key="a", value=1),
+        DictItem(key="b", value=2),
+        DictItem(key="x", value=3),
+        DictItem(key="y", value=4),
     ]
     # two streams of dicts
     assert Stream(second_dict).prepend(Stream(first_dict)).to_list() == items_list
@@ -616,7 +617,7 @@ def test_to_dict_via_dict_items(Foo):
     first_dict = {"x": 1, "y": 2}
     second_dict = {"p": 33, "q": 44, "r": None}
     assert Stream(first_dict).concat(Stream(second_dict)).to_dict(
-        lambda x: Item(x.key, x.value or 0)
+        lambda x: DictItem(x.key, x.value or 0)
     ) == {
         "x": 1,
         "y": 2,
@@ -626,7 +627,7 @@ def test_to_dict_via_dict_items(Foo):
     }
 
     coll = [Foo("jazz", 11), Foo("mambo", 22)]
-    assert Stream(coll).to_dict(lambda x: Item(x.name, x.num)) == {"jazz": 11, "mambo": 22}
+    assert Stream(coll).to_dict(lambda x: DictItem(x.name, x.num)) == {"jazz": 11, "mambo": 22}
 
 
 def test_to_dict_merger(Foo):
@@ -666,10 +667,26 @@ def test_collect():
 
 
 def test_collect_missing_dict_collector_raises(Foo):
-    coll = [Foo("fizz", 1), Foo("fizz", 2), Foo("buzz", 2)]
-    with pytest.raises(ValueError) as e:
-        Stream(coll).collect(dict)
-    assert str(e.value) == "Missing dict_collector"
+    # coll = [Foo("fizz", 1), Foo("fizz", 2), Foo("buzz", 2)]
+    # with pytest.raises(ValueError) as e:
+    #     Stream(coll).collect(dict)
+    # assert str(e.value) == "Missing dict_collector"
+
+    first_dict = {"x": 1, "y": 2}
+    second_dict = {"p": 33, "q": 44, "r": None}
+    assert Stream(first_dict).concat(Stream(second_dict)).collect(
+        dict
+        # lambda x: DictItem(x.key, x.value or 0)
+    ) == {
+        "x": 1,
+        "y": 2,
+        "p": 33,
+        "q": 44,
+        "r": None,
+    }
+
+    coll = [Foo("jazz", 11), Foo("mambo", 22)]
+    assert Stream(coll).to_dict(lambda x: DictItem(x.name, x.num)) == {"jazz": 11, "mambo": 22}
 
 
 def test_collect_invalid_type(Foo):
@@ -715,3 +732,29 @@ def test_group_by_objects(Foo):
         "fizz": [("fizz", 1), ("fizz", 2), ("fizz", 3)],
         "buzz": [("buzz", 2), ("buzz", 3), ("buzz", 4), ("buzz", 5)],
     }
+
+
+# TODO: refactor and split
+def test_to_string(nested_json):
+    assert Stream([1, 2, 3, 4, 5]).collect(str) == "Stream(1, 2, 3, 4, 5)"
+    assert Stream([1, 2, 3, 4, 5]).collect(str, joiner=" | ") == "Stream(1 | 2 | 3 | 4 | 5)"
+
+    assert (
+        Stream({"a": 1, "b": [2, 3]}).to_string()
+        == "Stream(DictItem(key=a, value=1), DictItem(key=b, value=[2, 3]))"
+    )
+    assert (
+        Stream({"a": 1, "b": [2, 3]}).map(lambda x: {x.key: x.value}).to_string()
+        == "Stream({'a': 1}, {'b': [2, 3]})"
+    )
+
+    assert (
+        Stream(json.loads(nested_json)).collect(str)
+        == Stream(json.loads(nested_json)).to_string()
+        == str(Stream(json.loads(nested_json)))
+        == (
+            "Stream(DictItem(key=user, value=(DictItem(key=Name, value=John), DictItem(key=Phone, value=555-123-4568), DictItem(key=Security Number, value=3450678))), "
+            "DictItem(key=super_user, value=(DictItem(key=Name, value=sudo), DictItem(key=Email, value=admin@sudo.su), DictItem(key=Some Other Number, value=000-0011))), "
+            "DictItem(key=fraud, value=(DictItem(key=Name, value=Freud), DictItem(key=Email, value=ziggy@psycho.au))))"
+        )
+    )

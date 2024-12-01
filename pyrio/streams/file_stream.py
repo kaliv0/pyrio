@@ -2,7 +2,7 @@ import importlib
 from contextlib import contextmanager
 from pathlib import Path
 
-from pyrio.utils.dict_item import Item
+from pyrio.utils.dict_item import DictItem
 from pyrio.streams.base_stream import BaseStream
 from pyrio.streams.stream import Stream
 from pyrio.utils.exception import UnsupportedFileTypeError
@@ -37,7 +37,7 @@ GENERIC_WRITE_CONFIG = {
         "import_mod": "tomli_w",
         "callable": "dump",
         "write_mode": "wb",
-        "default_null_handler": lambda x: Item(x.key, "N/A") if x.value is None else x,
+        "default_null_handler": lambda x: DictItem(x.key, "N/A") if x.value is None else x,
     },
     ".json": {
         "import_mod": "json",
@@ -113,7 +113,7 @@ class FileStream(BaseStream):
             if suffix == ".xml":
                 if kwargs.get("include_root", None):
                     return content
-                # NB: return dict (instead of dict_view) to re-map it later as Item records
+                # NB: return dict (instead of dict_view) to re-map it later as DictItem records
                 return next(iter(content.values()))
             return content
 
@@ -188,7 +188,7 @@ class FileStream(BaseStream):
         tmp_path = Path(TEMP_PATH.format(file_path=self.file_path))
         if tmp_path.exists():
             raise FileExistsError(f"Temporary file {tmp_path} already exists")
-            # TODO: or jusy delete .bak file?
+            # TODO: or just delete .bak file?
         return path, tmp_path
 
     @contextmanager

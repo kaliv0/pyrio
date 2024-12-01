@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from pyrio import FileStream, Stream, Item
+from pyrio import FileStream, Stream, DictItem
 from pyrio.utils.exception import IllegalStateError, UnsupportedFileTypeError
 
 
@@ -135,7 +135,7 @@ def test_complex_pipeline():
     assert (
         FileStream("./tests/resources/long.json")
         .filter(lambda x: "a" in x.key)
-        .map(lambda x: Item(x.key, sum(x.value) * 10))
+        .map(lambda x: DictItem(x.key, sum(x.value) * 10))
         .sorted(attrgetter("value"), reverse=True)
         .map(lambda x: f"{str(x.value)}::{x.key}")
     ).to_list() == ["230::xza", "110::abba", "30::a"]
@@ -183,7 +183,7 @@ def test_prepend(json_dict):
         "key=Name, value=Jennifer Smith",
         "key=Security_Number, value=7867567898",
         "key=Phone, value=555-123-4568",
-        "key=Email, value=(Item(key=primary, value=jen123@gmail.com),)",
+        "key=Email, value=(DictItem(key=primary, value=jen123@gmail.com),)",
         "key=Hobbies, value=['Reading', 'Sketching', 'Horse Riding']",
         "key=Job, value=None",
         "key=a, value=[1, 2]",
@@ -224,7 +224,7 @@ def test_save_toml(tmp_file_dir, json_dict):
     tmp_file_path = tmp_file_dir / "test.toml"
     FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
         tmp_file_path,
-        null_handler=lambda x: Item(x.key, "Unknown") if x.value is None else x,
+        null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
     )
     assert (
         tmp_file_path.read_text(encoding="utf-8")
@@ -269,7 +269,7 @@ def test_save_handle_null(tmp_file_dir, file_path, indent, json_dict):
     tmp_file_path = tmp_file_dir / file_path
     FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
         tmp_file_path,
-        null_handler=lambda x: Item(x.key, "Unknown") if x.value is None else x,
+        null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
         f_open_options={"encoding": "utf-8"},
         f_write_options={"indent": indent},
     )
@@ -287,7 +287,7 @@ def test_save_custom_xml_root(tmp_file_dir, json_dict):
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
     FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
         tmp_file_path,
-        null_handler=lambda x: Item(x.key, "Unknown") if x.value is None else x,
+        null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
         f_open_options={"encoding": "utf-8"},
         f_write_options={"indent": indent},
         xml_root="my-root",
@@ -303,9 +303,11 @@ def test_update_file(tmp_file_dir, json_dict):
     shutil.copyfile("./tests/resources/long.json", tmp_file_path)
     (
         FileStream(tmp_file_path)
-        .map(lambda x: Item(x.key, ", ".join((str(y) for y in x.value)) if x.value else x.value))
+        .map(
+            lambda x: DictItem(x.key, ", ".join((str(y) for y in x.value)) if x.value else x.value)
+        )
         .save(
-            null_handler=lambda x: Item(x.key, "Unknown") if x.value is None else x,
+            null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
             f_write_options={"indent": 2},
         )
     )
@@ -366,7 +368,7 @@ def test_save_convert_to_csv(tmp_file_dir):
 
 def test_save_to_csv_with_null_handler(tmp_file_dir):
     def _null_handler(dict_obj):
-        return Stream(dict_obj).to_dict(lambda x: Item(x.key, x.value or "N/A"))
+        return Stream(dict_obj).to_dict(lambda x: DictItem(x.key, x.value or "N/A"))
 
     tmp_file_path = tmp_file_dir / "converted_null.csv"
     (
@@ -404,7 +406,7 @@ def test_update_csv(tmp_file_dir):
     shutil.copyfile("./tests/resources/editable.csv", tmp_file_path)
     (
         FileStream(tmp_file_path)
-        .map(lambda x: (Stream(x).to_dict(lambda y: Item(y.key, y.value or "Unknown"))))
+        .map(lambda x: (Stream(x).to_dict(lambda y: DictItem(y.key, y.value or "Unknown"))))
         .save(tmp_file_path)
     )
     assert (
@@ -445,7 +447,7 @@ def test_combine_files_into_csv(tmp_file_dir):
             )
             .map(lambda x: x.value)
         )
-        .map(lambda x: (Stream(x).to_dict(lambda y: Item(y.key, y.value or "N/A"))))
+        .map(lambda x: (Stream(x).to_dict(lambda y: DictItem(y.key, y.value or "N/A"))))
         .save(tmp_file_path)
     )
     assert (

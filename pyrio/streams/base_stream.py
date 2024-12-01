@@ -3,7 +3,7 @@ from collections.abc import Mapping
 
 from pyrio.iterators.generator import Generator
 from pyrio.utils.decorator import pre_call, handle_consumed
-from pyrio.utils.dict_item import Item
+from pyrio.utils.dict_item import DictItem
 from pyrio.utils.exception import IllegalStateError, UnsupportedTypeError
 from pyrio.utils.optional import Optional
 
@@ -20,7 +20,7 @@ class BaseStream:
     @property
     def iterable(self):
         if isinstance(self._iterable, Mapping):
-            return (Item(k, v) for k, v in self._iterable.items())
+            return (DictItem(k, v) for k, v in self._iterable.items())
         return self._iterable
 
     @iterable.setter
@@ -196,7 +196,7 @@ class BaseStream:
         )
 
     # ### collectors ###
-    def collect(self, collection_type, dict_collector=None, dict_merger=None):
+    def collect(self, collection_type, dict_collector=None, dict_merger=None, joiner=None):
         """Returns a collections from the stream.
 
         In case of dict:
@@ -214,9 +214,15 @@ class BaseStream:
             case builtins.set:
                 return self.to_set()
             case builtins.dict:
-                if dict_collector is None:
-                    raise ValueError("Missing dict_collector")
+                # TODO: remove raising
+                # if dict_collector is None:
+                #     raise ValueError("Missing dict_collector")
                 return self.to_dict(dict_collector, dict_merger)
+            case builtins.str:
+                # TODO
+                if not joiner:
+                    return self.to_string()
+                return f"{self.__class__.__name__}({joiner.join(str(i) for i in self.iterable)})"
             case _:
                 raise ValueError("Invalid collection type")
 
@@ -251,13 +257,12 @@ class BaseStream:
             result[k] = v
         return result
 
-    # @staticmethod
     def _unpack_dict_item(self, item):  # noqa
         match item:
             case tuple():
                 return item[0], item[1]
-            case Item():
-                return item.key, item.raw_value
+            case DictItem():
+                return item._key, item._value  # TODO: let's not make unnecessary calls
             case _:
                 raise UnsupportedTypeError(
                     f"Cannot create dict items from '{item.__class__.__name__}' type"
@@ -313,3 +318,11 @@ class BaseStream:
     def quantify(self, predicate=bool):
         """Count how many of the elements are Truthy or evaluate to True based on a given predicate"""
         return sum(self.map(predicate))
+
+    # ### let's look nice ###
+    def to_string(self):
+        return str(self)
+        # return "\n".join(str(i) for i in self.iterable)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({", ".join(str(i) for i in self.iterable)})"

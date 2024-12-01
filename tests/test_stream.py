@@ -57,26 +57,7 @@ def test_empty_json_from_string():
     assert Stream(json.loads(empty_json)).to_tuple() == ()
 
 
-def test_nested_json_from_string():
-    nested_json = """
-    {
-        "user": {
-            "Name": "John", 
-            "Phone": "555-123-4568", 
-            "Security Number": "3450678"
-        }, 
-        "super_user": {
-            "Name": "sudo", 
-            "Email": "admin@sudo.su",
-            "Some Other Number": "000-0011" 
-            
-        },
-        "fraud": {
-            "Name": "Freud", 
-            "Email": "ziggy@psycho.au"
-        }    
-    }
-    """
+def test_nested_json_from_string(nested_json):
     assert (
         Stream(json.loads(nested_json))
         .filter(lambda outer: "user" in outer.key)
@@ -90,6 +71,18 @@ def test_nested_json_from_string():
         )
         .to_tuple()
     ) == ("John", "555-123-4568", "sudo", "admin@sudo.su")
+
+
+def test_nested_json_querying_nested_dict_items(nested_json):
+    assert (
+        Stream(json.loads(nested_json))
+        .flat_map(lambda x: x.value)
+        .filter(lambda x: x.key == "Name" and "F" in x.value)
+        .map(lambda x: x.value)
+        .find_first()
+        .get()
+        == "Freud"
+    )
 
 
 def test_filter():

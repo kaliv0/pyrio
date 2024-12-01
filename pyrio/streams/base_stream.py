@@ -232,7 +232,7 @@ class BaseStream:
         """Returns a set of the elements of the current stream"""
         return set(self.iterable)
 
-    def to_dict(self, collector, merger=None):
+    def to_dict(self, collector=None, merger=None):
         """Returns a dict of the elements of the current stream.
 
         The 'collector' function receives an element from the stream and returns a (key, value) pair
@@ -241,7 +241,8 @@ class BaseStream:
         The 'merger' functions indicates in the case of a collision (duplicate keys), which entry should be kept.
         E.g. lambda old, new: new"""
         result = {}
-        for item in (collector(i) for i in self.iterable):
+        source = (collector(i) for i in self.iterable) if collector else self.iterable
+        for item in source:
             k, v = self._unpack_dict_item(item)
             if k in result:
                 if merger is None:
@@ -256,7 +257,7 @@ class BaseStream:
             case tuple():
                 return item[0], item[1]
             case Item():
-                return item.key, item.value
+                return item.key, item.raw_value
             case _:
                 raise UnsupportedTypeError(
                     f"Cannot create dict items from '{item.__class__.__name__}' type"

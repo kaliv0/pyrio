@@ -1,0 +1,6 @@
+add to readme's simplified to_dict() without (lambda x: x)
+add reverse -> simplified sorted(reverse=True)
+add to_string()?
+add description for using nested Items
+add try/except for empty to_dict()?
+rename Item -> DictItem?

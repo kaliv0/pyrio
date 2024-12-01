@@ -73,7 +73,7 @@ def test_read_xml_custom_root():
 
 def test_read_xml_include_root():
     assert FileStream.process("./tests/resources/custom_root.xml", include_root=True).map(
-        lambda x: f"root={x.key}: inner_records={str(x.value)}"
+        lambda x: f"root={x.key}: inner_records={str(Stream(x.value).to_dict())}"
     ).to_list() == ["root=my-root: inner_records={'abc': 'xyz', 'qwerty': '42'}"]
 
 
@@ -183,7 +183,7 @@ def test_prepend(json_dict):
         "key=Name, value=Jennifer Smith",
         "key=Security_Number, value=7867567898",
         "key=Phone, value=555-123-4568",
-        "key=Email, value={'primary': 'jen123@gmail.com'}",
+        "key=Email, value=(Item(key=primary, value=jen123@gmail.com),)",
         "key=Hobbies, value=['Reading', 'Sketching', 'Horse Riding']",
         "key=Job, value=None",
         "key=a, value=[1, 2]",

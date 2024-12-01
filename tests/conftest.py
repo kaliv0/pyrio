@@ -12,6 +12,29 @@ def Foo():
 
 
 @pytest.fixture
+def nested_json():
+    return """
+    {
+        "user": {
+            "Name": "John", 
+            "Phone": "555-123-4568", 
+            "Security Number": "3450678"
+        }, 
+        "super_user": {
+            "Name": "sudo", 
+            "Email": "admin@sudo.su",
+            "Some Other Number": "000-0011" 
+
+        },
+        "fraud": {
+            "Name": "Freud", 
+            "Email": "ziggy@psycho.au"
+        }    
+    }
+    """
+
+
+@pytest.fixture
 def json_dict():
     return {
         "Name": "Jennifer Smith",

@@ -4,6 +4,7 @@ from pathlib import Path
 
 from pyrio.utils.dict_item import Item
 from pyrio.streams.base_stream import BaseStream
+from pyrio.streams.stream import Stream
 from pyrio.utils.exception import UnsupportedFileTypeError
 
 
@@ -137,7 +138,7 @@ class FileStream(BaseStream):
 
         if null_handler:
             self.map(null_handler)
-        output = self.to_tuple()
+        output = self.map(lambda x: Stream(x).to_dict()).to_list()
 
         if f_write_options is None:
             f_write_options = {}
@@ -158,7 +159,7 @@ class FileStream(BaseStream):
         if existing_null_handler := null_handler or config["default_null_handler"]:
             self.map(existing_null_handler)
 
-        output = self.to_dict(lambda x: (x.key, x.value))
+        output = self.to_dict()
         if suffix == ".xml":
             root = kwargs.get("xml_root", "root")
             output = {root: output}
@@ -187,6 +188,7 @@ class FileStream(BaseStream):
         tmp_path = Path(TEMP_PATH.format(file_path=self.file_path))
         if tmp_path.exists():
             raise FileExistsError(f"Temporary file {tmp_path} already exists")
+            # TODO: or jusy delete .bak file?
         return path, tmp_path
 
     @contextmanager

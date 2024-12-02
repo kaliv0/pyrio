@@ -1,4 +1,5 @@
 class DictItem:
+    # TODO: add doc string
     def __init__(self, key, value):
         self._key = key
         self._value = value
@@ -21,7 +22,7 @@ class DictItem:
         return f"DictItem(key={self.key}, value={self.value})"
 
     def __eq__(self, other):
-        return self._key == other._key and self._value == other._value
+        return self._key == other._key and self._value == other._value  # noqa
 
     def __hash__(self):
         return hash((self._key, self._value))

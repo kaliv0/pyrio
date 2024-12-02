@@ -1,4 +1,3 @@
-import builtins
 from collections.abc import Mapping
 
 from pyrio.iterators.generator import Generator
@@ -205,6 +204,7 @@ class BaseStream:
 
         The 'dict_merger' functions indicates in the case of a collision (duplicate keys), which entry should be kept.
         E.g. lambda old, new: new"""
+        import builtins
 
         match collection_type:
             case builtins.tuple:
@@ -220,9 +220,7 @@ class BaseStream:
                 return self.to_dict(dict_collector, dict_merger)
             case builtins.str:
                 # TODO
-                if not joiner:
-                    return self.to_string()
-                return f"{self.__class__.__name__}({joiner.join(str(i) for i in self.iterable)})"
+                return self.to_string(joiner)
             case _:
                 raise ValueError("Invalid collection type")
 
@@ -262,7 +260,8 @@ class BaseStream:
             case tuple():
                 return item[0], item[1]
             case DictItem():
-                return item._key, item._value  # TODO: let's not make unnecessary calls
+                # TODO: let's not make unnecessary calls to property getters
+                return item._key, item._value  # noqa
             case _:
                 raise UnsupportedTypeError(
                     f"Cannot create dict items from '{item.__class__.__name__}' type"
@@ -320,9 +319,13 @@ class BaseStream:
         return sum(self.map(predicate))
 
     # ### let's look nice ###
-    def to_string(self):
-        return str(self)
-        # return "\n".join(str(i) for i in self.iterable)
+    def to_string(self, joiner=None):
+        return self._join(joiner)
+
+    def _join(self, joiner=None):
+        if joiner is None:
+            joiner = ", "
+        return f"{self.__class__.__name__}({joiner.join(str(i) for i in self.iterable)})"
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({", ".join(str(i) for i in self.iterable)})"
+        return self._join()

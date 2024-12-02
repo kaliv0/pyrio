@@ -744,8 +744,8 @@ def test_to_string(nested_json):
         == "Stream(DictItem(key=a, value=1), DictItem(key=b, value=[2, 3]))"
     )
     assert (
-        Stream({"a": 1, "b": [2, 3]}).map(lambda x: {x.key: x.value}).to_string()
-        == "Stream({'a': 1}, {'b': [2, 3]})"
+        Stream({"a": 1, "b": [2, 3]}).map(lambda x: {x.key: x.value}).to_string(joiner=" | ")
+        == "Stream({'a': 1} | {'b': [2, 3]})"
     )
 
     assert (

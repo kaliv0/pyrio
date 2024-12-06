@@ -107,6 +107,6 @@ class Generator:
             yield x
 
     @staticmethod
-    def sorted(iterable, comparator=None, reverse=False):
+    def sort(iterable, comparator=None, reverse=False):
         for i in sorted(iterable, key=comparator, reverse=reverse):
             yield i

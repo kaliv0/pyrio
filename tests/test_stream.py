@@ -57,35 +57,6 @@ def test_empty_json_from_string():
     assert Stream(json.loads(empty_json)).to_tuple() == ()
 
 
-# TODO: move next two tests
-def test_nested_json_from_string(nested_json):
-    assert (
-        Stream(json.loads(nested_json))
-        .filter(lambda outer: "user" in outer.key)
-        .flat_map(
-            lambda outer: (
-                Stream(outer.value)
-                .filter(lambda inner: len(inner.key) < 6)
-                .map(lambda inner: inner.value)
-                .to_list()
-            )
-        )
-        .to_tuple()
-    ) == ("John", "555-123-4568", "sudo", "admin@sudo.su")
-
-
-def test_nested_json_querying_nested_dict_items(nested_json):
-    assert (
-        Stream(json.loads(nested_json))
-        .flat_map(lambda x: x.value)
-        .filter(lambda x: x.key == "Name" and "F" in x.value)
-        .map(lambda x: x.value)
-        .find_first()
-        .get()
-        == "Freud"
-    )
-
-
 def test_filter():
     assert Stream([1, 2, 3, 4, 5, 6]).filter(lambda x: x % 2 == 0).to_list() == [2, 4, 6]
 
@@ -384,13 +355,13 @@ def test_drop_while_no_elements():
     ).to_list() == ["adam", "aman", "ahmad", "hamid", "muhammad", "aladdin"]
 
 
-# ### sorted ###
+# ### sort ###
 def test_sorted():
-    assert Stream.of(3, 5, 2, 1).map(lambda x: x * 10).sorted().to_list() == [10, 20, 30, 50]
+    assert Stream.of(3, 5, 2, 1).map(lambda x: x * 10).sort().to_list() == [10, 20, 30, 50]
 
 
 def test_sorted_reverse():
-    assert Stream.of(3, 5, 2, 1).map(lambda x: x * 10).sorted(reverse=True).to_list() == [
+    assert Stream.of(3, 5, 2, 1).map(lambda x: x * 10).sort(reverse=True).to_list() == [
         50,
         30,
         20,
@@ -399,9 +370,7 @@ def test_sorted_reverse():
 
 
 def test_sorted_comparator_function():
-    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sorted(
-        itemgetter(1)
-    ).to_list() == [
+    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sort(itemgetter(1)).to_list() == [
         ("1", 10),
         ("2", 20),
         ("3", 30),
@@ -410,13 +379,17 @@ def test_sorted_comparator_function():
 
 
 def test_sorted_multiple_keys():
-    assert Stream.of((3, 30), (2, 30), (2, 20), (1, 20), (1, 10)).sorted(
-        lambda x: (x[0], x[1])
-    ).to_list() == [(1, 10), (1, 20), (2, 20), (2, 30), (3, 30)]
+    assert Stream.of((3, 30), (2, 30), (2, 20), (1, 20), (1, 10)).sort(lambda x: (x[0], x[1])).to_list() == [
+        (1, 10),
+        (1, 20),
+        (2, 20),
+        (2, 30),
+        (3, 30),
+    ]
 
 
 def test_sorted_comparator_and_reverse():
-    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sorted(
+    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sort(
         itemgetter(1), reverse=True
     ).to_list() == [
         ("5", 50),
@@ -426,10 +399,30 @@ def test_sorted_comparator_and_reverse():
     ]
 
 
+# ### reverse ###
+def test_reverse():
+    assert Stream.of(3, 5, 2, 1).map(lambda x: x * 10).reverse().to_list() == [
+        50,
+        30,
+        20,
+        10,
+    ]
+
+
+def test_reverse_with_custom_comparator():
+    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).reverse(itemgetter(1)).to_list() == [
+        ("5", 50),
+        ("3", 30),
+        ("2", 20),
+        ("1", 10),
+    ]
+
+
+# ### ###
 def test_complex_pipeline():
-    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sorted(
-        itemgetter(1), reverse=True
-    ).to_dict(lambda x: (x[0], x[1])) == {"5": 50, "3": 30, "2": 20, "1": 10}
+    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sort(itemgetter(1), reverse=True).to_dict(
+        lambda x: (x[0], x[1])
+    ) == {"5": 50, "3": 30, "2": 20, "1": 10}
 
 
 def test_reusing_stream():
@@ -632,9 +625,7 @@ def test_to_dict_via_dict_items(Foo):
 
 def test_to_dict_merger(Foo):
     coll = [Foo("fizz", 1), Foo("fizz", 2), Foo("buzz", 2)]
-    assert Stream(coll).to_dict(
-        collector=lambda x: (x.name, x.num), merger=lambda old, new: old
-    ) == {
+    assert Stream(coll).to_dict(collector=lambda x: (x.name, x.num), merger=lambda old, new: old) == {
         "fizz": 1,
         "buzz": 2,
     }
@@ -664,20 +655,14 @@ def test_collect():
         "3": 30,
         "4": 40,
     }
+    assert Stream([1, 2, 3, 4, 5]).collect(str) == "Stream(1, 2, 3, 4, 5)"
+    assert Stream([1, 2, 3, 4, 5]).collect(str, joiner=" | ") == "Stream(1 | 2 | 3 | 4 | 5)"
 
 
-def test_collect_missing_dict_collector_raises(Foo):
-    # coll = [Foo("fizz", 1), Foo("fizz", 2), Foo("buzz", 2)]
-    # with pytest.raises(ValueError) as e:
-    #     Stream(coll).collect(dict)
-    # assert str(e.value) == "Missing dict_collector"
-
+def test_to_dict_no_collector(Foo):
     first_dict = {"x": 1, "y": 2}
     second_dict = {"p": 33, "q": 44, "r": None}
-    assert Stream(first_dict).concat(Stream(second_dict)).collect(
-        dict
-        # lambda x: DictItem(x.key, x.value or 0)
-    ) == {
+    assert Stream(first_dict).concat(Stream(second_dict)).collect(dict) == {
         "x": 1,
         "y": 2,
         "p": 33,
@@ -687,6 +672,17 @@ def test_collect_missing_dict_collector_raises(Foo):
 
     coll = [Foo("jazz", 11), Foo("mambo", 22)]
     assert Stream(coll).to_dict(lambda x: DictItem(x.name, x.num)) == {"jazz": 11, "mambo": 22}
+
+
+def test_collect_to_dict_raises(Foo):
+    coll = [Foo("fizz", 1), Foo("fizz", 2), Foo("buzz", 2)]
+    with pytest.raises(UnsupportedTypeError) as e:
+        Stream(coll).collect(dict)
+    assert str(e.value) == "Cannot create dict items from 'Foo' type"
+
+    with pytest.raises(UnsupportedTypeError) as e:
+        Stream(coll).collect(dict, lambda x: "invalid")
+    assert str(e.value) == "Cannot create dict items from 'str' type"
 
 
 def test_collect_invalid_type(Foo):
@@ -734,11 +730,7 @@ def test_group_by_objects(Foo):
     }
 
 
-# TODO: refactor and split
 def test_to_string(nested_json):
-    assert Stream([1, 2, 3, 4, 5]).collect(str) == "Stream(1, 2, 3, 4, 5)"
-    assert Stream([1, 2, 3, 4, 5]).collect(str, joiner=" | ") == "Stream(1 | 2 | 3 | 4 | 5)"
-
     assert (
         Stream({"a": 1, "b": [2, 3]}).to_string()
         == "Stream(DictItem(key=a, value=1), DictItem(key=b, value=[2, 3]))"
@@ -747,7 +739,6 @@ def test_to_string(nested_json):
         Stream({"a": 1, "b": [2, 3]}).map(lambda x: {x.key: x.value}).to_string(joiner=" | ")
         == "Stream({'a': 1} | {'b': [2, 3]})"
     )
-
     assert (
         Stream(json.loads(nested_json)).collect(str)
         == Stream(json.loads(nested_json)).to_string()
@@ -757,4 +748,33 @@ def test_to_string(nested_json):
             "DictItem(key=super_user, value=(DictItem(key=Name, value=sudo), DictItem(key=Email, value=admin@sudo.su), DictItem(key=Some Other Number, value=000-0011))), "
             "DictItem(key=fraud, value=(DictItem(key=Name, value=Freud), DictItem(key=Email, value=ziggy@psycho.au))))"
         )
+    )
+
+
+# ### ###
+def test_nested_json_from_string(nested_json):
+    assert (
+        Stream(json.loads(nested_json))
+        .filter(lambda outer: "user" in outer.key)
+        .flat_map(
+            lambda outer: (
+                Stream(outer.value)
+                .filter(lambda inner: len(inner.key) < 6)
+                .map(lambda inner: inner.value)
+                .to_list()
+            )
+        )
+        .to_tuple()
+    ) == ("John", "555-123-4568", "sudo", "admin@sudo.su")
+
+
+def test_nested_json_querying_nested_dict_items(nested_json):
+    assert (
+        Stream(json.loads(nested_json))
+        .flat_map(lambda x: x.value)
+        .filter(lambda x: x.key == "Name" and "F" in x.value)
+        .map(lambda x: x.value)
+        .find_first()
+        .get()
+        == "Freud"
     )

@@ -153,12 +153,24 @@ Stream.of(1, 2, 3, 5, 6, 7, 2).drop_while(lambda x: x < 5).to_list()
 [5, 6, 7, 2]
 ```
 
-- sorted
+- sort
 <br>(sorts the elements of the current stream according to natural order or based on the given comparator;
 <br>if 'reverse' flag is True, the elements are sorted in descending order)
 ```python
 (Stream.of((3, 30), (2, 30), (2, 20), (1, 20), (1, 10))
-    .sorted(lambda x: (x[0], x[1]), reverse=True)
+    .sort(lambda x: (x[0], x[1]), reverse=True)
+    .to_list())
+```
+```shell
+[(3, 30), (2, 30), (2, 20), (1, 20), (1, 10)]
+```
+
+- reverse
+<br>(sorts the elements of the current stream in reverse order;
+<br>alias for <i>'sort(collector, reverse=True)'</i>)
+```python
+(Stream.of((3, 30), (2, 30), (2, 20), (1, 20), (1, 10))
+    .reverse(lambda x: (x[0], x[1]))
     .to_list())
 ```
 ```shell
@@ -207,8 +219,9 @@ Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: DictItem(x.key,
 ```
 e.g. you could combine streams of dicts by writing:
 ```shell
-Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: x) 
+Stream(first_dict).concat(Stream(second_dict)).to_dict() 
 ```
+(simplified from <i>'.to_dict(lambda x: x)'</i>)
 
 - alternative for working with collectors is using the <i>collect</i> method
 ```python
@@ -352,7 +365,7 @@ from pyrio import DictItem
 (FileStream("path/to/file")
     .filter(lambda x: "a" in x.key)
     .map(lambda x: DictItem(x.key, sum(x.value) * 10))
-    .sorted(attrgetter("value"), reverse=True)
+    .sort(attrgetter("value"), reverse=True)
     .map(lambda x: f"{str(x.value)}::{x.key}")
     .to_list()) 
 ```

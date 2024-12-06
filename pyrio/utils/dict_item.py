@@ -1,10 +1,8 @@
 class DictItem:
-    # TODO: add doc string
     def __init__(self, key, value):
         self._key = key
         self._value = value
 
-    # TODO: effectively readonly properties for the user, internally use private attributes
     @property
     def key(self):
         return self._key

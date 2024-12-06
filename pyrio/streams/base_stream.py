@@ -126,10 +126,16 @@ class BaseStream:
         self.iterable = Generator.drop_while(self.iterable, predicate)
         return self
 
-    def sorted(self, comparator=None, *, reverse=False):
+    def sort(self, comparator=None, *, reverse=False):
         """Sorts the elements of the current stream according to natural order or based on the given comparator.
         If 'reverse' flag is True, the elements are sorted in descending order"""
-        self.iterable = Generator.sorted(self.iterable, comparator, reverse)
+        self.iterable = Generator.sort(self.iterable, comparator, reverse)
+        return self
+
+    def reverse(self, comparator=None):
+        """Sorts the elements of the current stream in descending order.
+        Alias for 'sort(comparator, reverse=True)'"""
+        self.iterable = Generator.sort(self.iterable, comparator, reverse=True)
         return self
 
     def find_first(self, predicate=None):
@@ -190,16 +196,14 @@ class BaseStream:
 
     def compare_with(self, other, comparator=None):
         """Compares current stream with another one based on a given comparator"""
-        return not any(
-            (comparator and not comparator(i, j)) or i != j for i, j in zip(self.iterable, other)
-        )
+        return not any((comparator and not comparator(i, j)) or i != j for i, j in zip(self.iterable, other))
 
     # ### collectors ###
     def collect(self, collection_type, dict_collector=None, dict_merger=None, joiner=None):
         """Returns a collections from the stream.
 
         In case of dict:
-        The 'dict_collector' function receives an element from the stream and returns a (key, value) pair
+        The 'dict_collector' function receives an element from the stream and returns a (key, value) pair or a DictItem
         specifying how the dict should be constructed.
 
         The 'dict_merger' functions indicates in the case of a collision (duplicate keys), which entry should be kept.
@@ -214,12 +218,8 @@ class BaseStream:
             case builtins.set:
                 return self.to_set()
             case builtins.dict:
-                # TODO: remove raising
-                # if dict_collector is None:
-                #     raise ValueError("Missing dict_collector")
                 return self.to_dict(dict_collector, dict_merger)
             case builtins.str:
-                # TODO
                 return self.to_string(joiner)
             case _:
                 raise ValueError("Invalid collection type")
@@ -239,7 +239,7 @@ class BaseStream:
     def to_dict(self, collector=None, merger=None):
         """Returns a dict of the elements of the current stream.
 
-        The 'collector' function receives an element from the stream and returns a (key, value) pair
+        The 'collector' function receives an element from the stream and returns a (key, value) pair or a DictItem
         specifying how the dict should be constructed.
 
         The 'merger' functions indicates in the case of a collision (duplicate keys), which entry should be kept.
@@ -260,12 +260,10 @@ class BaseStream:
             case tuple():
                 return item[0], item[1]
             case DictItem():
-                # TODO: let's not make unnecessary calls to property getters
+                # let's not make unnecessary calls to property getters
                 return item._key, item._value  # noqa
             case _:
-                raise UnsupportedTypeError(
-                    f"Cannot create dict items from '{item.__class__.__name__}' type"
-                )
+                raise UnsupportedTypeError(f"Cannot create dict items from '{item.__class__.__name__}' type")
 
     def group_by(self, classifier=None, collector=None):
         """Performs a "group by" operation on the elements of the stream according to a classification function.

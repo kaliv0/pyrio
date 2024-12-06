@@ -118,18 +118,12 @@ class FileStream(BaseStream):
             return content
 
     # ### writing to file ###
-    def save(
-        self, file_path=None, null_handler=None, f_open_options=None, f_write_options=None, **kwargs
-    ):
+    def save(self, file_path=None, null_handler=None, f_open_options=None, f_write_options=None, **kwargs):
         """Writes Stream to a new file (or updates an existing one) with advanced 'writing' options passed by the user"""
         path, tmp_path = self._prepare_file_paths(file_path)
         if path.suffix in {".csv", ".tsv"}:
-            return self._write_csv(
-                path, tmp_path, null_handler, f_open_options, f_write_options, **kwargs
-            )
-        return self._write_generic(
-            path, tmp_path, null_handler, f_open_options, f_write_options, **kwargs
-        )
+            return self._write_csv(path, tmp_path, null_handler, f_open_options, f_write_options, **kwargs)
+        return self._write_generic(path, tmp_path, null_handler, f_open_options, f_write_options, **kwargs)
 
     def _write_csv(
         self, path, tmp_path, null_handler=None, f_open_options=None, f_write_options=None, **kwargs
@@ -188,7 +182,6 @@ class FileStream(BaseStream):
         tmp_path = Path(TEMP_PATH.format(file_path=self.file_path))
         if tmp_path.exists():
             raise FileExistsError(f"Temporary file {tmp_path} already exists")
-            # TODO: or just delete .bak file?
         return path, tmp_path
 
     @contextmanager

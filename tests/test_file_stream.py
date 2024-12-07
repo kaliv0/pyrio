@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from pyrio import FileStream, Stream, Item
+from pyrio import FileStream, Stream, DictItem
 from pyrio.utils.exception import IllegalStateError, UnsupportedFileTypeError
 
 
@@ -54,9 +54,7 @@ def test_read_files(file_path):
 
 
 def test_read_yml():
-    assert FileStream("./tests/resources/foo.yml").map(
-        lambda x: f"{x.key}=>{x.value}"
-    ).to_tuple() == (
+    assert FileStream("./tests/resources/foo.yml").map(lambda x: f"{x.key}=>{x.value}").to_tuple() == (
         "abc=>xyz",
         "qwerty=>42",
     )
@@ -73,7 +71,7 @@ def test_read_xml_custom_root():
 
 def test_read_xml_include_root():
     assert FileStream.process("./tests/resources/custom_root.xml", include_root=True).map(
-        lambda x: f"root={x.key}: inner_records={str(x.value)}"
+        lambda x: f"root={x.key}: inner_records={str(Stream(x.value).to_dict())}"
     ).to_list() == ["root=my-root: inner_records={'abc': 'xyz', 'qwerty': '42'}"]
 
 
@@ -85,9 +83,7 @@ def test_read_xml_include_root():
     ],
 )
 def test_csv(file_path):
-    assert FileStream(file_path).map(
-        lambda x: f"fizz: {x['fizz']}, buzz: {x['buzz']}"
-    ).to_tuple() == (
+    assert FileStream(file_path).map(lambda x: f"fizz: {x['fizz']}, buzz: {x['buzz']}").to_tuple() == (
         "fizz: 42, buzz: 45",
         "fizz: aaa, buzz: bbb",
     )
@@ -95,10 +91,7 @@ def test_csv(file_path):
 
 def test_nested_json():
     assert FileStream("./tests/resources/nested.json").map(lambda x: x.value).flat_map(
-        lambda x: Stream(x)
-        .filter(lambda y: y.key == "second")
-        .flat_map(lambda z: z.value)
-        .to_tuple()
+        lambda x: Stream(x).filter(lambda y: y.key == "second").flat_map(lambda z: z.value).to_tuple()
     ).to_list() == [
         1,
         2,
@@ -135,8 +128,8 @@ def test_complex_pipeline():
     assert (
         FileStream("./tests/resources/long.json")
         .filter(lambda x: "a" in x.key)
-        .map(lambda x: Item(x.key, sum(x.value) * 10))
-        .sorted(attrgetter("value"), reverse=True)
+        .map(lambda x: DictItem(x.key, sum(x.value) * 10))
+        .sort(attrgetter("value"), reverse=True)
         .map(lambda x: f"{str(x.value)}::{x.key}")
     ).to_list() == ["230::xza", "110::abba", "30::a"]
 
@@ -183,7 +176,7 @@ def test_prepend(json_dict):
         "key=Name, value=Jennifer Smith",
         "key=Security_Number, value=7867567898",
         "key=Phone, value=555-123-4568",
-        "key=Email, value={'primary': 'jen123@gmail.com'}",
+        "key=Email, value=(DictItem(key=primary, value=jen123@gmail.com),)",
         "key=Hobbies, value=['Reading', 'Sketching', 'Horse Riding']",
         "key=Job, value=None",
         "key=a, value=[1, 2]",
@@ -213,9 +206,7 @@ def test_process(file_path):
             case _:
                 return False
 
-    assert FileStream.process(file_path, f_read_options={"parse_float": Decimal}).all_match(
-        check_type
-    )
+    assert FileStream.process(file_path, f_read_options={"parse_float": Decimal}).all_match(check_type)
 
 
 # ### save to file ###
@@ -224,12 +215,9 @@ def test_save_toml(tmp_file_dir, json_dict):
     tmp_file_path = tmp_file_dir / "test.toml"
     FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
         tmp_file_path,
-        null_handler=lambda x: Item(x.key, "Unknown") if x.value is None else x,
+        null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
     )
-    assert (
-        tmp_file_path.read_text(encoding="utf-8")
-        == open("./tests/resources/save_output/test.toml").read()
-    )
+    assert tmp_file_path.read_text(encoding="utf-8") == open("./tests/resources/save_output/test.toml").read()
 
 
 def test_save_toml_default_null_handler(tmp_file_dir, json_dict):
@@ -255,8 +243,7 @@ def test_save(tmp_file_dir, file_path, indent, json_dict):
         f_write_options={"indent": indent},
     )
     assert (
-        tmp_file_path.read_text(encoding="utf-8")
-        == open(f"./tests/resources/save_output/{file_path}").read()
+        tmp_file_path.read_text(encoding="utf-8") == open(f"./tests/resources/save_output/{file_path}").read()
     )
 
 
@@ -269,13 +256,12 @@ def test_save_handle_null(tmp_file_dir, file_path, indent, json_dict):
     tmp_file_path = tmp_file_dir / file_path
     FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
         tmp_file_path,
-        null_handler=lambda x: Item(x.key, "Unknown") if x.value is None else x,
+        null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
         f_open_options={"encoding": "utf-8"},
         f_write_options={"indent": indent},
     )
     assert (
-        tmp_file_path.read_text(encoding="utf-8")
-        == open(f"./tests/resources/save_output/{file_path}").read()
+        tmp_file_path.read_text(encoding="utf-8") == open(f"./tests/resources/save_output/{file_path}").read()
     )
 
 
@@ -287,14 +273,13 @@ def test_save_custom_xml_root(tmp_file_dir, json_dict):
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
     FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
         tmp_file_path,
-        null_handler=lambda x: Item(x.key, "Unknown") if x.value is None else x,
+        null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
         f_open_options={"encoding": "utf-8"},
         f_write_options={"indent": indent},
         xml_root="my-root",
     )
     assert (
-        tmp_file_path.read_text(encoding="utf-8")
-        == open(f"./tests/resources/save_output/{file_path}").read()
+        tmp_file_path.read_text(encoding="utf-8") == open(f"./tests/resources/save_output/{file_path}").read()
     )
 
 
@@ -303,15 +288,14 @@ def test_update_file(tmp_file_dir, json_dict):
     shutil.copyfile("./tests/resources/long.json", tmp_file_path)
     (
         FileStream(tmp_file_path)
-        .map(lambda x: Item(x.key, ", ".join((str(y) for y in x.value)) if x.value else x.value))
+        .map(lambda x: DictItem(x.key, ", ".join((str(y) for y in x.value)) if x.value else x.value))
         .save(
-            null_handler=lambda x: Item(x.key, "Unknown") if x.value is None else x,
+            null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
             f_write_options={"indent": 2},
         )
     )
     assert (
-        tmp_file_path.read_text(encoding="utf-8")
-        == open("./tests/resources/save_output/updated.json").read()
+        tmp_file_path.read_text(encoding="utf-8") == open("./tests/resources/save_output/updated.json").read()
     )
 
 
@@ -321,7 +305,7 @@ def test_filter_update_file(tmp_file_dir, json_dict):
     (
         FileStream(tmp_file_path)
         .filter(lambda x: isinstance(x.value, str))
-        .sorted(comparator=lambda x: x.key, reverse=True)
+        .reverse(comparator=lambda x: x.key)
         .save()
     )
     assert (
@@ -338,8 +322,7 @@ def test_save_csv(tmp_file_dir, file_path):
     tmp_file_path = tmp_file_dir / file_path
     FileStream("./tests/resources/bar.csv").save(tmp_file_path)
     assert (
-        tmp_file_path.read_text(encoding="utf-8")
-        == open(f"./tests/resources/save_output/{file_path}").read()
+        tmp_file_path.read_text(encoding="utf-8") == open(f"./tests/resources/save_output/{file_path}").read()
     )
 
 
@@ -366,7 +349,7 @@ def test_save_convert_to_csv(tmp_file_dir):
 
 def test_save_to_csv_with_null_handler(tmp_file_dir):
     def _null_handler(dict_obj):
-        return Stream(dict_obj).to_dict(lambda x: Item(x.key, x.value or "N/A"))
+        return Stream(dict_obj).to_dict(lambda x: DictItem(x.key, x.value or "N/A"))
 
     tmp_file_path = tmp_file_dir / "converted_null.csv"
     (
@@ -393,10 +376,7 @@ def test_save_empty_csv(tmp_file_dir):
     stream = FileStream(tmp_file_path)
     stream._iterable = tuple()
     stream.save()
-    assert (
-        tmp_file_path.read_text(encoding="utf-8")
-        == open("./tests/resources/save_output/empty.csv").read()
-    )
+    assert tmp_file_path.read_text(encoding="utf-8") == open("./tests/resources/save_output/empty.csv").read()
 
 
 def test_update_csv(tmp_file_dir):
@@ -404,12 +384,11 @@ def test_update_csv(tmp_file_dir):
     shutil.copyfile("./tests/resources/editable.csv", tmp_file_path)
     (
         FileStream(tmp_file_path)
-        .map(lambda x: (Stream(x).to_dict(lambda y: Item(y.key, y.value or "Unknown"))))
+        .map(lambda x: (Stream(x).to_dict(lambda y: DictItem(y.key, y.value or "Unknown"))))
         .save(tmp_file_path)
     )
     assert (
-        tmp_file_path.read_text(encoding="utf-8")
-        == open("./tests/resources/save_output/updated.csv").read()
+        tmp_file_path.read_text(encoding="utf-8") == open("./tests/resources/save_output/updated.csv").read()
     )
 
 
@@ -420,12 +399,8 @@ def test_update_fails(tmp_file_dir):
     tmp_file_path = tmp_file_dir / "fail.csv"
     shutil.copyfile("./tests/resources/editable.csv", tmp_file_path)
     with pytest.raises(IOError, match="Ooops Mr White..."):
-        FileStream(tmp_file_path).save(
-            tmp_file_path, null_handler=_raise(IOError("Ooops Mr White..."))
-        )
-    assert (
-        tmp_file_path.read_text(encoding="utf-8") == open("./tests/resources/editable.csv").read()
-    )
+        FileStream(tmp_file_path).save(tmp_file_path, null_handler=_raise(IOError("Ooops Mr White...")))
+    assert tmp_file_path.read_text(encoding="utf-8") == open("./tests/resources/editable.csv").read()
 
 
 def test_combine_files_into_csv(tmp_file_dir):
@@ -445,10 +420,9 @@ def test_combine_files_into_csv(tmp_file_dir):
             )
             .map(lambda x: x.value)
         )
-        .map(lambda x: (Stream(x).to_dict(lambda y: Item(y.key, y.value or "N/A"))))
+        .map(lambda x: (Stream(x).to_dict(lambda y: DictItem(y.key, y.value or "N/A"))))
         .save(tmp_file_path)
     )
     assert (
-        tmp_file_path.read_text(encoding="utf-8")
-        == open("./tests/resources/save_output/merged.csv").read()
+        tmp_file_path.read_text(encoding="utf-8") == open("./tests/resources/save_output/merged.csv").read()
     )

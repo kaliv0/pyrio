@@ -1,9 +1,8 @@
-import builtins
 from collections.abc import Mapping
 
 from pyrio.iterators.generator import Generator
 from pyrio.utils.decorator import pre_call, handle_consumed
-from pyrio.utils.dict_item import Item
+from pyrio.utils.dict_item import DictItem
 from pyrio.utils.exception import IllegalStateError, UnsupportedTypeError
 from pyrio.utils.optional import Optional
 
@@ -20,7 +19,7 @@ class BaseStream:
     @property
     def iterable(self):
         if isinstance(self._iterable, Mapping):
-            return (Item(k, v) for k, v in self._iterable.items())
+            return (DictItem(k, v) for k, v in self._iterable.items())
         return self._iterable
 
     @iterable.setter
@@ -127,10 +126,16 @@ class BaseStream:
         self.iterable = Generator.drop_while(self.iterable, predicate)
         return self
 
-    def sorted(self, comparator=None, *, reverse=False):
+    def sort(self, comparator=None, *, reverse=False):
         """Sorts the elements of the current stream according to natural order or based on the given comparator.
         If 'reverse' flag is True, the elements are sorted in descending order"""
-        self.iterable = Generator.sorted(self.iterable, comparator, reverse)
+        self.iterable = Generator.sort(self.iterable, comparator, reverse)
+        return self
+
+    def reverse(self, comparator=None):
+        """Sorts the elements of the current stream in descending order.
+        Alias for 'sort(comparator, reverse=True)'"""
+        self.iterable = Generator.sort(self.iterable, comparator, reverse=True)
         return self
 
     def find_first(self, predicate=None):
@@ -191,20 +196,23 @@ class BaseStream:
 
     def compare_with(self, other, comparator=None):
         """Compares current stream with another one based on a given comparator"""
-        return not any(
-            (comparator and not comparator(i, j)) or i != j for i, j in zip(self.iterable, other)
-        )
+        return not any((comparator and not comparator(i, j)) or i != j for i, j in zip(self.iterable, other))
 
     # ### collectors ###
-    def collect(self, collection_type, dict_collector=None, dict_merger=None):
-        """Returns a collections from the stream.
+    def collect(self, collection_type, dict_collector=None, dict_merger=None, str_delimiter=None):
+        """Returns a collection from the stream.
 
         In case of dict:
-        The 'dict_collector' function receives an element from the stream and returns a (key, value) pair
+        The 'dict_collector' function receives an element from the stream and returns a (key, value) pair or a DictItem
         specifying how the dict should be constructed.
 
         The 'dict_merger' functions indicates in the case of a collision (duplicate keys), which entry should be kept.
-        E.g. lambda old, new: new"""
+        E.g. lambda old, new: new
+
+        In case of str:
+        Concatenates the elements of the Stream, separated by the specified 'str_delimiter'.
+        If no delimiter is provided, ", " is used as the default one"""
+        import builtins
 
         match collection_type:
             case builtins.tuple:
@@ -214,9 +222,9 @@ class BaseStream:
             case builtins.set:
                 return self.to_set()
             case builtins.dict:
-                if dict_collector is None:
-                    raise ValueError("Missing dict_collector")
                 return self.to_dict(dict_collector, dict_merger)
+            case builtins.str:
+                return self.to_string(str_delimiter)
             case _:
                 raise ValueError("Invalid collection type")
 
@@ -232,16 +240,17 @@ class BaseStream:
         """Returns a set of the elements of the current stream"""
         return set(self.iterable)
 
-    def to_dict(self, collector, merger=None):
+    def to_dict(self, collector=None, merger=None):
         """Returns a dict of the elements of the current stream.
 
-        The 'collector' function receives an element from the stream and returns a (key, value) pair
+        The 'collector' function receives an element from the stream and returns a (key, value) pair or a DictItem
         specifying how the dict should be constructed.
 
         The 'merger' functions indicates in the case of a collision (duplicate keys), which entry should be kept.
         E.g. lambda old, new: new"""
         result = {}
-        for item in (collector(i) for i in self.iterable):
+        source = (collector(i) for i in self.iterable) if collector else self.iterable
+        for item in source:
             k, v = self._unpack_dict_item(item)
             if k in result:
                 if merger is None:
@@ -250,17 +259,25 @@ class BaseStream:
             result[k] = v
         return result
 
-    # @staticmethod
     def _unpack_dict_item(self, item):  # noqa
         match item:
             case tuple():
                 return item[0], item[1]
-            case Item():
-                return item.key, item.value
+            case DictItem():
+                # let's not make unnecessary calls to property getters
+                return item._key, item._value  # noqa
             case _:
-                raise UnsupportedTypeError(
-                    f"Cannot create dict items from '{item.__class__.__name__}' type"
-                )
+                raise UnsupportedTypeError(f"Cannot create dict items from '{item.__class__.__name__}' type")
+
+    def to_string(self, delimiter=None):
+        """Concatenates the elements of the Stream, separated by the specified delimiter.
+        If no delimiter is provided, ", " is used as the default one"""
+        return self._join(delimiter)
+
+    def _join(self, delimiter=None):
+        if delimiter is None:
+            delimiter = ", "
+        return f"{self.__class__.__name__}({delimiter.join(str(i) for i in self.iterable)})"
 
     def group_by(self, classifier=None, collector=None):
         """Performs a "group by" operation on the elements of the stream according to a classification function.
@@ -312,3 +329,7 @@ class BaseStream:
     def quantify(self, predicate=bool):
         """Count how many of the elements are Truthy or evaluate to True based on a given predicate"""
         return sum(self.map(predicate))
+
+    # ### let's look nice ###
+    def __repr__(self):
+        return self._join()

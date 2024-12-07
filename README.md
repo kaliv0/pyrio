@@ -173,17 +173,42 @@ Stream.of(1, 2, 3, 5, 6, 7, 2).drop_while(lambda x: x < 5).to_list()
 [5, 6, 7, 2]
 ```
 
-- sorted
+- sort
 <br>(sorts the elements of the current stream according to natural order or based on the given comparator;
 <br>if 'reverse' flag is True, the elements are sorted in descending order)
 ```python
 (Stream.of((3, 30), (2, 30), (2, 20), (1, 20), (1, 10))
-    .sorted(lambda x: (x[0], x[1]), reverse=True)
+    .sort(lambda x: (x[0], x[1]), reverse=True)
     .to_list())
 ```
 ```shell
 [(3, 30), (2, 30), (2, 20), (1, 20), (1, 10)]
 ```
+
+- reverse
+<br>(sorts the elements of the current stream in reverse order;
+<br>alias for <i>'sort(collector, reverse=True)'</i>)
+```python
+(Stream.of((3, 30), (2, 30), (2, 20), (1, 20), (1, 10))
+    .reverse(lambda x: (x[0], x[1]))
+    .to_list())
+```
+```shell
+[(3, 30), (2, 30), (2, 20), (1, 20), (1, 10)]
+```
+
+<br>NB: in case of Stream of dicts all key-value pairs are represented internally as <i>DictItem</i> objects 
+<br>(including recursively for nested Mapping structures)
+<br>to provide more convenient intermediate operations syntax e.g.
+```python
+first_dict = {"a": 1, "b": 2}
+second_dict = {"x": 3, "y": 4}
+(Stream(first_dict).concat(second_dict)
+    .filter(lambda x: x.value % 2 == 0)
+    .map(lambda x: x.key)
+    .to_list()) 
+```
+
 --------------------------------------------
 ### Terminal operations
 #### Collectors
@@ -216,18 +241,33 @@ Stream(collection).to_dict(collector=lambda x: (x.name, x.num), merger=lambda ol
 {"fizz": 1, "buzz": 2}
 ```
 
-<i>to_dict</i> method also supports creating dictionaries from dict Item objects
-```shell
+<i>to_dict</i> method also supports creating dictionaries from dict DictItem objects
+```python
 first_dict = {"x": 1, "y": 2}
 second_dict = {"p": 33, "q": 44, "r": None}
-Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: Item(x.key, x.value or 0)) 
+Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: DictItem(x.key, x.value or 0)) 
 ```
 ```shell
 {"x": 1, "y": 2, "p": 33, "q": 44, "r": 0}
 ```
 e.g. you could combine streams of dicts by writing:
+```python
+Stream(first_dict).concat(Stream(second_dict)).to_dict() 
+```
+(simplified from <i>'.to_dict(lambda x: x)'</i>)
+
+- into string
+```python
+Stream({"a": 1, "b": [2, 3]}).to_string()
+```
 ```shell
-Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: x) 
+"Stream(DictItem(key=a, value=1), DictItem(key=b, value=[2, 3]))"
+```
+```python
+Stream({"a": 1, "b": [2, 3]}).map(lambda x: {x.key: x.value}).to_string(delimiter=" | ")
+```
+```shell
+"Stream({'a': 1} | {'b': [2, 3]})"
 ```
 
 - alternative for working with collectors is using the <i>collect</i> method
@@ -355,7 +395,7 @@ Stream(["ABC", "D", "EF"]).round_robin().to_list()
 ### FileStreams
 #### Querying files
 - working with <i>json</i>, <i>toml</i>, <i>yaml</i>, <i>xml</i> files
-<br>NB: FileStream reads data as series of Item objects from underlying dict_items view
+<br>NB: FileStream reads data as series of DictItem objects from underlying dict_items view
 ```python
 FileStream("path/to/file").map(lambda x: f"{x.key}=>{x.value}").to_tuple()
 ```
@@ -367,12 +407,12 @@ FileStream("path/to/file").map(lambda x: f"{x.key}=>{x.value}").to_tuple()
 ```
 ```python
 from operator import attrgetter
-from pyrio import Item
+from pyrio import DictItem
 
 (FileStream("path/to/file")
     .filter(lambda x: "a" in x.key)
-    .map(lambda x: Item(x.key, sum(x.value) * 10))
-    .sorted(attrgetter("value"), reverse=True)
+    .map(lambda x: DictItem(x.key, sum(x.value) * 10))
+    .sort(attrgetter("value"), reverse=True)
     .map(lambda x: f"{str(x.value)}::{x.key}")
     .to_list()) 
 ```
@@ -401,7 +441,7 @@ FileStream("path/to/file").map(itemgetter('fizz', 'buzz')).to_tuple()
 You could query the nested dicts by creating streams out of them
 ```python
 (FileStream("path/to/file")
-    .map(lambda x: (Stream(x).to_dict(lambda y: Item(y.key, y.value or "Unknown"))))
+    .map(lambda x: (Stream(x).to_dict(lambda y: DictItem(y.key, y.value or "Unknown"))))
     .save())
 ```
 - reading a file with <i>process()</i> method
@@ -443,7 +483,7 @@ NB: if while updating the file something goes wrong, the original content will b
 - handle null values
 <br>(pass <i>null_handler</i> function to replace null values)
 ```python
-FileStream("path/to/test.toml").save(null_handler=lambda x: Item(x.key, x.value or "N/A"))
+FileStream("path/to/test.toml").save(null_handler=lambda x: DictItem(x.key, x.value or "N/A"))
 ```
 NB: useful for writing <i>.toml</i> files which don't allow None values
 - passing advanced <i>file open</i> and <i>write</i> options
@@ -483,7 +523,7 @@ FileStream("path/to/file.json").concat(in_memory_dict).save(
         )
         .map(lambda x: x.value)
     )
-    .map(lambda x: (Stream(x).to_dict(lambda y: Item(y.key, y.value or "N/A"))))
+    .map(lambda x: (Stream(x).to_dict(lambda y: DictItem(y.key, y.value or "N/A"))))
     .save("path/to/third/file.tsv")
 )
 ```

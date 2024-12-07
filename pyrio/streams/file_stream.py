@@ -2,8 +2,9 @@ import importlib
 from contextlib import contextmanager
 from pathlib import Path
 
-from pyrio.utils.dict_item import Item
+from pyrio.utils.dict_item import DictItem
 from pyrio.streams.base_stream import BaseStream
+from pyrio.streams.stream import Stream
 from pyrio.utils.exception import UnsupportedFileTypeError
 
 
@@ -36,7 +37,7 @@ GENERIC_WRITE_CONFIG = {
         "import_mod": "tomli_w",
         "callable": "dump",
         "write_mode": "wb",
-        "default_null_handler": lambda x: Item(x.key, "N/A") if x.value is None else x,
+        "default_null_handler": lambda x: DictItem(x.key, "N/A") if x.value is None else x,
     },
     ".json": {
         "import_mod": "json",
@@ -112,23 +113,17 @@ class FileStream(BaseStream):
             if suffix == ".xml":
                 if kwargs.get("include_root", None):
                     return content
-                # NB: return dict (instead of dict_view) to re-map it later as Item records
+                # NB: return dict (instead of dict_view) to re-map it later as DictItem records
                 return next(iter(content.values()))
             return content
 
     # ### writing to file ###
-    def save(
-        self, file_path=None, null_handler=None, f_open_options=None, f_write_options=None, **kwargs
-    ):
+    def save(self, file_path=None, null_handler=None, f_open_options=None, f_write_options=None, **kwargs):
         """Writes Stream to a new file (or updates an existing one) with advanced 'writing' options passed by the user"""
         path, tmp_path = self._prepare_file_paths(file_path)
         if path.suffix in {".csv", ".tsv"}:
-            return self._write_csv(
-                path, tmp_path, null_handler, f_open_options, f_write_options, **kwargs
-            )
-        return self._write_generic(
-            path, tmp_path, null_handler, f_open_options, f_write_options, **kwargs
-        )
+            return self._write_csv(path, tmp_path, null_handler, f_open_options, f_write_options, **kwargs)
+        return self._write_generic(path, tmp_path, null_handler, f_open_options, f_write_options, **kwargs)
 
     def _write_csv(
         self, path, tmp_path, null_handler=None, f_open_options=None, f_write_options=None, **kwargs
@@ -137,7 +132,7 @@ class FileStream(BaseStream):
 
         if null_handler:
             self.map(null_handler)
-        output = self.to_tuple()
+        output = self.map(lambda x: Stream(x).to_dict()).to_list()
 
         if f_write_options is None:
             f_write_options = {}
@@ -158,7 +153,7 @@ class FileStream(BaseStream):
         if existing_null_handler := null_handler or config["default_null_handler"]:
             self.map(existing_null_handler)
 
-        output = self.to_dict(lambda x: (x.key, x.value))
+        output = self.to_dict()
         if suffix == ".xml":
             root = kwargs.get("xml_root", "root")
             output = {root: output}

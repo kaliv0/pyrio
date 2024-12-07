@@ -6,8 +6,8 @@
 
 # -- Project information -----------------------------------------------------
 
-project = u"pyrio"
-author = u"kaliv0"
+project = "pyrio"
+author = "kaliv0"
 
 # -- General configuration ---------------------------------------------------
 

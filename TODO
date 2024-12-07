@@ -1,9 +1,0 @@
-- add to readme's simplified to_dict() without (lambda x: x)
-- add description for using nested DictItems
-- add descr for to_string with joiner
-    -> also add to collect(str) -> terminal collectors
-
-- add all descriptions in README and docs
-- check version
-
-- add docstr to all Classes (Stream, Optional, DictItem) + type_hints?

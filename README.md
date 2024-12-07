@@ -196,6 +196,19 @@ Stream.of(1, 2, 3, 5, 6, 7, 2).drop_while(lambda x: x < 5).to_list()
 ```shell
 [(3, 30), (2, 30), (2, 20), (1, 20), (1, 10)]
 ```
+
+<br>NB: in case of Stream of dicts all key-value pairs are represented internally as <i>DictItem</i> objects 
+<br>(including recursively for nested Mapping structures)
+<br>to provide more convenient intermediate operations syntax e.g.
+```python
+first_dict = {"a": 1, "b": 2}
+second_dict = {"x": 3, "y": 4}
+(Stream(first_dict).concat(second_dict)
+    .filter(lambda x: x.value % 2 == 0)
+    .map(lambda x: x.key)
+    .to_list()) 
+```
+
 --------------------------------------------
 ### Terminal operations
 #### Collectors
@@ -229,7 +242,7 @@ Stream(collection).to_dict(collector=lambda x: (x.name, x.num), merger=lambda ol
 ```
 
 <i>to_dict</i> method also supports creating dictionaries from dict DictItem objects
-```shell
+```python
 first_dict = {"x": 1, "y": 2}
 second_dict = {"p": 33, "q": 44, "r": None}
 Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: DictItem(x.key, x.value or 0)) 
@@ -238,10 +251,24 @@ Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: DictItem(x.key,
 {"x": 1, "y": 2, "p": 33, "q": 44, "r": 0}
 ```
 e.g. you could combine streams of dicts by writing:
-```shell
+```python
 Stream(first_dict).concat(Stream(second_dict)).to_dict() 
 ```
 (simplified from <i>'.to_dict(lambda x: x)'</i>)
+
+- into string
+```python
+Stream({"a": 1, "b": [2, 3]}).to_string()
+```
+```shell
+"Stream(DictItem(key=a, value=1), DictItem(key=b, value=[2, 3]))"
+```
+```python
+Stream({"a": 1, "b": [2, 3]}).map(lambda x: {x.key: x.value}).to_string(delimiter=" | ")
+```
+```shell
+"Stream({'a': 1} | {'b': [2, 3]})"
+```
 
 - alternative for working with collectors is using the <i>collect</i> method
 ```python

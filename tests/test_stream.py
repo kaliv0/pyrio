@@ -656,7 +656,7 @@ def test_collect():
         "4": 40,
     }
     assert Stream([1, 2, 3, 4, 5]).collect(str) == "Stream(1, 2, 3, 4, 5)"
-    assert Stream([1, 2, 3, 4, 5]).collect(str, joiner=" | ") == "Stream(1 | 2 | 3 | 4 | 5)"
+    assert Stream([1, 2, 3, 4, 5]).collect(str, str_delimiter=" | ") == "Stream(1 | 2 | 3 | 4 | 5)"
 
 
 def test_to_dict_no_collector(Foo):
@@ -736,7 +736,7 @@ def test_to_string(nested_json):
         == "Stream(DictItem(key=a, value=1), DictItem(key=b, value=[2, 3]))"
     )
     assert (
-        Stream({"a": 1, "b": [2, 3]}).map(lambda x: {x.key: x.value}).to_string(joiner=" | ")
+        Stream({"a": 1, "b": [2, 3]}).map(lambda x: {x.key: x.value}).to_string(delimiter=" | ")
         == "Stream({'a': 1} | {'b': [2, 3]})"
     )
     assert (
@@ -751,7 +751,7 @@ def test_to_string(nested_json):
     )
 
 
-# ### ###
+# ### nested streams ###
 def test_nested_json_from_string(nested_json):
     assert (
         Stream(json.loads(nested_json))

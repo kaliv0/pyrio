@@ -199,15 +199,19 @@ class BaseStream:
         return not any((comparator and not comparator(i, j)) or i != j for i, j in zip(self.iterable, other))
 
     # ### collectors ###
-    def collect(self, collection_type, dict_collector=None, dict_merger=None, joiner=None):
-        """Returns a collections from the stream.
+    def collect(self, collection_type, dict_collector=None, dict_merger=None, str_delimiter=None):
+        """Returns a collection from the stream.
 
         In case of dict:
         The 'dict_collector' function receives an element from the stream and returns a (key, value) pair or a DictItem
         specifying how the dict should be constructed.
 
         The 'dict_merger' functions indicates in the case of a collision (duplicate keys), which entry should be kept.
-        E.g. lambda old, new: new"""
+        E.g. lambda old, new: new
+
+        In case of str:
+        Concatenates the elements of the Stream, separated by the specified 'str_delimiter'.
+        If no delimiter is provided, ", " is used as the default one"""
         import builtins
 
         match collection_type:
@@ -220,7 +224,7 @@ class BaseStream:
             case builtins.dict:
                 return self.to_dict(dict_collector, dict_merger)
             case builtins.str:
-                return self.to_string(joiner)
+                return self.to_string(str_delimiter)
             case _:
                 raise ValueError("Invalid collection type")
 
@@ -264,6 +268,16 @@ class BaseStream:
                 return item._key, item._value  # noqa
             case _:
                 raise UnsupportedTypeError(f"Cannot create dict items from '{item.__class__.__name__}' type")
+
+    def to_string(self, delimiter=None):
+        """Concatenates the elements of the Stream, separated by the specified delimiter.
+        If no delimiter is provided, ", " is used as the default one"""
+        return self._join(delimiter)
+
+    def _join(self, delimiter=None):
+        if delimiter is None:
+            delimiter = ", "
+        return f"{self.__class__.__name__}({delimiter.join(str(i) for i in self.iterable)})"
 
     def group_by(self, classifier=None, collector=None):
         """Performs a "group by" operation on the elements of the stream according to a classification function.
@@ -317,13 +331,5 @@ class BaseStream:
         return sum(self.map(predicate))
 
     # ### let's look nice ###
-    def to_string(self, joiner=None):
-        return self._join(joiner)
-
-    def _join(self, joiner=None):
-        if joiner is None:
-            joiner = ", "
-        return f"{self.__class__.__name__}({joiner.join(str(i) for i in self.iterable)})"
-
     def __repr__(self):
         return self._join()

@@ -197,7 +197,7 @@ Stream.of(1, 2, 3, 5, 6, 7, 2).drop_while(lambda x: x < 5).to_list()
 [(3, 30), (2, 30), (2, 20), (1, 20), (1, 10)]
 ```
 
-<br>NB: in case of Stream of dicts all key-value pairs are represented internally as <i>DictItem</i> objects 
+<br>NB: in case of stream of dicts all key-value pairs are represented internally as <i>DictItem</i> objects 
 <br>(including recursively for nested Mapping structures)
 <br>to provide more convenient intermediate operations syntax e.g.
 ```python

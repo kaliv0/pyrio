@@ -9,6 +9,7 @@ from pyrio.utils.optional import Optional
 
 @pre_call(handle_consumed)
 class BaseStream:
+    """Base class for Stream objects; describes core supported operations"""
     def __init__(self, iterable):
         self._iterable = iterable
         self._is_consumed = False

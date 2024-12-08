@@ -1,4 +1,5 @@
 class DictItem:
+    """Helper record class for mapping key-value pairs"""
     def __init__(self, key, value):
         self._key = key
         self._value = value

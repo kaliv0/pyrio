@@ -6,6 +6,7 @@ from pyrio.utils.decorator import pre_call, handle_consumed
 
 @pre_call(handle_consumed)
 class Stream(BaseStream, ItertoolsMixin):
+    """Abstraction over a sequence of elements supporting sequential aggregate operations"""
     @classmethod
     def of(cls, *iterable):
         """Creates Stream from args"""

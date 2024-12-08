@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyrio"
-version = "1.3.3"
+version = "1.3.4"
 authors = ["kaliv0 <kaloyan.ivanov88@gmail.com>"]
 readme = "README.md"
 description = "Functional-style Streams library for processing collections. Supports querying files (json, toml, yaml, xml, csv, tsv) - as well as creating and updating them. Provides easy integration with itertools"

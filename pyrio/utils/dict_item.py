@@ -1,5 +1,6 @@
 class DictItem:
     """Helper record class for mapping key-value pairs"""
+
     def __init__(self, key, value):
         self._key = key
         self._value = value
@@ -18,9 +19,13 @@ class DictItem:
         return val
 
     def __repr__(self):
-        return f"DictItem(key={self.key}, value={self.value})"
+        key = f"{self.key}" if isinstance(self.key, str) else self.key
+        value = f"{self.value}" if isinstance(self.value, str) else self.value
+        return f"DictItem({key=}, {value=})"
 
     def __eq__(self, other):
+        if not isinstance(other, DictItem):
+            raise TypeError(f"{other} is not a DictItem")
         return self._key == other._key and self._value == other._value  # noqa
 
     def __hash__(self):

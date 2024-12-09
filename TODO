@@ -1,0 +1,6 @@
+- take_first/last -> add to README and docs
+- add Result pattern -> research how to integrate inside pipeline?
+- add on_close() method to streams -> see Java?
+- split bigger tests with multiple asserts;
+    add tests for DictItem
+- if typehints are added  -> use return annotation to determine which Stream methods are terminal -> not returning self

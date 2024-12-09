@@ -62,6 +62,7 @@ GENERIC_WRITE_CONFIG = {
 
 class FileStream(BaseStream):
     """Derived Stream class for querying files; maps file content to im-memory dict structures and vice versa"""
+
     # NB: Dirty deeds for a nice-looking API
     def __init__(self, file_path):  # noqa
         """Creates Stream from a file"""

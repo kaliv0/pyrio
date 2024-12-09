@@ -10,6 +10,7 @@ from pyrio.utils.optional import Optional
 @pre_call(handle_consumed)
 class BaseStream:
     """Base class for Stream objects; describes core supported operations"""
+
     def __init__(self, iterable):
         self._iterable = iterable
         self._is_consumed = False
@@ -126,6 +127,17 @@ class BaseStream:
         """Returns a stream that skips elements based on a predicate and yields the remaining ones"""
         self.iterable = Generator.drop_while(self.iterable, predicate)
         return self
+
+    def take_first(self, default=None):
+        """Returns Optional with the first element of the stream or a default value"""
+        return Optional.of_nullable(next(iter(self.iterable), default))
+
+    def take_last(self, default=None):
+        """Returns Optional with the last element of the stream or a default value"""
+        if self.iterable:
+            *_, last = self.iterable
+            return Optional.of_nullable(last)
+        return Optional.of_nullable(default)
 
     def sort(self, comparator=None, *, reverse=False):
         """Sorts the elements of the current stream according to natural order or based on the given comparator.

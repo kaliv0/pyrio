@@ -176,7 +176,7 @@ def test_prepend(json_dict):
         "key=Name, value=Jennifer Smith",
         "key=Security_Number, value=7867567898",
         "key=Phone, value=555-123-4568",
-        "key=Email, value=(DictItem(key=primary, value=jen123@gmail.com),)",
+        "key=Email, value=(DictItem(key='primary', value='jen123@gmail.com'),)",
         "key=Hobbies, value=['Reading', 'Sketching', 'Horse Riding']",
         "key=Job, value=None",
         "key=a, value=[1, 2]",

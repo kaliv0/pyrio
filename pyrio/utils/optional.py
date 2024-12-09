@@ -3,6 +3,7 @@ from pyrio.utils.exception import NoSuchElementError, NullPointerError
 
 class Optional:
     """A container object which may (or may not) contain a non-null value"""
+
     def __init__(self, element):
         self._element = element
 

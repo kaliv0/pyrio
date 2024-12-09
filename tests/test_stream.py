@@ -355,12 +355,32 @@ def test_drop_while_no_elements():
     ).to_list() == ["adam", "aman", "ahmad", "hamid", "muhammad", "aladdin"]
 
 
+def test_take_first():
+    assert Stream.of(1, 2, 3, 4, 5).take_first().get() == 1
+    assert Stream({"a": 1, "b": 2}).take_first().get() == DictItem(key="a", value=1)
+
+    assert Stream.empty().take_first().is_empty()
+    assert Stream([]).take_first().is_empty()
+
+    assert Stream([]).take_first(default=33).get() == 33
+
+
+def test_take_last():
+    assert Stream.of(1, 2, 3, 4, 5).take_last().get() == 5
+    assert Stream({"a": 1, "b": 2}).take_last().get() == DictItem(key="b", value=2)
+
+    assert Stream.empty().take_last().is_empty()
+    assert Stream([]).take_last().is_empty()
+
+    assert Stream([]).take_last(default=33).get() == 33
+
+
 # ### sort ###
-def test_sorted():
+def test_sort():
     assert Stream.of(3, 5, 2, 1).map(lambda x: x * 10).sort().to_list() == [10, 20, 30, 50]
 
 
-def test_sorted_reverse():
+def test_sort_reverse():
     assert Stream.of(3, 5, 2, 1).map(lambda x: x * 10).sort(reverse=True).to_list() == [
         50,
         30,
@@ -369,7 +389,7 @@ def test_sorted_reverse():
     ]
 
 
-def test_sorted_comparator_function():
+def test_sort_comparator_function():
     assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sort(itemgetter(1)).to_list() == [
         ("1", 10),
         ("2", 20),
@@ -378,7 +398,7 @@ def test_sorted_comparator_function():
     ]
 
 
-def test_sorted_multiple_keys():
+def test_sort_multiple_keys():
     assert Stream.of((3, 30), (2, 30), (2, 20), (1, 20), (1, 10)).sort(lambda x: (x[0], x[1])).to_list() == [
         (1, 10),
         (1, 20),
@@ -388,7 +408,7 @@ def test_sorted_multiple_keys():
     ]
 
 
-def test_sorted_comparator_and_reverse():
+def test_sort_comparator_and_reverse():
     assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sort(
         itemgetter(1), reverse=True
     ).to_list() == [
@@ -733,7 +753,7 @@ def test_group_by_objects(Foo):
 def test_to_string(nested_json):
     assert (
         Stream({"a": 1, "b": [2, 3]}).to_string()
-        == "Stream(DictItem(key=a, value=1), DictItem(key=b, value=[2, 3]))"
+        == "Stream(DictItem(key='a', value=1), DictItem(key='b', value=[2, 3]))"
     )
     assert (
         Stream({"a": 1, "b": [2, 3]}).map(lambda x: {x.key: x.value}).to_string(delimiter=" | ")
@@ -744,9 +764,9 @@ def test_to_string(nested_json):
         == Stream(json.loads(nested_json)).to_string()
         == str(Stream(json.loads(nested_json)))
         == (
-            "Stream(DictItem(key=user, value=(DictItem(key=Name, value=John), DictItem(key=Phone, value=555-123-4568), DictItem(key=Security Number, value=3450678))), "
-            "DictItem(key=super_user, value=(DictItem(key=Name, value=sudo), DictItem(key=Email, value=admin@sudo.su), DictItem(key=Some Other Number, value=000-0011))), "
-            "DictItem(key=fraud, value=(DictItem(key=Name, value=Freud), DictItem(key=Email, value=ziggy@psycho.au))))"
+            "Stream(DictItem(key='user', value=(DictItem(key='Name', value='John'), DictItem(key='Phone', value='555-123-4568'), DictItem(key='Security Number', value='3450678'))), "
+            "DictItem(key='super_user', value=(DictItem(key='Name', value='sudo'), DictItem(key='Email', value='admin@sudo.su'), DictItem(key='Some Other Number', value='000-0011'))), "
+            "DictItem(key='fraud', value=(DictItem(key='Name', value='Freud'), DictItem(key='Email', value='ziggy@psycho.au'))))"
         )
     )
 

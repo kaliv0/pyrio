@@ -416,7 +416,7 @@ def test_combine_files_into_csv(tmp_file_dir):
                     .find_first(lambda y: y.key == "name" and y.value != "Snake")
                     .or_else_get(lambda: None)
                 )
-                is not None
+                is not None  # explicit is better than implicit
             )
             .map(lambda x: x.value)
         )

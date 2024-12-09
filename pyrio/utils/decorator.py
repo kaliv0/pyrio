@@ -30,6 +30,7 @@ TERMINAL_FUNCTIONS = [
     "to_dict",
     "to_string",
     "save",
+    # "close"  # TODO: only used manually, no reason to be here
 ]
 
 
@@ -48,16 +49,19 @@ def handle_consumed(func):
     def wrapper(*args, **kw):
         from pyrio.streams.base_stream import BaseStream
 
-        if not args or not isinstance(args[0], BaseStream):
+        stream = args[0] if args else None
+        if not (stream and isinstance(stream, BaseStream)):
             return func(*args, **kw)
 
-        is_consumed = getattr(args[0], "_is_consumed", None)
+        is_consumed = getattr(stream, "_is_consumed", None)
         if is_consumed:
             raise IllegalStateError("Stream object already consumed")
 
         result = func(*args, **kw)
         if is_consumed is False and func.__name__ in TERMINAL_FUNCTIONS:
-            args[0]._is_consumed = True  # noqa
+            stream._is_consumed = True
+            if stream._on_close_handler:
+                stream._on_close_handler()
         return result
 
     return wrapper

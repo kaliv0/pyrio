@@ -74,11 +74,11 @@ def test_map_dict():
 
 
 def test_filter_map():
-    assert Stream.of(None, "foo", "bar").filter_map(str.upper).to_list() == ["FOO", "BAR"]
+    assert Stream.of(None, "foo", "", "bar").filter_map(str.upper).to_list() == ["FOO", "", "BAR"]
 
 
-def test_filter_map_falsy():
-    assert Stream.of(None, "foo", "", "bar", 0, []).filter_map(str.upper, falsy=True).to_list() == [
+def test_filter_map_discard_falsy():
+    assert Stream.of(None, "foo", "", "bar", 0, []).filter_map(str.upper, discard_falsy=True).to_list() == [
         "FOO",
         "BAR",
     ]
@@ -456,6 +456,28 @@ def test_reusing_stream():
     with pytest.raises(IllegalStateError) as e:
         stream.map(lambda x: x * 10).to_list()
     assert str(e.value) == "Stream object already consumed"
+
+
+def test_stream_close():
+    stream = Stream.of(1, 2, 3)
+    assert stream._is_consumed is False
+
+    stream.close()
+    assert stream._is_consumed
+
+
+def test_stream_on_close_callback():
+    f = io.StringIO()
+    with redirect_stdout(f):
+        result = (
+            Stream([1, 2, 3, 4])
+            .on_close(lambda: print("It was an honor", end=""))
+            .peek(lambda x: print(f"{'#' * x} ", end=""))
+            .map(lambda x: x * 2)
+            .to_list()
+        )
+    assert result == [2, 4, 6, 8]
+    assert f.getvalue() == "# ## ### #### It was an honor"
 
 
 def test_compare_with():

@@ -80,9 +80,9 @@ Stream([1, 2, 3]).map(lambda x: x + 5).to_list()
 ```
 
 - filter_map
-<br>(filter out all None or falsy values (if falsy=True) and applies mapper function to the elements of the stream)
+<br>(filter out all None or discard_falsy values (if discard_falsy=True) and applies mapper function to the elements of the stream)
 ```python
-Stream.of(None, "foo", "", "bar", 0, []).filter_map(str.upper, falsy=True).to_list()
+Stream.of(None, "foo", "", "bar", 0, []).filter_map(str.upper, discard_falsy=True).to_list()
 ```
 ```shell
 ["FOO", "BAR"]

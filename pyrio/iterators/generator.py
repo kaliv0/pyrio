@@ -22,9 +22,9 @@ class Generator:
             yield mapper(i)
 
     @staticmethod
-    def filter_map(iterable, mapper, falsy=False):
+    def filter_map(iterable, mapper, discard_falsy=False):
         for i in iterable:
-            if (not falsy and i is not None) or (falsy and i):
+            if (not discard_falsy and i is not None) or (discard_falsy and i):
                 yield mapper(i)
 
     @staticmethod

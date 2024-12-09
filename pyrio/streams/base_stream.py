@@ -14,6 +14,7 @@ class BaseStream:
     def __init__(self, iterable):
         self._iterable = iterable
         self._is_consumed = False
+        self._on_close_handler = None
 
     def __iter__(self):
         return iter(self.iterable)
@@ -53,9 +54,9 @@ class BaseStream:
         self.iterable = Generator.map(self.iterable, mapper)
         return self
 
-    def filter_map(self, mapper, *, falsy=False):
+    def filter_map(self, mapper, *, discard_falsy=False):
         """Filters out all None or falsy values and applies mapper function to the elements of the stream"""
-        self.iterable = Generator.filter_map(self.iterable, mapper, falsy)
+        self.iterable = Generator.filter_map(self.iterable, mapper, discard_falsy)
         return self
 
     def flat_map(self, mapper):
@@ -342,6 +343,17 @@ class BaseStream:
     def quantify(self, predicate=bool):
         """Count how many of the elements are Truthy or evaluate to True based on a given predicate"""
         return sum(self.map(predicate))
+
+    def close(self):
+        """Closes this stream, causing all close handlers for this stream pipeline to be called"""
+        self._is_consumed = True
+        if self._on_close_handler:
+            self._on_close_handler(self)
+
+    def on_close(self, handler):
+        """Returns an equivalent stream with an additional close handler"""
+        self._on_close_handler = handler
+        return self
 
     # ### let's look nice ###
     def __repr__(self):

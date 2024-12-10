@@ -1,19 +1,14 @@
 add methods:
 - map_multi
-- or_else_raise
 - Result pattern -> research how to integrate inside pipeline?
 - range -> for numbers (move to separate int_stream?)
     -> could it work for chars e.g. alphabet?
-- average
 - summary_statistics -> see java
 - FileStream for regular text files -> read lines into iterable of strings
-- iterate -> with predicate
 - gatherers ??
 
 - introduce Int/FloatStream?
-
 - rename sort() back to sorted() ??
-
 - split bigger tests with multiple asserts;
     add tests for DictItem
 
@@ -21,6 +16,9 @@ add methods:
     - take_first/last
     - close, on_close
     - collect(str), to_string, repr -> update
+    - average
+    - iterate -> with predicate -> update
+    - or_else_raise? -> part ot Optional API
 
 - if typehints are added  -> use return annotation to determine
     which Stream methods are terminating -> not returning self

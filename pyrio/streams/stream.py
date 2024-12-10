@@ -14,9 +14,9 @@ class Stream(BaseStream, ItertoolsMixin):
         return cls(iterable)
 
     @classmethod
-    def iterate(cls, seed, operation):
+    def iterate(cls, seed, operation, condition=None):
         """Creates infinite ordered Stream"""
-        return cls(Generator.iterate(seed, operation))
+        return cls(Generator.iterate(seed, operation, condition))
 
     @classmethod
     def generate(cls, supplier):

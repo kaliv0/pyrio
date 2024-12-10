@@ -70,3 +70,21 @@ def test_or_else():
 def test_or_else_get(Foo):
     foo = Foo(name="Foo", num=43)
     assert Optional.empty().or_else_get(supplier=lambda: foo) is foo
+
+
+def test_or_else_raise(Foo):
+    with pytest.raises(NoSuchElementError) as e:
+        Optional.empty().or_else_raise()
+    assert str(e.value) == "Optional is empty"
+
+
+def test_or_else_raise_custom_supplier(Foo):
+    class DamnItError(Exception):
+        pass
+
+    def damn_it_supplier():
+        raise DamnItError("Yo Mr. White...!")
+
+    with pytest.raises(DamnItError) as e:
+        Optional.empty().or_else_raise(damn_it_supplier)
+    assert str(e.value) == "Yo Mr. White...!"

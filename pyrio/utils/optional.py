@@ -62,3 +62,14 @@ class Optional:
         """Returns the value if present, or calls a 'supplier' function otherwise.
         Safe alternative to get() method."""
         return self._element if self.is_present() else supplier()
+
+    def or_else_raise(self, supplier=None):
+        """Returns the value if present,
+        otherwise throws an exception produced by the exception supplying function
+        (if such is provided by the user) or NoSuchElementException"""
+        if supplier is None:
+
+            def supplier():
+                raise NoSuchElementError("Optional is empty")
+
+        return self._element if self.is_present() else supplier()

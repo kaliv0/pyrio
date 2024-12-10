@@ -47,8 +47,11 @@ class Generator:
             yield i
 
     @staticmethod
-    def iterate(seed, operation):
-        while True:
+    def iterate(seed, operation, condition=None):
+        # TODO: refactor?
+        if condition is None:
+            condition = lambda _: True  # noqa
+        while condition(seed):
             yield seed
             seed = operation(seed)
 

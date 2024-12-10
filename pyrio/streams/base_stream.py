@@ -91,6 +91,12 @@ class BaseStream:
             raise ValueError("Cannot apply sum on non-number elements")
         return sum(self.iterable)
 
+    def average(self):
+        # TODO: add docstr
+        if (stream_len := len(self.iterable)) == 0:
+            return 0
+        return self.sum() / stream_len
+
     def skip(self, count):
         """Discards the first n elements of the stream and returns a new stream with the remaining ones"""
         if count < 0:

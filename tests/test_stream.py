@@ -29,6 +29,11 @@ def test_iterate_skip():
     assert Stream.iterate(0, lambda x: x + 1).skip(5).limit(5).to_list() == [5, 6, 7, 8, 9]
 
 
+def test_iterate_with_predicate():
+    assert Stream.iterate(0, lambda x: x + 1, lambda x: x < 5).to_list() == [0, 1, 2, 3, 4]
+    assert Stream.iterate(0, lambda x: x + 1, lambda x: x < 0).to_list() == []
+
+
 def test_generate():
     assert Stream.generate(lambda: 42).limit(3).to_list() == [42, 42, 42]
 
@@ -319,12 +324,27 @@ def test_sum():
 
 def test_sum_empty_collection():
     assert Stream([]).sum() == 0
-    assert Stream.empty().count() == 0
+    assert Stream.empty().sum() == 0
 
 
 def test_sum_non_number_elements():
     with pytest.raises(ValueError) as e:
         Stream.of("a", "b").sum()
+    assert str(e.value) == "Cannot apply sum on non-number elements"
+
+
+def test_average():
+    assert Stream.of(1, 2, 3, 4, 5).average() == 3.0
+
+
+def test_average_empty_collection():
+    assert Stream([]).average() == 0
+    assert Stream.empty().average() == 0
+
+
+def test_average_non_number_elements():
+    with pytest.raises(ValueError) as e:
+        Stream.of("a", "b").average()
     assert str(e.value) == "Cannot apply sum on non-number elements"
 
 

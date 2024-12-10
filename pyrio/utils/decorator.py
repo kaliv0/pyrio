@@ -60,8 +60,8 @@ def handle_consumed(func):
         result = func(*args, **kw)
         if is_consumed is False and func.__name__ in TERMINAL_FUNCTIONS:
             stream._is_consumed = True
-            if stream._on_close_handler:
-                stream._on_close_handler()
+            # if stream._on_close_handler:
+            #     stream._on_close_handler()
         return result
 
     return wrapper

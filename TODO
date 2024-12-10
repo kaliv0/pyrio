@@ -16,8 +16,7 @@ add methods:
 
 - rename sort() back to sorted()
 - take_first/last -> add to README and docs
-- on_close() -> do we need a check if handler is callable()?
-    -> pass dynamically self to handler when calling
+- on_close() -> pass dynamically self to handler when calling? -> both in base_stream and in decorator
     -> invoke before flipping closed flag
 
 - split bigger tests with multiple asserts;

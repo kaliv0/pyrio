@@ -1,5 +1,4 @@
 add methods:
-- builder
 - map_multi
 - or_else_raise
 - Result pattern -> research how to integrate inside pipeline?
@@ -7,20 +6,21 @@ add methods:
     -> could it work for chars e.g. alphabet?
 - average
 - summary_statistics -> see java
-- partition_by -> do we have equivalent already?
 - FileStream for regular text files -> read lines into iterable of strings
 - iterate -> with predicate
 - gatherers ??
 
 - introduce Int/FloatStream?
 
-- rename sort() back to sorted()
-- take_first/last -> add to README and docs
-- on_close() -> pass dynamically self to handler when calling? -> both in base_stream and in decorator
-    -> invoke before flipping closed flag
+- rename sort() back to sorted() ??
 
 - split bigger tests with multiple asserts;
     add tests for DictItem
+
+- add to README and docs:
+    - take_first/last
+    - close, on_close
+    - collect(str), to_string, repr -> update
 
 - if typehints are added  -> use return annotation to determine
     which Stream methods are terminating -> not returning self

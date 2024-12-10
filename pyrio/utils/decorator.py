@@ -30,7 +30,6 @@ TERMINAL_FUNCTIONS = [
     "to_dict",
     "to_string",
     "save",
-    # "close"  # TODO: only used manually, no reason to be here
 ]
 
 
@@ -54,14 +53,12 @@ def handle_consumed(func):
             return func(*args, **kw)
 
         is_consumed = getattr(stream, "_is_consumed", None)
-        if is_consumed:
+        if is_consumed and func.__name__ != "close":
             raise IllegalStateError("Stream object already consumed")
 
         result = func(*args, **kw)
-        if is_consumed is False and func.__name__ in TERMINAL_FUNCTIONS:
-            stream._is_consumed = True
-            # if stream._on_close_handler:
-            #     stream._on_close_handler()
+        if not is_consumed and func.__name__ in TERMINAL_FUNCTIONS:
+            stream.close()
         return result
 
     return wrapper

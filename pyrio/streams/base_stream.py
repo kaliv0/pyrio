@@ -14,7 +14,7 @@ class BaseStream:
     def __init__(self, iterable):
         self._iterable = iterable
         self._is_consumed = False
-        # self._on_close_handler = None
+        self._on_close_handler = None
 
     def __iter__(self):
         return iter(self.iterable)
@@ -213,7 +213,7 @@ class BaseStream:
         return not any((comparator and not comparator(i, j)) or i != j for i, j in zip(self.iterable, other))
 
     # ### collectors ###
-    def collect(self, collection_type, dict_collector=None, dict_merger=None, str_delimiter=None):
+    def collect(self, collection_type, dict_collector=None, dict_merger=None, str_delimiter=", "):
         """Returns a collection from the stream.
 
         In case of dict:
@@ -224,8 +224,7 @@ class BaseStream:
         E.g. lambda old, new: new
 
         In case of str:
-        Concatenates the elements of the Stream, separated by the specified 'str_delimiter'.
-        If no delimiter is provided, ", " is used as the default one"""
+        Concatenates the elements of the Stream, separated by the specified 'str_delimiter'"""
         import builtins
 
         match collection_type:
@@ -283,15 +282,9 @@ class BaseStream:
             case _:
                 raise UnsupportedTypeError(f"Cannot create dict items from '{item.__class__.__name__}' type")
 
-    def to_string(self, delimiter=None):
-        """Concatenates the elements of the Stream, separated by the specified delimiter.
-        If no delimiter is provided, ", " is used as the default one"""
+    def to_string(self, delimiter=", "):
+        """Concatenates the elements of the Stream, separated by the specified delimiter"""
         return self._join(delimiter)
-
-    def _join(self, delimiter=None):
-        if delimiter is None:
-            delimiter = ", "
-        return f"{self.__class__.__name__}({delimiter.join(str(i) for i in self.iterable)})"
 
     def group_by(self, classifier=None, collector=None):
         """Performs a "group by" operation on the elements of the stream according to a classification function.
@@ -345,16 +338,19 @@ class BaseStream:
         return sum(self.map(predicate))
 
     def close(self):
-        """Closes this stream, causing all close handlers for this stream pipeline to be called"""
-        # if self._on_close_handler:
-        #     self._on_close_handler(self)
+        """Closes the stream, causing the provided close handler to be called"""
+        if self._on_close_handler:
+            self._on_close_handler()
         self._is_consumed = True
 
-    # def on_close(self, handler):
-    #     """Returns an equivalent stream with an additional close handler"""
-    #     self._on_close_handler = handler
-    #     return self
+    def on_close(self, handler):
+        """Returns an equivalent stream with an additional close handler"""
+        self._on_close_handler = handler
+        return self
 
     # ### let's look nice ###
     def __repr__(self):
-        return self._join()
+        return f"{self.__class__.__name__}.of({self._join()})"
+
+    def _join(self, delimiter=", "):
+        return delimiter.join(str(i) for i in self.iterable)

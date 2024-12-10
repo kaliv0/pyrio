@@ -466,31 +466,30 @@ def test_stream_close():
     assert stream._is_consumed
 
 
-# def test_stream_on_close_callback():
-#     f = io.StringIO()
-#     with redirect_stdout(f):
-#         result = (
-#             Stream([1, 2, 3, 4])
-#             .on_close(lambda _: print("It was an honor", end=""))
-#             .peek(lambda x: print(f"{'#' * x} ", end=""))
-#             .map(lambda x: x * 2)
-#             .to_list()
-#         )
-#     assert result == [2, 4, 6, 8]
-#     assert f.getvalue() == "# ## ### #### It was an honor"
-#
-#
-# def test_stream_on_close_callback_using_pointer_to_self():
-#     f = io.StringIO()
-#     with redirect_stdout(f):
-#         result = (
-#             Stream([1, 2, 3, 4])
-#             .on_close(lambda self: self.peek(lambda x: print(f"{'#' * x} ", end="")))
-#             .map(lambda x: x * 2)
-#             .to_list()
-#         )
-#     assert result == [2, 4, 6, 8]
-#     assert f.getvalue() == "## #### ###### ######## "
+def test_stream_on_close_callback():
+    f = io.StringIO()
+    with redirect_stdout(f):
+        result = (
+            Stream([1, 2, 3, 4])
+            .on_close(lambda: print("It was an honor", end=""))
+            .peek(lambda x: print(f"{'#' * x} ", end=""))
+            .map(lambda x: x * 2)
+            .to_list()
+        )
+    assert result == [2, 4, 6, 8]
+    assert f.getvalue() == "# ## ### #### It was an honor"
+
+
+def test_stream_on_close_callback_using_pointer_to_self():
+    flag = False
+
+    def flip():
+        nonlocal flag
+        flag = True
+
+    result = Stream([1, 2, 3, 4]).on_close(flip).map(lambda x: x * 2).to_list()
+    assert result == [2, 4, 6, 8]
+    assert flag is True
 
 
 def test_compare_with():
@@ -710,8 +709,9 @@ def test_collect():
         "3": 30,
         "4": 40,
     }
-    assert Stream([1, 2, 3, 4, 5]).collect(str) == "Stream(1, 2, 3, 4, 5)"
-    assert Stream([1, 2, 3, 4, 5]).collect(str, str_delimiter=" | ") == "Stream(1 | 2 | 3 | 4 | 5)"
+    assert Stream([1, 2, 3, 4, 5]).collect(str) == "1, 2, 3, 4, 5"
+    assert Stream([1, 2, 3, 4, 5]).collect(str, str_delimiter=" | ") == "1 | 2 | 3 | 4 | 5"
+    assert Stream(["x", "y", "z"]).collect(str, str_delimiter="") == "xyz"
 
 
 def test_to_dict_no_collector(Foo):
@@ -786,23 +786,28 @@ def test_group_by_objects(Foo):
 
 
 def test_to_string(nested_json):
-    assert (
-        Stream({"a": 1, "b": [2, 3]}).to_string()
-        == "Stream(DictItem(key='a', value=1), DictItem(key='b', value=[2, 3]))"
-    )
+    assert Stream([1, (2, 3), {4, 5, 6}]).to_string() == "1, (2, 3), {4, 5, 6}"
     assert (
         Stream({"a": 1, "b": [2, 3]}).map(lambda x: {x.key: x.value}).to_string(delimiter=" | ")
-        == "Stream({'a': 1} | {'b': [2, 3]})"
+        == "{'a': 1} | {'b': [2, 3]}"
     )
+    assert Stream(["x", "y", "z"]).to_string(delimiter="") == "xyz"
+    assert Stream(json.loads(nested_json)).collect(str) == Stream(json.loads(nested_json)).to_string()
+
+
+def test_repr(nested_json):
+    assert str(Stream.of(1, 2, 3)) == "Stream.of(1, 2, 3)"
+    assert str(Stream([1, 2, 3])) == "Stream.of(1, 2, 3)"
     assert (
-        Stream(json.loads(nested_json)).collect(str)
-        == Stream(json.loads(nested_json)).to_string()
-        == str(Stream(json.loads(nested_json)))
-        == (
-            "Stream(DictItem(key='user', value=(DictItem(key='Name', value='John'), DictItem(key='Phone', value='555-123-4568'), DictItem(key='Security Number', value='3450678'))), "
-            "DictItem(key='super_user', value=(DictItem(key='Name', value='sudo'), DictItem(key='Email', value='admin@sudo.su'), DictItem(key='Some Other Number', value='000-0011'))), "
-            "DictItem(key='fraud', value=(DictItem(key='Name', value='Freud'), DictItem(key='Email', value='ziggy@psycho.au'))))"
-        )
+        str(Stream({"a": 1, "b": [2, 3], "c": {"x": "yz"}}))
+        == "Stream.of(DictItem(key='a', value=1), DictItem(key='b', value=[2, 3]), DictItem(key='c', value=(DictItem(key='x', value='yz'),)))"
+    )
+
+    assert str(Stream(json.loads(nested_json))) == (
+        "Stream.of("
+        "DictItem(key='user', value=(DictItem(key='Name', value='John'), DictItem(key='Phone', value='555-123-4568'), DictItem(key='Security Number', value='3450678'))), "
+        "DictItem(key='super_user', value=(DictItem(key='Name', value='sudo'), DictItem(key='Email', value='admin@sudo.su'), DictItem(key='Some Other Number', value='000-0011'))), "
+        "DictItem(key='fraud', value=(DictItem(key='Name', value='Freud'), DictItem(key='Email', value='ziggy@psycho.au'))))"
     )
 
 

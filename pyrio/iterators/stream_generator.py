@@ -1,9 +1,9 @@
 from collections.abc import Iterable
 
-from pyrio.utils.decorator import map_dict_items
+from pyrio.decorators import map_dict_items
 
 
-class Generator:
+class StreamGenerator:
     @staticmethod
     @map_dict_items
     def concat(*streams):

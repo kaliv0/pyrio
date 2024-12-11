@@ -1,10 +1,9 @@
 from collections.abc import Mapping
 
-from pyrio.iterators.generator import Generator
-from pyrio.utils.decorator import pre_call, handle_consumed
-from pyrio.utils.dict_item import DictItem
-from pyrio.utils.exception import IllegalStateError, UnsupportedTypeError
-from pyrio.utils.optional import Optional
+from pyrio.iterators import StreamGenerator
+from pyrio.decorators import handle_consumed, pre_call
+from pyrio.utils import DictItem, Optional
+from pyrio.exceptions import IllegalStateError, UnsupportedTypeError
 
 
 @pre_call(handle_consumed)
@@ -36,47 +35,47 @@ class BaseStream:
 
     def concat(self, *streams):
         """Concatenates several streams together or adds new streams/collections to the current one"""
-        self.iterable = Generator.concat(self.iterable, *streams)
+        self.iterable = StreamGenerator.concat(self.iterable, *streams)
         return self
 
     def prepend(self, iterable):
         """Prepends iterable to current stream"""
-        self.iterable = Generator.concat(iterable, self.iterable)
+        self.iterable = StreamGenerator.concat(iterable, self.iterable)
         return self
 
     def filter(self, predicate):
         """Filters values in stream based on given predicate function"""
-        self.iterable = Generator.filter(self.iterable, predicate)
+        self.iterable = StreamGenerator.filter(self.iterable, predicate)
         return self
 
     def map(self, mapper):
         """Returns a stream consisting of the results of applying the given function to the elements of this stream"""
-        self.iterable = Generator.map(self.iterable, mapper)
+        self.iterable = StreamGenerator.map(self.iterable, mapper)
         return self
 
     def filter_map(self, mapper, *, discard_falsy=False):
         """Filters out all None or falsy values and applies mapper function to the elements of the stream"""
-        self.iterable = Generator.filter_map(self.iterable, mapper, discard_falsy)
+        self.iterable = StreamGenerator.filter_map(self.iterable, mapper, discard_falsy)
         return self
 
     def flat_map(self, mapper):
         """Maps each element of the stream and yields the elements of the produced iterators"""
-        self.iterable = Generator.flat_map(self.iterable, mapper)
+        self.iterable = StreamGenerator.flat_map(self.iterable, mapper)
         return self
 
     def flatten(self):
         """Converts a Stream of multidimensional collection into a one-dimensional"""
-        self.iterable = Generator.flatten(self.iterable)
+        self.iterable = StreamGenerator.flatten(self.iterable)
         return self
 
     def peek(self, operation):
         """Performs the provided operation on each element of the stream without consuming it"""
-        self.iterable = Generator.peek(self.iterable, operation)
+        self.iterable = StreamGenerator.peek(self.iterable, operation)
         return self
 
     def distinct(self):
         """Returns a stream with the distinct elements of the current one"""
-        self.iterable = Generator.distinct(self.iterable)
+        self.iterable = StreamGenerator.distinct(self.iterable)
         return self
 
     def count(self):
@@ -101,38 +100,38 @@ class BaseStream:
         """Discards the first n elements of the stream and returns a new stream with the remaining ones"""
         if count < 0:
             raise ValueError("Skip count cannot be negative")
-        self.iterable = Generator.skip(self.iterable, count)
+        self.iterable = StreamGenerator.skip(self.iterable, count)
         return self
 
     def limit(self, count):
         """Returns a stream with the first n elements, or fewer if the underlying iterator ends sooner"""
         if count < 0:
             raise ValueError("Limit count cannot be negative")
-        self.iterable = Generator.limit(self.iterable, count)
+        self.iterable = StreamGenerator.limit(self.iterable, count)
         return self
 
     def head(self, count):
         """Alias for 'limit'"""
         if count < 0:
             raise ValueError("Head count cannot be negative")
-        self.iterable = Generator.limit(self.iterable, count)
+        self.iterable = StreamGenerator.limit(self.iterable, count)
         return self
 
     def tail(self, count):
         """Returns a stream with the last n elements, or fewer if the underlying iterator ends sooner"""
         if count < 0:
             raise ValueError("Tail count cannot be negative")
-        self.iterable = Generator.tail(self.iterable, count)
+        self.iterable = StreamGenerator.tail(self.iterable, count)
         return self
 
     def take_while(self, predicate):
         """Returns a stream that yields elements based on a predicate"""
-        self.iterable = Generator.take_while(self.iterable, predicate)
+        self.iterable = StreamGenerator.take_while(self.iterable, predicate)
         return self
 
     def drop_while(self, predicate):
         """Returns a stream that skips elements based on a predicate and yields the remaining ones"""
-        self.iterable = Generator.drop_while(self.iterable, predicate)
+        self.iterable = StreamGenerator.drop_while(self.iterable, predicate)
         return self
 
     def take_first(self, default=None):
@@ -149,13 +148,13 @@ class BaseStream:
     def sort(self, comparator=None, *, reverse=False):
         """Sorts the elements of the current stream according to natural order or based on the given comparator.
         If 'reverse' flag is True, the elements are sorted in descending order"""
-        self.iterable = Generator.sort(self.iterable, comparator, reverse)
+        self.iterable = StreamGenerator.sort(self.iterable, comparator, reverse)
         return self
 
     def reverse(self, comparator=None):
         """Sorts the elements of the current stream in descending order.
         Alias for 'sort(comparator, reverse=True)'"""
-        self.iterable = Generator.sort(self.iterable, comparator, reverse=True)
+        self.iterable = StreamGenerator.sort(self.iterable, comparator, reverse=True)
         return self
 
     def find_first(self, predicate=None):

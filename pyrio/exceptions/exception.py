@@ -1,3 +1,6 @@
+# TODO: rename file?
+
+
 class IllegalStateError(Exception):
     pass
 
@@ -10,9 +13,9 @@ class NoSuchElementError(Exception):
     pass
 
 
-class UnsupportedTypeError(Exception):
+class UnsupportedTypeError(TypeError):
     pass
 
 
-class UnsupportedFileTypeError(Exception):
+class UnsupportedFileTypeError(UnsupportedTypeError):
     pass

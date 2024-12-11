@@ -1,12 +1,7 @@
 add methods:
-- map_multi
 - Result pattern -> research how to integrate inside pipeline?
-- summary_statistics -> see java
 - FileStream for regular text files -> read lines into iterable of strings
-- gatherers ??
 
-- introduce Int/FloatStream?
-- rename sort() back to sorted() ??
 - split bigger tests with multiple asserts;
     add tests for DictItem
 
@@ -17,10 +12,4 @@ add methods:
     - average
     - iterate -> with predicate -> update
     - or_else_raise? -> part ot Optional API
-    - range -> lsp doesn't read second overload
-
-- if typehints are added  -> use return annotation to determine
-    which Stream methods are terminating -> not returning self
-- check default params in Generator
-- rename Generator -> StreamGenerator?
-- split decorator module
+    - range -> all overloads

@@ -6,7 +6,7 @@ from operator import itemgetter
 import pytest
 
 from pyrio import Stream, Optional, DictItem
-from pyrio.utils.exception import IllegalStateError, UnsupportedTypeError
+from pyrio.exceptions import IllegalStateError, UnsupportedTypeError
 
 
 def test_stream():

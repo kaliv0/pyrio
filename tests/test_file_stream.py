@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from pyrio import FileStream, Stream, DictItem
-from pyrio.utils.exception import IllegalStateError, UnsupportedFileTypeError
+from pyrio.exceptions import IllegalStateError, UnsupportedFileTypeError
 
 
 def test_invalid_path_error():

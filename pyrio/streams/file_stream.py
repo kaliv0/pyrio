@@ -2,10 +2,9 @@ import importlib
 from contextlib import contextmanager
 from pathlib import Path
 
-from pyrio.utils.dict_item import DictItem
-from pyrio.streams.base_stream import BaseStream
-from pyrio.streams.stream import Stream
-from pyrio.utils.exception import UnsupportedFileTypeError
+from pyrio.utils import DictItem
+from pyrio.streams import BaseStream, Stream
+from pyrio.exceptions import UnsupportedFileTypeError
 
 
 TEMP_PATH = "{file_path}.bak"

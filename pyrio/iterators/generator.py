@@ -61,6 +61,11 @@ class Generator:
             yield supplier()
 
     @staticmethod
+    def range(start, stop, step=1):
+        for i in range(start, stop, step):
+            yield i
+
+    @staticmethod
     def distinct(iterable):
         elements = set()
         for i in iterable:

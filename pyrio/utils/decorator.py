@@ -8,9 +8,10 @@ TERMINAL_FUNCTIONS = [
     "for_each",
     "reduce",
     "count",
-    "sum",
     "min",
     "max",
+    "sum",
+    "average",
     "find_first",
     "find_any",
     "take_first",
@@ -64,6 +65,7 @@ def handle_consumed(func):
     return wrapper
 
 
+# ### util for concat ###
 def map_dict_items(func):
     @wraps(func)
     def wrapper(*args, **kw):
@@ -79,3 +81,34 @@ def map_dict_items(func):
         return func(*remapped, **kw)
 
     return wrapper
+
+
+# ### multiple dispatch ###
+METHOD_REGISTRY = {}
+
+
+class MultiMethod:
+    def __init__(self, name):
+        self.name = name
+        self.typemap = {}
+
+    def __call__(self, cls, *args):
+        first_arg_type = args[0].__class__
+        function = self.typemap.get(first_arg_type)
+        return function(cls, *args)
+
+    def register(self, type_, function):
+        self.typemap[type_] = function
+
+
+def dispatch(*types):
+    def register(method):
+        name = method.__name__
+        multi_method = METHOD_REGISTRY.get(name)
+        if multi_method is None:
+            multi_method = METHOD_REGISTRY[name] = MultiMethod(name)
+        for type_ in types:
+            multi_method.register(type_, method)
+        return multi_method
+
+    return register

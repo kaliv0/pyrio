@@ -1,7 +1,7 @@
 from pyrio.streams.base_stream import BaseStream
 from pyrio.iterators.generator import Generator
 from pyrio.iterators.itertools_mixin import ItertoolsMixin
-from pyrio.utils.decorator import pre_call, handle_consumed
+from pyrio.utils.decorator import pre_call, handle_consumed, dispatch
 
 
 @pre_call(handle_consumed)
@@ -27,6 +27,19 @@ class Stream(BaseStream, ItertoolsMixin):
     def constant(cls, element):
         """Creates infinite Stream with given value"""
         return cls.generate(lambda: element)
+
+    @classmethod
+    @dispatch(int, int, int)
+    def from_range(cls, start, stop, step=1):
+        # TODO: fix docstr -> default step
+        """Creates Stream from start (inclusive) to stop (exclusive) by an incremental step"""
+        return cls(Generator.range(start, stop, step))
+
+    @classmethod
+    @dispatch(range)
+    def from_range(cls, range_obj):  # noqa: F811
+        """Creates Stream range object"""
+        return cls(Generator.range(range_obj.start, range_obj.stop, range_obj.step))
 
     # NB: handle_consumed decorator needs access to toggle flag
     def take_nth(self, idx, default=None):

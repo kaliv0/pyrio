@@ -84,6 +84,8 @@ def map_dict_items(func):
 
 
 # ### multiple dispatch ###
+# inspired from https://www.artima.com/weblogs/viewpost.jsp?thread=101605
+
 METHOD_REGISTRY = {}
 
 
@@ -93,22 +95,27 @@ class MultiMethod:
         self.typemap = {}
 
     def __call__(self, cls, *args):
-        first_arg_type = args[0].__class__
-        function = self.typemap.get(first_arg_type)
+        types = tuple(arg.__class__ for arg in args)
+        function = self.typemap.get(types)
+        if function is None:
+            raise TypeError("No match found")
         return function(cls, *args)
 
-    def register(self, type_, function):
-        self.typemap[type_] = function
+    def register(self, types, function):
+        if types in self.typemap:
+            raise TypeError("Duplicate registration")
+        self.typemap[types] = function
 
 
 def dispatch(*types):
-    def register(method):
-        name = method.__name__
+    def register(function):
+        function = getattr(function, "__lastreg__", function)
+        name = function.__name__
         multi_method = METHOD_REGISTRY.get(name)
         if multi_method is None:
             multi_method = METHOD_REGISTRY[name] = MultiMethod(name)
-        for type_ in types:
-            multi_method.register(type_, method)
+        multi_method.register(types, function)
+        multi_method.__lastreg__ = function
         return multi_method
 
     return register

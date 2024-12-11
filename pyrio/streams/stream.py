@@ -30,10 +30,17 @@ class Stream(BaseStream, ItertoolsMixin):
 
     @classmethod
     @dispatch(int, int, int)
-    def from_range(cls, start, stop, step=1):
+    def from_range(cls, start, stop, step):
         # TODO: fix docstr -> default step
         """Creates Stream from start (inclusive) to stop (exclusive) by an incremental step"""
         return cls(Generator.range(start, stop, step))
+
+    @classmethod
+    @dispatch(int, int)
+    def from_range(cls, start, stop):  # noqa: F811
+        # TODO: fix docstr -> default step
+        """Creates Stream from start (inclusive) to stop (exclusive) by an incremental step of 1"""
+        return cls(Generator.range(start, stop, 1))
 
     @classmethod
     @dispatch(range)

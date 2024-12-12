@@ -5,58 +5,65 @@ from pathlib import Path
 from pyrio.utils import DictItem
 from pyrio.streams import BaseStream, Stream
 from pyrio.exceptions import UnsupportedFileTypeError
-
+from pyrio.utils.alias_dict import AliasDict
 
 TEMP_PATH = "{file_path}.bak"
-GENERIC_READ_CONFIG = {
-    ".toml": {
-        "import_mod": "tomllib",
-        "callable": "load",
-        "read_mode": "rb",
-    },
-    ".json": {
-        "import_mod": "json",
-        "callable": "load",
-        "read_mode": "r",
-    },
-    ".yaml": {
-        "import_mod": "yaml",
-        "callable": "safe_load",
-        "read_mode": "r",
-    },
-    ".xml": {
-        "import_mod": "xmltodict",
-        "callable": "parse",
-        "read_mode": "rb",
-    },
-}
+SV_TYPES = {".csv", ".tsv"}  # TODO: rename 'SV'
+GENERIC_READ_CONFIG = AliasDict(
+    {
+        ".toml": {
+            "import_mod": "tomllib",
+            "callable": "load",
+            "read_mode": "rb",
+        },
+        ".json": {
+            "import_mod": "json",
+            "callable": "load",
+            "read_mode": "r",
+        },
+        ".yaml": {
+            "import_mod": "yaml",
+            "callable": "safe_load",
+            "read_mode": "r",
+        },
+        ".xml": {
+            "import_mod": "xmltodict",
+            "callable": "parse",
+            "read_mode": "rb",
+        },
+    }
+)
+GENERIC_READ_CONFIG.add_alias(".yaml", ".yml")
 
-GENERIC_WRITE_CONFIG = {
-    ".toml": {
-        "import_mod": "tomli_w",
-        "callable": "dump",
-        "write_mode": "wb",
-        "default_null_handler": lambda x: DictItem(x.key, "N/A") if x.value is None else x,
-    },
-    ".json": {
-        "import_mod": "json",
-        "callable": "dump",
-        "write_mode": "w",
-        "default_null_handler": None,
-    },
-    ".yaml": {
-        "import_mod": "yaml",
-        "callable": "dump",
-        "write_mode": "w",
-        "default_null_handler": None,
-    },
-    ".xml": {
-        "import_mod": "xmltodict",
-        "callable": "unparse",
-        "write_mode": "w",
-        "default_null_handler": None,
-    },
-}
+GENERIC_WRITE_CONFIG = AliasDict(
+    {
+        ".toml": {
+            "import_mod": "tomli_w",
+            "callable": "dump",
+            "write_mode": "wb",
+            "default_null_handler": lambda x: DictItem(x.key, "N/A") if x.value is None else x,
+        },
+        ".json": {
+            "import_mod": "json",
+            "callable": "dump",
+            "write_mode": "w",
+            "default_null_handler": None,
+        },
+        ".yaml": {
+            "import_mod": "yaml",
+            "callable": "dump",
+            "write_mode": "w",
+            "default_null_handler": None,
+        },
+        ".xml": {
+            "import_mod": "xmltodict",
+            "callable": "unparse",
+            "write_mode": "w",
+            "default_null_handler": None,
+        },
+    }
+)
+GENERIC_WRITE_CONFIG.add_alias(".yaml", ".yml")
 
 
 class FileStream(BaseStream):
@@ -83,10 +90,12 @@ class FileStream(BaseStream):
     @classmethod
     def _read_file(cls, file_path, f_open_options=None, f_read_options=None, **kwargs):
         path = cls._get_file_path(file_path)
-
-        if path.suffix in {".csv", ".tsv"}:
+        if (suffix := path.suffix) in SV_TYPES:
             return cls._read_csv(path, f_open_options, f_read_options, **kwargs)
-        return cls._read_generic(path, f_open_options, f_read_options, **kwargs)
+        elif suffix in GENERIC_READ_CONFIG.get_keys():
+            return cls._read_generic(path, f_open_options, f_read_options, **kwargs)
+        else:
+            raise UnsupportedFileTypeError(f"Unsupported file type: '{suffix}'")
 
     @staticmethod
     def _read_csv(path, f_open_options=None, f_read_options=None, **kwargs):
@@ -103,15 +112,11 @@ class FileStream(BaseStream):
 
     @staticmethod
     def _read_generic(path, f_open_options=None, f_read_options=None, **kwargs):
-        suffix = ".yaml" if path.suffix == ".yml" else path.suffix
-        if suffix not in GENERIC_READ_CONFIG:
-            raise UnsupportedFileTypeError(f"Unsupported file type: '{suffix}'")
-
-        config = GENERIC_READ_CONFIG[suffix]
+        config = GENERIC_READ_CONFIG[path.suffix]
         load = getattr(importlib.import_module(config["import_mod"]), config["callable"])
         with open(path, config["read_mode"], **(f_open_options or {})) as f:
             content = load(f, **(f_read_options or {}))
-            if suffix == ".xml":
+            if path.suffix == ".xml":
                 if kwargs.get("include_root", None):
                     return content
                 # NB: return dict (instead of dict_view) to re-map it later as DictItem records
@@ -122,9 +127,14 @@ class FileStream(BaseStream):
     def save(self, file_path=None, null_handler=None, f_open_options=None, f_write_options=None, **kwargs):
         """Writes Stream to a new file (or updates an existing one) with advanced 'writing' options passed by the user"""
         path, tmp_path = self._prepare_file_paths(file_path)
-        if path.suffix in {".csv", ".tsv"}:
+        if (suffix := path.suffix) in SV_TYPES:
             return self._write_csv(path, tmp_path, null_handler, f_open_options, f_write_options, **kwargs)
-        return self._write_generic(path, tmp_path, null_handler, f_open_options, f_write_options, **kwargs)
+        elif suffix in GENERIC_READ_CONFIG.get_keys():
+            return self._write_generic(
+                path, tmp_path, null_handler, f_open_options, f_write_options, **kwargs
+            )
+        else:
+            raise UnsupportedFileTypeError(f"Unsupported file type: '{suffix}'")
 
     def _write_csv(
         self, path, tmp_path, null_handler=None, f_open_options=None, f_write_options=None, **kwargs
@@ -147,15 +157,12 @@ class FileStream(BaseStream):
     def _write_generic(
         self, path, tmp_path, null_handler=None, f_open_options=None, f_write_options=None, **kwargs
     ):
-        suffix = ".yaml" if path.suffix == ".yml" else path.suffix
-        if suffix not in GENERIC_WRITE_CONFIG:
-            raise UnsupportedFileTypeError(f"Unsupported file type: '{suffix}'")
-        config = GENERIC_WRITE_CONFIG[suffix]
+        config = GENERIC_WRITE_CONFIG[path.suffix]
         if existing_null_handler := null_handler or config["default_null_handler"]:
             self.map(existing_null_handler)
 
         output = self.to_dict()
-        if suffix == ".xml":
+        if path.suffix == ".xml":
             root = kwargs.get("xml_root", "root")
             output = {root: output}
             if f_write_options is None:

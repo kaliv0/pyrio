@@ -7,6 +7,8 @@ add methods:
 
 - split bigger tests with multiple asserts;
     add tests for DictItem
+    add test for AliasDict
+    rewrite all test raises with match=err_msg
 
 - add to README and docs:
     - take_first/last

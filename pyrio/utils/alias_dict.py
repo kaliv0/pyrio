@@ -3,18 +3,30 @@ from itertools import chain
 
 from pyrio.exceptions import AliasError
 
+# TODO: use self.data instead of self.keys()/.items() etc??
+
 
 class AliasDict(UserDict):
-    # TODO: docstring
-    _VAL_DICT = {}
+    """Custom Dict class supporting key-aliases pointing to shared values"""
+
+    def __init__(self, dict_):
+        self._VAL_DICT = {}
+        super().__init__(self, **dict_)
 
     def add_alias(self, key, alias):
         if alias == key:
             raise AliasError("Key and corresponding alias cannot be equal")
+        if key not in self.keys():
+            raise KeyError(f"Key '{key}' not found")
         self._VAL_DICT[alias] = key
 
+    def remove_alias(self, alias):
+        # TODO: raise if not found?
+        self._VAL_DICT.pop(alias, None)
+
+    # TODO: handle if key is removed -> cascade_delete all aliases -> add test
+
     def iterkeys(self):
-        # TODO: hashset in cases when alias and key are the same
         return tuple(chain(self.keys(), self._VAL_DICT.keys()))
 
     # TODO: do we need this?
@@ -23,17 +35,14 @@ class AliasDict(UserDict):
 
     def iteritems(self):
         return tuple(
-            (k, v)
-            for k, v in chain(
-                self.items(), ((k, self[k]) for k in self._VAL_DICT.keys() if k not in self.keys())
-            )
+            (k, v) for k, v in chain(self.items(), ((k, self[v]) for k, v in self._VAL_DICT.items()))
         )
 
     def __missing__(self, key):
         try:
             return super().__getitem__(self._VAL_DICT[key])
         except AttributeError:
-            raise KeyError(key)
+            raise KeyError(f"Key '{key}' not found")
 
     def __setitem__(self, key, value):
         try:

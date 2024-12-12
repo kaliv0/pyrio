@@ -2,6 +2,9 @@ add methods:
 - Result pattern -> research how to integrate inside pipeline?
 - FileStream for regular text files -> read lines into iterable of strings
 
+- AliasDict -> add more tests
+- rename modules in decorators dir -> dispatcher, handler etc
+
 - split bigger tests with multiple asserts;
     add tests for DictItem
 
@@ -13,3 +16,4 @@ add methods:
     - iterate -> with predicate -> update
     - or_else_raise? -> part ot Optional API
     - range -> all overloads
+    - AliasDict

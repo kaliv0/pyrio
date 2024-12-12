@@ -9,6 +9,7 @@ class NullPointerError(Exception):
     pass
 
 
+# TODO: maybe ValueError??
 class NoSuchElementError(Exception):
     pass
 
@@ -18,4 +19,8 @@ class UnsupportedTypeError(TypeError):
 
 
 class UnsupportedFileTypeError(UnsupportedTypeError):
+    pass
+
+
+class AliasError(ValueError):
     pass

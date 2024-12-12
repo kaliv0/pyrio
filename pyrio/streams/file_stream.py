@@ -92,7 +92,7 @@ class FileStream(BaseStream):
         path = cls._get_file_path(file_path)
         if (suffix := path.suffix) in SV_TYPES:
             return cls._read_csv(path, f_open_options, f_read_options, **kwargs)
-        elif suffix in GENERIC_READ_CONFIG.get_keys():
+        elif suffix in GENERIC_READ_CONFIG.iterkeys():
             return cls._read_generic(path, f_open_options, f_read_options, **kwargs)
         else:
             raise UnsupportedFileTypeError(f"Unsupported file type: '{suffix}'")
@@ -129,7 +129,7 @@ class FileStream(BaseStream):
         path, tmp_path = self._prepare_file_paths(file_path)
         if (suffix := path.suffix) in SV_TYPES:
             return self._write_csv(path, tmp_path, null_handler, f_open_options, f_write_options, **kwargs)
-        elif suffix in GENERIC_READ_CONFIG.get_keys():
+        elif suffix in GENERIC_READ_CONFIG.iterkeys():
             return self._write_generic(
                 path, tmp_path, null_handler, f_open_options, f_write_options, **kwargs
             )

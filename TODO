@@ -2,13 +2,12 @@ add methods:
 - Result pattern -> research how to integrate inside pipeline?
 - FileStream for regular text files -> read lines into iterable of strings
 
-- AliasDict -> add more tests
+- AliasDict -> add informative error messages
 - rename modules in decorators dir -> dispatcher, handler etc
 
 - split bigger tests with multiple asserts;
     add tests for DictItem
-    add test for AliasDict
-    rewrite all test raises with match=err_msg
+    rewrite all test raises with match=err_msg?
 
 - add to README and docs:
     - take_first/last

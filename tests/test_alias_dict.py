@@ -21,10 +21,14 @@ def test_add_alias(alias_dict):
     )
 
 
+def test_add_multiple_aliases(alias_dict):
+    alias_dict.add_alias(".json", ".jsn", ".joojoo", ".jazz")
+    assert list(alias_dict.keys()) == [".json", ".yaml", ".toml", ".yml", ".jsn", ".joojoo", ".jazz"]
+
+
 def test_add_alias_raises(alias_dict):
     with pytest.raises(AliasError, match="Key and corresponding alias cannot be equal: '.toml'"):
         alias_dict.add_alias(".toml", ".toml")
-    # assert str(e.value) == "Key and corresponding alias cannot be equal: '.toml'"
 
 
 def test_update_alias(alias_dict):
@@ -40,7 +44,6 @@ def test_update_alias(alias_dict):
 def test_update_alias_raises(alias_dict):
     with pytest.raises(KeyError, match=".foo"):
         alias_dict.add_alias(".foo", ".bar")
-    # assert e.value.args[0] == "Key '.foo' not found"
 
 
 def test_remove_alias(alias_dict):
@@ -58,10 +61,16 @@ def test_remove_alias_raises(alias_dict):
     assert list(alias_dict.keys()) == [".json", ".yaml", ".toml", ".yml"]
     with pytest.raises(KeyError, match=".foo"):
         alias_dict.remove_alias(".foo")
-    # assert str(e.value) == "Alias '.foo' not found"
 
 
-def test_aliases(alias_dict):
+def test_remove_multiple_aliases(alias_dict):
+    alias_dict.add_alias(".json", ".jsn")
+    assert list(alias_dict.keys()) == [".json", ".yaml", ".toml", ".yml", ".jsn"]
+    alias_dict.remove_alias(".yml", ".jsn")
+    assert list(alias_dict.keys()) == [".json", ".yaml", ".toml"]
+
+
+def test_read_aliases(alias_dict):
     alias_dict.add_alias(".toml", ".tml")
     alias_dict.add_alias(".json", ".jsn")
     alias_dict.add_alias(".json", ".whaaaaat!")
@@ -120,3 +129,16 @@ def test_repr(alias_dict):
         "('.yml', '.yaml')"
         "]))"
     )
+
+
+def test_origin_keys(alias_dict):
+    assert list(alias_dict.origin_keys()) == [".json", ".yaml", ".toml"]
+
+
+def test_aliased_keys(alias_dict):
+    assert list(alias_dict.aliased_keys()) == [(".yaml", [".yml"])]
+    alias_dict.add_alias(".toml", ".tml", ".tommy", ".tomograph")
+    assert list(alias_dict.aliased_keys()) == [
+        (".yaml", [".yml"]),
+        (".toml", [".tml", ".tommy", ".tomograph"]),
+    ]

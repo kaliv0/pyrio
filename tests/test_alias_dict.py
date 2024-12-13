@@ -1,6 +1,7 @@
 import pytest
 
 from pyrio.exceptions import AliasError
+from pyrio.utils.alias_dict import AliasDict
 
 
 def test_alias_dict(alias_dict):
@@ -120,17 +121,6 @@ def test_iter(alias_dict):
     assert [k for k in alias_dict] == [".json", ".yaml", ".toml", ".yml"]
 
 
-def test_repr(alias_dict):
-    assert str(alias_dict) == (
-        "AliasDict(dict_items(["
-        "('.json', {'import_mod': 'json', 'callable': 'load', 'read_mode': 'r'}), "
-        "('.yaml', {'import_mod': 'yaml', 'callable': 'safe_load', 'read_mode': 'r'}), "
-        "('.toml', {'import_mod': 'tomli', 'callable': 'load', 'read_mode': 'r'}), "
-        "('.yml', '.yaml')"
-        "]))"
-    )
-
-
 def test_origin_keys(alias_dict):
     assert list(alias_dict.origin_keys()) == [".json", ".yaml", ".toml"]
 
@@ -142,3 +132,29 @@ def test_aliased_keys(alias_dict):
         (".yaml", [".yml"]),
         (".toml", [".tml", ".tommy", ".tomograph"]),
     ]
+
+
+def test_repr(alias_dict):
+    assert str(alias_dict) == (
+        "AliasDict(dict_items(["
+        "('.json', {'import_mod': 'json', 'callable': 'load', 'read_mode': 'r'}), "
+        "('.yaml', {'import_mod': 'yaml', 'callable': 'safe_load', 'read_mode': 'r'}), "
+        "('.toml', {'import_mod': 'tomli', 'callable': 'load', 'read_mode': 'r'}), "
+        "('.yml', '.yaml')"
+        "]))"
+    )
+
+
+def test_eq():
+    ad_1 = AliasDict({"a": 1, "b": 2})
+    ad_1.add_alias("a", "aa", "aaa")
+
+    ad_2 = AliasDict({"a": 1, "b": 2})
+    ad_2.add_alias("a", "aa", "aaa")
+
+    ad_3 = AliasDict({"a": 1, "b": 2})
+    ad_3.add_alias("a", "abc")
+
+    assert ad_1 == ad_2
+    assert ad_1 != ad_3
+    assert ad_2 != ad_3

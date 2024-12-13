@@ -59,7 +59,7 @@ class AliasDict(UserDict):
             pass
         super().__setitem__(key, value)
 
-        # TODO: __getitem__?
+        # TODO: __getitem__? -> raise verbose KeyError?
 
     def __delitem__(self, key):
         try:
@@ -78,3 +78,12 @@ class AliasDict(UserDict):
 
     def __repr__(self):
         return f"AliasDict({self.items()})"
+
+    def __eq__(self, other):
+        if not isinstance(other, AliasDict):
+            raise TypeError(f"{other} is not an AliasDict")
+        return self.data == other.data and self._alias_dict == other._alias_dict
+
+    def __hash__(self):
+        # TODO: improve
+        return hash((self.data, self._alias_dict))

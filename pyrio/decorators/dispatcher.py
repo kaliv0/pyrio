@@ -1,4 +1,5 @@
 # inspired from https://www.artima.com/weblogs/viewpost.jsp?thread=101605
+
 METHOD_REGISTRY = {}
 
 
@@ -22,11 +23,13 @@ class MultiMethod:
 
 def dispatch(*types):
     def register(function):
+        function = getattr(function, "__lastreg__", function)
         name = function.__name__
         multi_method = METHOD_REGISTRY.get(name)
         if multi_method is None:
             multi_method = METHOD_REGISTRY[name] = MultiMethod(name)
         multi_method.register(types, function)
+        multi_method.__lastreg__ = function
         return multi_method
 
     return register

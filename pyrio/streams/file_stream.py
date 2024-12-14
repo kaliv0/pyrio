@@ -2,10 +2,11 @@ import importlib
 from contextlib import contextmanager
 from pathlib import Path
 
+from aldict import AliasDict
+
 from pyrio.utils import DictItem
 from pyrio.streams import BaseStream, Stream
 from pyrio.exceptions import UnsupportedFileTypeError
-from pyrio.utils.alias_dict import AliasDict
 
 TEMP_PATH = "{file_path}.bak"
 SV_TYPES = {".csv", ".tsv"}  # TODO: rename 'SV'

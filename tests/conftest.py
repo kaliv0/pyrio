@@ -1,6 +1,6 @@
 import pytest
 
-from pyrio.utils.alias_dict import AliasDict
+from aldict import AliasDict
 
 
 @pytest.fixture

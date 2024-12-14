@@ -20,7 +20,3 @@ class UnsupportedTypeError(TypeError):
 
 class UnsupportedFileTypeError(UnsupportedTypeError):
     pass
-
-
-class AliasError(ValueError):
-    pass

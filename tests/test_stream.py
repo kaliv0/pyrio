@@ -869,3 +869,33 @@ def test_nested_json_querying_nested_dict_items(nested_json):
         .get()
         == "Freud"
     )
+
+
+# ### hacker-rank ###
+def test_hackerrank():
+    from curses.ascii import isalpha
+    from enum import Enum
+
+    # count vowels and constants in given string
+    string = "123ab5oc-e6db#bci9<>"
+    all_vowels = "aeiouy"
+
+    class CharType(Enum):
+        VOWELS = "vowels"
+        CONSONANTS = "consonants"
+
+    assert (
+        Stream(string)
+        .filter(lambda ch: isalpha(ch))
+        .partition(lambda ch: ch in all_vowels)
+        .enumerate()
+        .map(lambda x: (CharType.VOWELS if x[0] == 0 else CharType.CONSONANTS, len(tuple(x[1]))))
+        .to_dict()
+    ) == {CharType.CONSONANTS: 6, CharType.VOWELS: 4}
+
+
+@pytest.mark.parametrize("string, expected", [("a1b2c3c2b1a", True), ("abc321", False), ("x", True)])
+def test_leetcode(string, expected):
+    # check if given string is palindrome; string length is guaranteed to be > 0
+    stop = len(string) // 2 if len(string) > 1 else 1
+    assert Stream.from_range(0, stop).none_match(lambda x: string[x] != string[x - 1]) is expected

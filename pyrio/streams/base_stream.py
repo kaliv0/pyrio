@@ -199,6 +199,11 @@ class BaseStream:
         for i in self.iterable:
             operation(i)
 
+    def enumerate(self, start=0):
+        # TODO: docstr and test
+        self.iterable = StreamGenerator.enumerate(self.iterable, start)
+        return self
+
     def reduce(self, accumulator, identity=None):
         """Reduces the elements to a single one, by repeatedly applying a reducing operation.
         Returns Optional with the result, if any, or None"""

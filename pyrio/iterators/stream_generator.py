@@ -118,3 +118,8 @@ class StreamGenerator:
     def sort(iterable, comparator=None, reverse=False):
         for i in sorted(iterable, key=comparator, reverse=reverse):
             yield i
+
+    @staticmethod
+    def enumerate(iterable, start=0):
+        for i, item in enumerate(iterable, start):
+            yield i, item

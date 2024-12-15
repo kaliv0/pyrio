@@ -17,4 +17,4 @@ add methods:
     - iterate -> with predicate -> update
     - or_else_raise? -> part ot Optional API
     - range -> all overloads
-    - AliasDict
+    - enumerate

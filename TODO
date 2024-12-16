@@ -2,7 +2,9 @@ add methods:
 - Result pattern -> research how to integrate inside pipeline?
 - FileStream for regular text files -> read lines into iterable of strings
 
-- AliasDict -> add informative error messages
+- decide if Stream(None) should raise or only Stream.of
+    -> handle tests
+
 - rename modules in decorators dir -> dispatcher, handler etc
 
 - split bigger tests with multiple asserts;
@@ -18,3 +20,5 @@ add methods:
     - or_else_raise? -> part ot Optional API
     - range -> all overloads
     - enumerate
+    - Stream.of(None), Stream.of_nullable()
+        - Stream(None)??

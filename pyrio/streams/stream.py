@@ -10,6 +10,15 @@ class Stream(BaseStream, ItertoolsMixin):
     @classmethod
     def of(cls, *iterable):
         """Creates Stream from args"""
+        if any(i is None for i in iterable):
+            raise TypeError("Cannot create Stream from None")
+        return cls(iterable)
+
+    @classmethod
+    def of_nullable(cls, *iterable):
+        # TODO: docstr
+        if any(i is None for i in iterable):
+            return cls.empty()
         return cls(iterable)
 
     @classmethod

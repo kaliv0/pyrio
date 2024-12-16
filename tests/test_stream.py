@@ -13,8 +13,32 @@ def test_stream():
     assert Stream([1, 2, 3])._iterable == [1, 2, 3]
 
 
+# TODO
+# @pytest.mark.parametrize("iterable", [None, ([1,2], None)])
+# def test_stream_from_none(iterable):
+#     with pytest.raises(TypeError) as e:
+#         Stream(iterable)
+#     assert str(e.value) == "Cannot create Stream from None"
+
+
 def test_stream_of():
     assert Stream.of(1, 2, 3)._iterable == (1, 2, 3)
+
+
+@pytest.mark.parametrize("iterable", [(None,), ([1, 2], None)])
+def test_stream_of_none(iterable):
+    with pytest.raises(TypeError) as e:
+        Stream.of(*iterable)
+    assert str(e.value) == "Cannot create Stream from None"
+
+
+def test_stream_of_nullable():
+    assert Stream.of_nullable(None).count() == 0
+    assert Stream.of_nullable([1, 2], None).count() == 0
+
+    nonempty_stream = Stream.of_nullable(1, 2, 3)
+    assert nonempty_stream.count() != 0
+    assert nonempty_stream._iterable == (1, 2, 3)
 
 
 def test_empty_stream():
@@ -90,11 +114,11 @@ def test_map_dict():
 
 
 def test_filter_map():
-    assert Stream.of(None, "foo", "", "bar").filter_map(str.upper).to_list() == ["FOO", "", "BAR"]
+    assert Stream([None, "foo", "", "bar"]).filter_map(str.upper).to_list() == ["FOO", "", "BAR"]
 
 
 def test_filter_map_discard_falsy():
-    assert Stream.of(None, "foo", "", "bar", 0, []).filter_map(str.upper, discard_falsy=True).to_list() == [
+    assert Stream([None, "foo", "", "bar", 0, []]).filter_map(str.upper, discard_falsy=True).to_list() == [
         "FOO",
         "BAR",
     ]

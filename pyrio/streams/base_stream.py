@@ -11,6 +11,9 @@ class BaseStream:
     """Base class for Stream objects; describes core supported operations"""
 
     def __init__(self, iterable):
+        # TODO: decide
+        # if iterable is None or any(i is None for i in iterable):
+        #     raise TypeError("Cannot create Stream from None")
         self._iterable = iterable
         self._is_consumed = False
         self._on_close_handler = None

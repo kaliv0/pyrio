@@ -6,7 +6,13 @@ from pathlib import Path
 import pytest
 
 from pyrio import FileStream, Stream, DictItem
-from pyrio.exceptions import IllegalStateError, UnsupportedFileTypeError
+from pyrio.exceptions import IllegalStateError, UnsupportedFileTypeError, NullPointerError
+
+
+def test_none_path_error():
+    with pytest.raises(NullPointerError) as e:
+        FileStream(None)
+    assert str(e.value) == "File path cannot be None"
 
 
 def test_invalid_path_error():

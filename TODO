@@ -2,8 +2,7 @@ add methods:
 - Result pattern -> research how to integrate inside pipeline?
 - FileStream for regular text files -> read lines into iterable of strings
 
-- decide if Stream(None) should raise or only Stream.of
-    -> handle tests
+- Stream.of(None)???
 
 - rename modules in decorators dir -> dispatcher, handler etc
 
@@ -20,5 +19,4 @@ add methods:
     - or_else_raise? -> part ot Optional API
     - range -> all overloads
     - enumerate
-    - Stream.of(None), Stream.of_nullable()
-        - Stream(None)??
+    - Stream(None), Stream.of_nullable()

@@ -3,7 +3,7 @@ from collections.abc import Mapping
 from pyrio.iterators import StreamGenerator
 from pyrio.decorators import handle_consumed, pre_call
 from pyrio.utils import DictItem, Optional
-from pyrio.exceptions import IllegalStateError, UnsupportedTypeError
+from pyrio.exceptions import IllegalStateError, UnsupportedTypeError, NullPointerError
 
 
 @pre_call(handle_consumed)
@@ -11,9 +11,8 @@ class BaseStream:
     """Base class for Stream objects; describes core supported operations"""
 
     def __init__(self, iterable):
-        # TODO: decide
-        # if iterable is None or any(i is None for i in iterable):
-        #     raise TypeError("Cannot create Stream from None")
+        if iterable is None:
+            raise NullPointerError("Cannot create Stream from None")
         self._iterable = iterable
         self._is_consumed = False
         self._on_close_handler = None
@@ -30,11 +29,6 @@ class BaseStream:
     @iterable.setter
     def iterable(self, value):
         self._iterable = value
-
-    @classmethod
-    def empty(cls):
-        """Creates empty Stream"""
-        return cls([])
 
     def concat(self, *streams):
         """Concatenates several streams together or adds new streams/collections to the current one"""
@@ -94,7 +88,7 @@ class BaseStream:
         return sum(self.iterable)
 
     def average(self):
-        # TODO: add docstr
+        """Returns the average value of elements in the stream"""
         if (stream_len := len(self.iterable)) == 0:
             return 0
         return self.sum() / stream_len
@@ -203,7 +197,7 @@ class BaseStream:
             operation(i)
 
     def enumerate(self, start=0):
-        # TODO: docstr and test
+        # TODO: docstr
         self.iterable = StreamGenerator.enumerate(self.iterable, start)
         return self
 

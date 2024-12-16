@@ -6,39 +6,29 @@ from operator import itemgetter
 import pytest
 
 from pyrio import Stream, Optional, DictItem
-from pyrio.exceptions import IllegalStateError, UnsupportedTypeError
+from pyrio.exceptions import IllegalStateError, UnsupportedTypeError, NullPointerError
 
 
 def test_stream():
     assert Stream([1, 2, 3])._iterable == [1, 2, 3]
 
 
-# TODO
-# @pytest.mark.parametrize("iterable", [None, ([1,2], None)])
-# def test_stream_from_none(iterable):
-#     with pytest.raises(TypeError) as e:
-#         Stream(iterable)
-#     assert str(e.value) == "Cannot create Stream from None"
+def test_stream_from_none():
+    with pytest.raises(NullPointerError) as e:
+        Stream(None)
+    assert str(e.value) == "Cannot create Stream from None"
 
 
 def test_stream_of():
     assert Stream.of(1, 2, 3)._iterable == (1, 2, 3)
 
 
-@pytest.mark.parametrize("iterable", [(None,), ([1, 2], None)])
-def test_stream_of_none(iterable):
-    with pytest.raises(TypeError) as e:
-        Stream.of(*iterable)
-    assert str(e.value) == "Cannot create Stream from None"
-
-
 def test_stream_of_nullable():
     assert Stream.of_nullable(None).count() == 0
-    assert Stream.of_nullable([1, 2], None).count() == 0
 
-    nonempty_stream = Stream.of_nullable(1, 2, 3)
+    nonempty_stream = Stream.of_nullable([1, 2, 3])
     assert nonempty_stream.count() != 0
-    assert nonempty_stream._iterable == (1, 2, 3)
+    assert nonempty_stream._iterable == [1, 2, 3]
 
 
 def test_empty_stream():
@@ -141,6 +131,12 @@ def test_for_each():
     with redirect_stdout(f):
         Stream([1, 2, 3, 4]).for_each(lambda x: print(f"{'#' * x} ", end=""))
     assert f.getvalue() == "# ## ### #### "
+
+
+def test_enumerate():
+    iterable = ["x", "y", "z"]
+    assert Stream(iterable).enumerate().to_list() == [(0, "x"), (1, "y"), (2, "z")]
+    assert Stream(iterable).enumerate(start=1).to_list() == [(1, "x"), (2, "y"), (3, "z")]
 
 
 def test_peek():

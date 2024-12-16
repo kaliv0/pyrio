@@ -15,11 +15,16 @@ class Stream(BaseStream, ItertoolsMixin):
         return cls(iterable)
 
     @classmethod
-    def of_nullable(cls, *iterable):
-        # TODO: docstr
-        if any(i is None for i in iterable):
+    def of_nullable(cls, iterable):
+        """Creates Stream from args if iterable is not None; otherwise returns empty Stream"""
+        if iterable is None:
             return cls.empty()
         return cls(iterable)
+
+    @classmethod
+    def empty(cls):
+        """Creates empty Stream"""
+        return cls([])
 
     @classmethod
     def iterate(cls, seed, operation, condition=None):

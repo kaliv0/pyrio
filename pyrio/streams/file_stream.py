@@ -6,7 +6,7 @@ from aldict import AliasDict
 
 from pyrio.utils import DictItem
 from pyrio.streams import BaseStream, Stream
-from pyrio.exceptions import UnsupportedFileTypeError
+from pyrio.exceptions import UnsupportedFileTypeError, NullPointerError
 
 TEMP_PATH = "{file_path}.bak"
 SV_TYPES = {".csv", ".tsv"}  # TODO: rename 'SV'
@@ -77,6 +77,8 @@ class FileStream(BaseStream):
 
     def __new__(cls, file_path, f_open_options=None, f_read_options=None, **kwargs):
         obj = super().__new__(cls)
+        if file_path is None:
+            raise NullPointerError("File path cannot be None")
         iterable = cls._read_file(file_path, f_open_options, f_read_options, **kwargs)
         super(cls, obj).__init__(iterable)
         obj.file_path = file_path

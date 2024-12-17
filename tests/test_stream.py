@@ -6,7 +6,7 @@ from operator import itemgetter
 import pytest
 
 from pyrio import Stream, Optional, DictItem
-from pyrio.exceptions import IllegalStateError, UnsupportedTypeError, NullPointerError
+from pyrio.exceptions import IllegalStateError, UnsupportedTypeError, NoneTypeError
 
 
 def test_stream():
@@ -14,7 +14,7 @@ def test_stream():
 
 
 def test_stream_from_none():
-    with pytest.raises(NullPointerError) as e:
+    with pytest.raises(NoneTypeError) as e:
         Stream(None)
     assert str(e.value) == "Cannot create Stream from None"
 

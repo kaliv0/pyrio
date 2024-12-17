@@ -195,8 +195,10 @@ class ItertoolsMixin:
             yield from map(next, iterators)
 
     def partition(self, predicate):
-        """Partitions entries into false entries and true entries.
-        Returns a stream of two nested generators"""
+        """
+        Partitions entries into false entries and true entries.
+        Returns a stream of two nested generators
+        """
         true_iter, false_iter = it.tee(self.iterable)
         self.iterable = filter(predicate, true_iter), it.filterfalse(predicate, false_iter)
         return self

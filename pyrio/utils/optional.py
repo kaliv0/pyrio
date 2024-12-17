@@ -1,8 +1,8 @@
-from pyrio.exceptions import NoSuchElementError, NullPointerError
+from pyrio.exceptions import NoSuchElementError, NoneTypeError
 
 
 class Optional:
-    """A container object which may (or may not) contain a non-null value"""
+    """Container object which may (or may not) contain a non-null value"""
 
     def __init__(self, element):
         self._element = element
@@ -19,12 +19,15 @@ class Optional:
     def of(element):
         """Creates Optional describing given non-null value"""
         if element is None:
-            raise NullPointerError("Value cannot be None")
+            raise NoneTypeError("Value cannot be None")
         return Optional(element)
 
     @staticmethod
     def of_nullable(element):
-        """Returns an Optional describing the given value, if non-null, otherwise returns an empty Optional"""
+        """
+        Returns an Optional describing the given value, if non-null,
+        otherwise returns an empty Optional
+        """
         return Optional(element)
 
     def get(self):
@@ -47,26 +50,34 @@ class Optional:
             action(self.get())
 
     def if_present_or_else(self, action, empty_action):
-        """Performs given action with the value if the Optional is not empty, otherwise calls fallback 'empty_action'"""
+        """Performs given action with the value if the Optional is not empty,
+        otherwise calls fallback 'empty_action'
+        """
         if self.is_present():
             action(self.get())
         else:
             empty_action()
 
     def or_else(self, value):
-        """Returns the value if present, or a provided argument otherwise.
-        Safe alternative to get() method."""
+        """
+        Returns the value if present, or a provided argument otherwise.
+        Safe alternative to get() method
+        """
         return self._element if self.is_present() else value
 
     def or_else_get(self, supplier):
-        """Returns the value if present, or calls a 'supplier' function otherwise.
-        Safe alternative to get() method."""
+        """
+        Returns the value if present, or calls a 'supplier' function otherwise.
+        Safe alternative to get() method
+        """
         return self._element if self.is_present() else supplier()
 
     def or_else_raise(self, supplier=None):
-        """Returns the value if present,
+        """
+        Returns the value if present,
         otherwise throws an exception produced by the exception supplying function
-        (if such is provided by the user) or NoSuchElementException"""
+        (if such is provided by the user) or NoSuchElementError
+        """
         if supplier is None:
 
             def supplier():

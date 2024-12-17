@@ -3,7 +3,7 @@ from collections.abc import Mapping
 from pyrio.iterators import StreamGenerator
 from pyrio.decorators import handle_consumed, pre_call
 from pyrio.utils import DictItem, Optional
-from pyrio.exceptions import IllegalStateError, UnsupportedTypeError, NullPointerError
+from pyrio.exceptions import IllegalStateError, UnsupportedTypeError, NoneTypeError
 
 
 @pre_call(handle_consumed)
@@ -12,7 +12,7 @@ class BaseStream:
 
     def __init__(self, iterable):
         if iterable is None:
-            raise NullPointerError("Cannot create Stream from None")
+            raise NoneTypeError("Cannot create Stream from None")
         self._iterable = iterable
         self._is_consumed = False
         self._on_close_handler = None
@@ -143,25 +143,33 @@ class BaseStream:
         return Optional.of_nullable(default)
 
     def sort(self, comparator=None, *, reverse=False):
-        """Sorts the elements of the current stream according to natural order or based on the given comparator.
-        If 'reverse' flag is True, the elements are sorted in descending order"""
+        """
+        Sorts the elements of the current stream according to natural order or based on the given comparator.
+        If 'reverse' flag is True, the elements are sorted in descending order
+        """
         self.iterable = StreamGenerator.sort(self.iterable, comparator, reverse)
         return self
 
     def reverse(self, comparator=None):
-        """Sorts the elements of the current stream in descending order.
-        Alias for 'sort(comparator, reverse=True)'"""
+        """
+        Sorts the elements of the current stream in descending order.
+        Alias for 'sort(comparator, reverse=True)'
+        """
         self.iterable = StreamGenerator.sort(self.iterable, comparator, reverse=True)
         return self
 
     def find_first(self, predicate=None):
-        """Searches for an element of the stream that satisfies a predicate.
-        Returns an Optional with the first found value, if any, or None"""
+        """
+        Searches for an element of the stream that satisfies a predicate.
+        Returns an Optional with the first found value, if any, or None
+        """
         return Optional.of_nullable(next(filter(predicate, self.iterable), None))
 
     def find_any(self, predicate=None):
-        """Searches for an element of the stream that satisfies a predicate.
-        Returns an Optional with some of the found values, if any, or None"""
+        """
+        Searches for an element of the stream that satisfies a predicate.
+        Returns an Optional with some of the found values, if any, or None
+        """
         import random
 
         if predicate:
@@ -197,13 +205,18 @@ class BaseStream:
             operation(i)
 
     def enumerate(self, start=0):
-        # TODO: docstr
+        """
+        Returns each element of the Stream with his corresponding index
+        (by default starting from 0 if not specified otherwise)
+        """
         self.iterable = StreamGenerator.enumerate(self.iterable, start)
         return self
 
     def reduce(self, accumulator, identity=None):
-        """Reduces the elements to a single one, by repeatedly applying a reducing operation.
-        Returns Optional with the result, if any, or None"""
+        """
+        Reduces the elements to a single one, by repeatedly applying a reducing operation.
+        Returns Optional with the result, if any, or None
+        """
         if len(self.iterable) == 0:
             return Optional.of_nullable(identity)
 
@@ -221,7 +234,8 @@ class BaseStream:
 
     # ### collectors ###
     def collect(self, collection_type, dict_collector=None, dict_merger=None, str_delimiter=", "):
-        """Returns a collection from the stream.
+        """
+        Returns a collection from the stream.
 
         In case of dict:
         The 'dict_collector' function receives an element from the stream and returns a (key, value) pair or a DictItem
@@ -231,7 +245,8 @@ class BaseStream:
         E.g. lambda old, new: new
 
         In case of str:
-        Concatenates the elements of the Stream, separated by the specified 'str_delimiter'"""
+        Concatenates the elements of the Stream, separated by the specified 'str_delimiter'
+        """
         import builtins
 
         match collection_type:
@@ -261,13 +276,15 @@ class BaseStream:
         return set(self.iterable)
 
     def to_dict(self, collector=None, merger=None):
-        """Returns a dict of the elements of the current stream.
+        """
+        Returns a dict of the elements of the current stream.
 
         The 'collector' function receives an element from the stream and returns a (key, value) pair or a DictItem
         specifying how the dict should be constructed.
 
         The 'merger' functions indicates in the case of a collision (duplicate keys), which entry should be kept.
-        E.g. lambda old, new: new"""
+        E.g. lambda old, new: new
+        """
         result = {}
         source = (collector(i) for i in self.iterable) if collector else self.iterable
         for item in source:
@@ -294,8 +311,11 @@ class BaseStream:
         return self._join(delimiter)
 
     def group_by(self, classifier=None, collector=None):
-        """Performs a "group by" operation on the elements of the stream according to a classification function.
-        Returns the results in a dict built using collector function (optionally provided by the user or via a default one)"""
+        """
+        Performs a "group by" operation on the elements of the stream according to a classification function.
+        Returns the results in a dict built using collector function
+        (optionally provided by the user or via a default one)
+        """
         if collector is None:
             return {key: list(group) for key, group in self._group_by(classifier)}
 

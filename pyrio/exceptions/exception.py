@@ -1,16 +1,12 @@
-# TODO: rename file?
-
-
 class IllegalStateError(Exception):
     pass
 
 
-class NullPointerError(Exception):
+class NoneTypeError(TypeError):
     pass
 
 
-# TODO: maybe ValueError??
-class NoSuchElementError(Exception):
+class NoSuchElementError(ValueError):
     pass
 
 

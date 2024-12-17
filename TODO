@@ -1,22 +1,12 @@
-add methods:
-- Result pattern -> research how to integrate inside pipeline?
-- FileStream for regular text files -> read lines into iterable of strings
-
-- Stream.of(None)???
-
-- rename modules in decorators dir -> dispatcher, handler etc
-
-- split bigger tests with multiple asserts;
-    add tests for DictItem
-    rewrite all test raises with match=err_msg?
-
 - add to README and docs:
-    - take_first/last
+    - take_first
+    - take_last
     - close, on_close
     - collect(str), to_string, repr -> update
     - average
     - iterate -> with predicate -> update
-    - or_else_raise? -> part ot Optional API
     - range -> all overloads
     - enumerate
     - Stream(None), Stream.of_nullable()
+    - leetcode examples at the end
+split docs?

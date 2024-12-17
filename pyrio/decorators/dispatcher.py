@@ -3,6 +3,7 @@
 METHOD_REGISTRY = {}
 
 
+# minimalistic implementation, doesn't work with abstract typehints, lambda functions (e.g. passed as predicates) etc
 class MultiMethod:
     def __init__(self, name):
         self.name = name

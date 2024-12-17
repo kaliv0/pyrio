@@ -4,7 +4,7 @@ from contextlib import redirect_stdout
 import pytest
 
 from pyrio import Optional
-from pyrio.exceptions import NoSuchElementError, NullPointerError
+from pyrio.exceptions import NoSuchElementError, NoneTypeError
 
 
 def test_optional_get_raises():
@@ -14,7 +14,7 @@ def test_optional_get_raises():
 
 
 def test_optional_of_none_raises():
-    with pytest.raises(NullPointerError) as e:
+    with pytest.raises(NoneTypeError) as e:
         Optional.of(None)
     assert str(e.value) == "Value cannot be None"
 
@@ -79,12 +79,14 @@ def test_or_else_raise(Foo):
 
 
 def test_or_else_raise_custom_supplier(Foo):
+    err_msg = "Yo Mr. White...!"
+
     class DamnItError(Exception):
         pass
 
     def damn_it_supplier():
-        raise DamnItError("Yo Mr. White...!")
+        raise DamnItError(err_msg)
 
     with pytest.raises(DamnItError) as e:
         Optional.empty().or_else_raise(damn_it_supplier)
-    assert str(e.value) == "Yo Mr. White...!"
+    assert str(e.value) == err_msg

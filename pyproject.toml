@@ -12,7 +12,7 @@ documentation = "https://pyrio.readthedocs.io/en/latest"
 python = "^3.12"
 pyyaml = "^6.0.2"
 xmltodict = "^0.14.2"
-aldict = "^1.0.0"
+aldict = "^1.0.1"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.6.3"

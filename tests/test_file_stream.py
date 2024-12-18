@@ -1,12 +1,11 @@
 import shutil
 from decimal import Decimal
 from operator import attrgetter
-from pathlib import Path
 
 import pytest
 
 from pyrio import FileStream, Stream, DictItem
-from pyrio.exceptions import IllegalStateError, UnsupportedFileTypeError, NoneTypeError
+from pyrio.exceptions import IllegalStateError, NoneTypeError
 
 
 def test_none_path_error():
@@ -29,18 +28,19 @@ def test_path_is_dir_error():
     assert str(e.value) == f"Given path '{file_path}' is a directory"
 
 
-@pytest.mark.parametrize(
-    "file_path",
-    [
-        "./tests/resources/fizz.buzz",
-        "./tests/resources/noextension",
-        "./tests/resources/empty.",
-    ],
-)
-def test_file_type_error(file_path):
-    with pytest.raises(UnsupportedFileTypeError) as e:
-        FileStream(file_path)
-    assert str(e.value) == f"Unsupported file type: '{Path(file_path).suffix}'"
+# TODO: if this is removed -> remove files from tests/resources
+# @pytest.mark.parametrize(
+#     "file_path",
+#     [
+#         "./tests/resources/fizz.buzz",
+#         "./tests/resources/noextension",
+#         "./tests/resources/empty.",
+#     ],
+# )
+# def test_file_type_error(file_path):
+#     with pytest.raises(UnsupportedFileTypeError) as e:
+#         FileStream(file_path)
+#     assert str(e.value) == f"Unsupported file type: '{Path(file_path).suffix}'"
 
 
 @pytest.mark.parametrize(
@@ -88,11 +88,40 @@ def test_read_xml_include_root():
         "./tests/resources/bar.tsv",
     ],
 )
-def test_csv(file_path):
+def test_dsv(file_path):
     assert FileStream(file_path).map(lambda x: f"fizz: {x['fizz']}, buzz: {x['buzz']}").to_tuple() == (
         "fizz: 42, buzz: 45",
         "fizz: aaa, buzz: bbb",
     )
+
+
+# TODO
+###############################
+def test_read_plain_text():
+    lorem = FileStream("./tests/resources/plain.txt")
+    assert lorem.map(lambda x: x.strip()).to_string("||") == (
+        "Lorem ipsum dolor sit amet, consectetur adipisicing elit,"
+        "||sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+        "||Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris"
+        "||nisi ut aliquip ex ea commodo consequat."
+        "||Duis aute irure dolor in reprehenderit in voluptate velit esse"
+        "||cillum dolore eu fugiat nulla pariatur."
+        "||Excepteur sint occaecat cupidatat non proident, sunt in culpa"
+        "||qui officia deserunt mollit anim id est laborum."
+    )
+
+
+def test_read_plain_and_query():
+    assert FileStream("./tests/resources/plain.txt").map(lambda x: x.strip()).enumerate().filter(
+        lambda line: "id" in line[1]
+    ).to_dict() == {
+        1: "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+        6: "Excepteur sint occaecat cupidatat non proident, sunt in culpa",
+        7: "qui officia deserunt mollit anim id est laborum.",
+    }
+
+
+##############################
 
 
 def test_nested_json():
@@ -147,6 +176,7 @@ def test_reusing_stream():
     result = stream.map(lambda x: f"{x.key}=>{x.value}").tail(1).to_tuple()
     assert result == ("qwerty=>42",)
     assert stream._is_consumed
+    assert stream._file_handler.closed
 
     with pytest.raises(IllegalStateError) as e:
         stream.map(lambda x: x.value * 10).to_list()

@@ -206,7 +206,7 @@ class BaseStream:
 
     def enumerate(self, start=0):
         """
-        Returns each element of the Stream with his corresponding index
+        Returns each element of the Stream preceded by his corresponding index
         (by default starting from 0 if not specified otherwise)
         """
         self.iterable = StreamGenerator.enumerate(self.iterable, start)

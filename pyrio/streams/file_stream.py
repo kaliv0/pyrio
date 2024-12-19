@@ -6,7 +6,7 @@ from aldict import AliasDict
 
 from pyrio.utils import DictItem
 from pyrio.streams import BaseStream, Stream
-from pyrio.exceptions import UnsupportedFileTypeError, NoneTypeError
+from pyrio.exceptions import NoneTypeError
 
 TEMP_PATH = "{file_path}.bak"
 DSV_TYPES = {".csv", ".tsv"}
@@ -87,6 +87,7 @@ class FileStream(BaseStream):
         obj._on_close_handler = lambda: obj._file_handler.close() if not obj._file_handler.closed else None
         return obj
 
+    # TODO: make all params kwargs only?
     @classmethod
     def process(cls, file_path, f_open_options=None, f_read_options=None, **kwargs):
         """Creates Stream from a file with advanced 'reading' options passed by the user"""
@@ -152,6 +153,9 @@ class FileStream(BaseStream):
         return file_handler, (line for line in file_handler)
 
     # ### writing to file ###
+    # TODO: make all params kwargs only?
+    #   let user pass open mode via f_open_opts -> if missing - use 'w' as default
+    #       -> pass to all submethods e.g. atomic_write etc
     def save(self, file_path=None, null_handler=None, f_open_options=None, f_write_options=None, **kwargs):
         """Writes Stream to a new file (or updates an existing one) with advanced 'writing' options passed by the user"""
         path, tmp_path = self._prepare_file_paths(file_path)
@@ -162,7 +166,9 @@ class FileStream(BaseStream):
                 path, tmp_path, null_handler, f_open_options, f_write_options, **kwargs
             )
         else:
-            raise UnsupportedFileTypeError(f"Unsupported file type: '{suffix}'")
+            # TODO
+            # raise UnsupportedFileTypeError(f"Unsupported file type: '{suffix}'")
+            return self._write_plain(path, tmp_path, f_open_options)
 
     def _write_dsv(
         self, path, tmp_path, null_handler=None, f_open_options=None, f_write_options=None, **kwargs
@@ -171,7 +177,7 @@ class FileStream(BaseStream):
 
         if null_handler:
             self.map(null_handler)
-        output = self.map(lambda x: Stream(x).to_dict()).to_list()
+        output = self.map(lambda x: Stream(x).to_dict()).to_tuple()
 
         if f_write_options is None:
             f_write_options = {}
@@ -201,6 +207,13 @@ class FileStream(BaseStream):
         with self._atomic_write(path, tmp_path, config["write_mode"], f_open_options) as f:
             dump(output, f, **(f_write_options or {}))
 
+    # TODO: pass delimiter (default '\n' in w_write_opts)?
+    def _write_plain(self, path, tmp_path, f_open_options=None):
+        with self._atomic_write(path, tmp_path, "w", f_open_options) as f:
+            f.writelines(self.to_tuple())  # TODO: user should put \n with map() explicitly before save
+            # for line in self:
+            #     f.write(str(line))  # TODO: add \n here or custom delimiter from w_write_opts
+
     # ### helpers ###
     @staticmethod
     def _get_file_path(file_path, read_mode=True):
@@ -222,7 +235,7 @@ class FileStream(BaseStream):
 
     @contextmanager
     def _atomic_write(self, path, tmp_path, mode="w", f_open_options=None):
-        # TODO: unnecessary -> write_dsv/mapping use .to_dict/.to_list when preparing 'output' variable
+        # TODO: unnecessary -> write_ methods use .to_dict/.to_tuple when preparing 'output' variable
         # if path == self._file_path and not self._file_handler.closed:
         #     self._file_handler.close()
         try:

@@ -319,6 +319,33 @@ def test_save_custom_xml_root(tmp_file_dir, json_dict):
     )
 
 
+# TODO
+#########################################
+
+
+def test_save_plain(tmp_file_dir):
+    file_path = "lorem.txt"
+    tmp_file_path = tmp_file_dir / file_path
+
+    (
+        FileStream("./tests/resources/plain.txt")
+        .map(lambda line: line.strip())
+        .enumerate()
+        .filter(lambda line: "x" in line[1])
+        .map(lambda line: f"line_num:{line[0]}, text='{line[1]}'\n")
+        .save(tmp_file_path)
+    )
+
+    assert (
+        tmp_file_path.read_text(encoding="utf-8") == open(f"./tests/resources/save_output/{file_path}").read()
+    )
+
+
+# TODO: test update; test dump dict/json as plain text; test with f_opts
+
+#########################################
+
+
 def test_update_file(tmp_file_dir, json_dict):
     tmp_file_path = tmp_file_dir / "updated.json"
     shutil.copyfile("./tests/resources/long.json", tmp_file_path)

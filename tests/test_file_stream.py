@@ -80,8 +80,6 @@ def test_dsv(file_path):
     )
 
 
-# TODO
-###############################
 def test_read_plain_text():
     lorem = FileStream("./tests/resources/plain.txt")
     assert lorem.map(lambda x: x.strip()).to_string("||") == (
@@ -107,8 +105,6 @@ def test_read_plain_and_query():
 
 
 # TODO: test raises -> e.g. binary file
-
-##############################
 
 
 def test_nested_json():
@@ -306,10 +302,6 @@ def test_save_custom_xml_root(tmp_file_dir, json_dict):
     )
 
 
-# TODO
-#########################################
-
-
 def test_save_plain(tmp_file_dir):
     file_path = "lorem.txt"
     tmp_file_path = tmp_file_dir / file_path
@@ -329,8 +321,6 @@ def test_save_plain(tmp_file_dir):
 
 
 # TODO: test update; test dump dict/json as plain text; test with f_opts (append mode)
-
-#########################################
 
 
 def test_update_file(tmp_file_dir, json_dict):

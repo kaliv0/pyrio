@@ -115,12 +115,12 @@ class FileStream(BaseStream):
     def _read_dsv(path, f_open_options, f_read_options):
         import csv
 
-        if "newline" not in f_open_options:
-            f_open_options["newline"] = ""
         FileStream._prepare_io_options(
-            [("delimiter", f_read_options, lambda: "\t" if path.suffix == ".tsv" else ",")]
+            [
+                (f_open_options, "newline", ""),
+                (f_read_options, "delimiter", "\t" if path.suffix == ".tsv" else ","),
+            ]
         )
-
         file_handler = open(path, **f_open_options)
         return file_handler, tuple(csv.DictReader(file_handler, **f_read_options))
 
@@ -128,12 +128,12 @@ class FileStream(BaseStream):
     def _read_mapping(path, f_open_options, f_read_options, **kwargs):
         config = MAPPING_READ_CONFIG[path.suffix]
         load = getattr(importlib.import_module(config["import_mod"]), config["callable"])
-        FileStream._prepare_io_options([("mode", f_open_options, lambda: config["read_mode"])])
+        FileStream._prepare_io_options([(f_open_options, "mode", config["read_mode"])])
 
         file_handler = open(path, **f_open_options)
         content = load(file_handler, **f_read_options)
         if path.suffix == ".xml":
-            if kwargs.get("include_root", None):
+            if kwargs.get("include_root"):
                 return file_handler, content
             # NB: return dict (instead of dict_view) to re-map it later as DictItem records
             return file_handler, next(iter(content.values()))
@@ -173,13 +173,11 @@ class FileStream(BaseStream):
 
         self._prepare_io_options(
             [
-                ("mode", f_open_options, lambda: "w"),
-                ("delimiter", f_write_options, lambda: "\t" if path.suffix == ".tsv" else ","),
+                (f_open_options, "mode", "w"),
+                (f_write_options, "delimiter", "\t" if path.suffix == ".tsv" else ","),
+                (f_write_options, "fieldnames", output[0].keys() if output else ()),
             ]
         )
-        if "fieldnames" not in f_write_options:
-            f_write_options["fieldnames"] = output[0].keys() if output else ()
-
         with self._atomic_write(path, tmp_path, f_open_options) as f:
             writer = csv.DictWriter(f, **f_write_options)
             writer.writeheader()
@@ -192,12 +190,12 @@ class FileStream(BaseStream):
 
         output = self.to_dict()
 
-        self._prepare_io_options([("mode", f_open_options, lambda: config["write_mode"])])
+        io_opts_setting = [(f_open_options, "mode", config["write_mode"])]
         if path.suffix == ".xml":
             root = kwargs.get("xml_root", "root")
             output = {root: output}
-            if "pretty" not in f_write_options:
-                f_write_options["pretty"] = True
+            io_opts_setting.append((f_write_options, "pretty", True))
+        self._prepare_io_options(io_opts_setting)
 
         dump = getattr(importlib.import_module(config["import_mod"]), config["callable"])
         with self._atomic_write(path, tmp_path, f_open_options) as f:
@@ -205,7 +203,7 @@ class FileStream(BaseStream):
 
     # TODO: pass delimiter (default '\n' in w_write_opts)?
     def _write_plain(self, path, tmp_path, f_open_options=None):
-        self._prepare_io_options([("mode", f_open_options, lambda: "w")])
+        self._prepare_io_options([(f_open_options, "mode", "w")])
         with self._atomic_write(path, tmp_path, f_open_options) as f:
             f.writelines(self.to_tuple())  # TODO: user should put \n with map() explicitly before save
             # for line in self:
@@ -234,14 +232,9 @@ class FileStream(BaseStream):
 
     @staticmethod
     def _prepare_io_options(settings):
-        for key, f_options, supplier in settings:
+        for f_options, key, value in settings:
             if key not in f_options:
-                f_options[key] = supplier()
-
-    # @staticmethod
-    # def _prepare_delimiter(f_options, suffix):
-    #     if "delimiter" not in f_options:
-    #         f_options["delimiter"] = "\t" if suffix == ".tsv" else ","
+                f_options[key] = value
 
     @contextmanager
     def _atomic_write(self, path, tmp_path, f_open_options):

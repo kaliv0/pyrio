@@ -48,7 +48,6 @@ class StreamGenerator:
 
     @staticmethod
     def iterate(seed, operation, condition=None):
-        # TODO: refactor?
         if condition is None:
             condition = lambda _: True  # noqa
         while condition(seed):

@@ -10,3 +10,8 @@
     - Stream(None), Stream.of_nullable()
     - leetcode examples at the end
 split docs?
+
+file_stream:
+    - DictReader receives *args only too -> currently not passed by **f_read_options
+    - should private methods also have kwargs-only params as process() and save()?
+

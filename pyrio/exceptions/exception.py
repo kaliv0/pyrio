@@ -14,5 +14,5 @@ class UnsupportedTypeError(TypeError):
     pass
 
 
-class UnsupportedFileTypeError(UnsupportedTypeError):
+class FileProcessingError(OSError):
     pass

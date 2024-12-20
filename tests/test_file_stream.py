@@ -28,21 +28,6 @@ def test_path_is_dir_error():
     assert str(e.value) == f"Given path '{file_path}' is a directory"
 
 
-# TODO: if this is removed -> remove files from tests/resources
-# @pytest.mark.parametrize(
-#     "file_path",
-#     [
-#         "./tests/resources/fizz.buzz",
-#         "./tests/resources/noextension",
-#         "./tests/resources/empty.",
-#     ],
-# )
-# def test_file_type_error(file_path):
-#     with pytest.raises(UnsupportedFileTypeError) as e:
-#         FileStream(file_path)
-#     assert str(e.value) == f"Unsupported file type: '{Path(file_path).suffix}'"
-
-
 @pytest.mark.parametrize(
     "file_path",
     [
@@ -120,6 +105,8 @@ def test_read_plain_and_query():
         7: "qui officia deserunt mollit anim id est laborum.",
     }
 
+
+# TODO: test raises -> e.g. binary file
 
 ##############################
 
@@ -292,9 +279,9 @@ def test_save_handle_null(tmp_file_dir, file_path, indent, json_dict):
     tmp_file_path = tmp_file_dir / file_path
     FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
         tmp_file_path,
-        null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
         f_open_options={"encoding": "utf-8"},
         f_write_options={"indent": indent},
+        null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
     )
     assert (
         tmp_file_path.read_text(encoding="utf-8") == open(f"./tests/resources/save_output/{file_path}").read()
@@ -309,9 +296,9 @@ def test_save_custom_xml_root(tmp_file_dir, json_dict):
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
     FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
         tmp_file_path,
-        null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
         f_open_options={"encoding": "utf-8"},
         f_write_options={"indent": indent},
+        null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
         xml_root="my-root",
     )
     assert (
@@ -341,7 +328,7 @@ def test_save_plain(tmp_file_dir):
     )
 
 
-# TODO: test update; test dump dict/json as plain text; test with f_opts
+# TODO: test update; test dump dict/json as plain text; test with f_opts (append mode)
 
 #########################################
 
@@ -353,8 +340,8 @@ def test_update_file(tmp_file_dir, json_dict):
         FileStream(tmp_file_path)
         .map(lambda x: DictItem(x.key, ", ".join((str(y) for y in x.value)) if x.value else x.value))
         .save(
-            null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
             f_write_options={"indent": 2},
+            null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
         )
     )
     assert (

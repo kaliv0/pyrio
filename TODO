@@ -1,12 +1,6 @@
 - add to README and docs:
-    - take_first
-    - take_last
-    - close, on_close
-    - collect(str), to_string, repr -> update
-    - average
-    - iterate -> with predicate -> update
+    - collect(str), to_string -> update
     - range -> all overloads
-    - enumerate
     - Stream(None), Stream.of_nullable()
     - leetcode examples at the end
     - read_/ save_ plain files, append via f_open_opts in save()

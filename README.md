@@ -40,6 +40,12 @@ Stream.empty()
 Stream.iterate(0, lambda x: x + 1)
 ```
 
+NB: in the same fashion you can create <i>finite ordered stream</i> by providing a <i>condition</i> predicate</i>
+```python
+Stream.iterate(10, operation=lambda x: x + 1, condition=lambda x: x < 15).to_list()
+# [10, 11, 12, 13, 14]
+```
+
 - infinite unordered stream
 ```python
 import random
@@ -83,26 +89,20 @@ Stream([1, 2, 3]).map(lambda x: x + 5).to_list()
 <br>(filter out all None or discard_falsy values (if discard_falsy=True) and applies mapper function to the elements of the stream)
 ```python
 Stream.of(None, "foo", "", "bar", 0, []).filter_map(str.upper, discard_falsy=True).to_list()
-```
-```shell
-["FOO", "BAR"]
+# ["FOO", "BAR"]
 ```
 
 - flat_map
 <br>(map each element of the stream and yields the elements of the produced iterators)
 ```python
 Stream([[1, 2], [3, 4], [5]]).flat_map(lambda x: Stream(x)).to_list()
-```
-```shell
-[1, 2, 3, 4, 5]
+# [1, 2, 3, 4, 5]
 ```
 
 - flatten
 ```python
 Stream([[1, 2], [3, 4], [5]]).flatten().to_list()
-```
-```shell
-[1, 2, 3, 4, 5]
+# [1, 2, 3, 4, 5]
 ```
 
 - reduce 
@@ -121,13 +121,22 @@ Stream([1, 2, 3]).reduce(lambda acc, val: acc + val, identity=3).get()
     .to_list())
 ```
 
+- enumerate
+<br>(returns each element of the Stream preceded by his corresponding index 
+(by default starting from 0 if not specified otherwise))
+```python
+iterable = ["x", "y", "z"]
+Stream(iterable).enumerate().to_list()
+Stream(iterable).enumerate(start=1).to_list()
+# [(0, "x"), (1, "y"), (2, "z")]
+# [(1, "x"), (2, "y"), (3, "z")]
+```
+
 - view
 <br>(provides access to a selected part of the stream)
 ```python
 Stream([1, 2, 3, 4, 5, 6, 7, 8, 9]).view(start=1, stop=-3, step=2).to_list()
-```
-```shell
-[2, 4, 6]
+# [2, 4, 6]
 ```
 
 - distinct
@@ -159,18 +168,14 @@ Stream([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).tail(3).to_tuple()
 <br>(returns a stream that yields elements based on a predicate)
 ```python
 Stream.of(1, 2, 3, 4, 5, 6, 7, 2, 3).take_while(lambda x: x < 5).to_list()
-```
-```shell
-[1, 2, 3, 4]
+# [1, 2, 3, 4]
 ```
 
 - drop_while
 <br>(returns a stream that skips elements based on a predicate and yields the remaining ones)
 ```python
 Stream.of(1, 2, 3, 5, 6, 7, 2).drop_while(lambda x: x < 5).to_list()
-```
-```shell
-[5, 6, 7, 2]
+# [5, 6, 7, 2]
 ```
 
 - sort
@@ -180,9 +185,7 @@ Stream.of(1, 2, 3, 5, 6, 7, 2).drop_while(lambda x: x < 5).to_list()
 (Stream.of((3, 30), (2, 30), (2, 20), (1, 20), (1, 10))
     .sort(lambda x: (x[0], x[1]), reverse=True)
     .to_list())
-```
-```shell
-[(3, 30), (2, 30), (2, 20), (1, 20), (1, 10)]
+# [(3, 30), (2, 30), (2, 20), (1, 20), (1, 10)]
 ```
 
 - reverse
@@ -192,9 +195,7 @@ Stream.of(1, 2, 3, 5, 6, 7, 2).drop_while(lambda x: x < 5).to_list()
 (Stream.of((3, 30), (2, 30), (2, 20), (1, 20), (1, 10))
     .reverse(lambda x: (x[0], x[1]))
     .to_list())
-```
-```shell
-[(3, 30), (2, 30), (2, 20), (1, 20), (1, 10)]
+# [(3, 30), (2, 30), (2, 20), (1, 20), (1, 10)]
 ```
 
 <br>NB: in case of stream of dicts all key-value pairs are represented internally as <i>DictItem</i> objects 
@@ -209,6 +210,17 @@ second_dict = {"x": 3, "y": 4}
     .to_list()) 
 ```
 
+- on_close
+<br>(returns an equivalent Stream with an additional <i>close handler</i> to be invoked automatically by the <i>terminal operation</i>)
+```python
+(Stream([1, 2, 3, 4])
+    .on_close(lambda: print("Sorry Montessori"))
+    .peek(lambda x: print(f"{'$' * x} ", end=""))
+    .map(lambda x: x * 2)
+    .to_list())
+# "$ $$ $$$ $$$$ Sorry Montessori"
+# [2, 4, 6, 8]
+```
 --------------------------------------------
 ### Terminal operations
 #### Collectors
@@ -227,18 +239,14 @@ class Foo:
         self.num = num
         
 Stream([Foo("fizz", 1), Foo("buzz", 2)]).to_dict(lambda x: (x.name, x.num))
-```
-```shell
-{"fizz": 1, "buzz": 2}
+# {"fizz": 1, "buzz": 2}
 ```
 
 In the case of a collision (duplicate keys) the 'merger' functions indicates which entry should be kept
 ```python
 collection = [Foo("fizz", 1), Foo("fizz", 2), Foo("buzz", 2)]
 Stream(collection).to_dict(collector=lambda x: (x.name, x.num), merger=lambda old, new: old)
-```
-```shell
-{"fizz": 1, "buzz": 2}
+# {"fizz": 1, "buzz": 2}
 ```
 
 <i>to_dict</i> method also supports creating dictionaries from dict DictItem objects
@@ -246,9 +254,7 @@ Stream(collection).to_dict(collector=lambda x: (x.name, x.num), merger=lambda ol
 first_dict = {"x": 1, "y": 2}
 second_dict = {"p": 33, "q": 44, "r": None}
 Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: DictItem(x.key, x.value or 0)) 
-```
-```shell
-{"x": 1, "y": 2, "p": 33, "q": 44, "r": 0}
+# {"x": 1, "y": 2, "p": 33, "q": 44, "r": 0}
 ```
 e.g. you could combine streams of dicts by writing:
 ```python
@@ -259,15 +265,11 @@ Stream(first_dict).concat(Stream(second_dict)).to_dict()
 - into string
 ```python
 Stream({"a": 1, "b": [2, 3]}).to_string()
-```
-```shell
-"Stream(DictItem(key=a, value=1), DictItem(key=b, value=[2, 3]))"
+# "Stream(DictItem(key=a, value=1), DictItem(key=b, value=[2, 3]))"
 ```
 ```python
 Stream({"a": 1, "b": [2, 3]}).map(lambda x: {x.key: x.value}).to_string(delimiter=" | ")
-```
-```shell
-"Stream({'a': 1} | {'b': [2, 3]})"
+# "Stream({'a': 1} | {'b': [2, 3]})"
 ```
 
 - alternative for working with collectors is using the <i>collect</i> method
@@ -281,9 +283,7 @@ Stream.of(1, 2, 3, 4).collect(dict, lambda x: (str(x), x * 10))
 - grouping
 ```python
 Stream("AAAABBBCCD").group_by(collector=lambda key, grouper: (key, len(grouper)))
-```
-```shell
-{"A": 4, "B": 3, "C": 2, "D": 1}
+# {"A": 4, "B": 3, "C": 2, "D": 1}
 ```
 
 ```python
@@ -291,12 +291,8 @@ coll = [Foo("fizz", 1), Foo("fizz", 2), Foo("fizz", 3), Foo("buzz", 2), Foo("buz
 Stream(coll).group_by(
     classifier=lambda obj: obj.name,
     collector=lambda key, grouper: (key, [(obj.name, obj.num) for obj in list(grouper)]))
-```
-```shell
-{
-  "fizz": [("fizz", 1), ("fizz", 2), ("fizz", 3)],
-  "buzz": [("buzz", 2), ("buzz", 3), ("buzz", 4), ("buzz", 5)],
-}
+# {"fizz": [("fizz", 1), ("fizz", 2), ("fizz", 3)],
+#  "buzz": [("buzz", 2), ("buzz", 3), ("buzz", 4), ("buzz", 5)]}
 ```
 #### Other terminal operations
 - for_each
@@ -313,6 +309,24 @@ Stream([1, 2, 3, 4]).filter(lambda x: x % 2 == 0).count()
 - sum
 ```python
 Stream.of(1, 2, 3, 4).sum() 
+```
+
+- min
+<br>(returns Optional with the minimum element of the stream)
+```python
+Stream.of(2, 1, 3, 4).min().get()
+```
+
+- max
+<br>(returns Optional with the maximum element of the stream)
+```python
+Stream.of(2, 1, 3, 4).max().get()
+```
+
+- average
+<br>(returns the average value of elements in the stream)
+```python
+Stream.of(1, 2, 3, 4, 5).average()
 ```
 
 - find_first
@@ -347,16 +361,20 @@ Stream.of(1, 2, 3, 4).all_match(lambda x: x > 2)
 Stream.of(1, 2, 3, 4).none_match(lambda x: x < 0)
 ```
 
-- min
-<br>(returns Optional with the minimum element of the stream)
+- take_first
+<br>(returns Optional with the first element of the stream or a default value)
 ```python
-Stream.of(2, 1, 3, 4).min().get()
+Stream({"a": 1, "b": 2}).take_first().get()
+Stream([]).take_first(default=33).get() 
+# DictItem(key="a", value=1)
+# 33
 ```
 
-- max
-<br>(returns Optional with the maximum element of the stream)
+- take_last
+<br>(returns Optional with the last element of the stream or a default value)
 ```python
-Stream.of(2, 1, 3, 4).max().get()
+Stream({"a": 1, "b": 2}).take_last().get()
+Stream([]).take_last(default=33).get() 
 ```
 
 - compare_with
@@ -372,6 +390,11 @@ Stream([buzz, fizz]).compare_with(Stream([fizz, buzz]), lambda x, y: x.num == y.
 ```python
 Stream([2, 3, 4, 5, 6]).quantify(predicate=lambda x: x % 2 == 0)
 ```
+
+NB: although the Stream is closed automatically by the <i>terminal operation</i>
+<br> you can still close it by hand (if needed) invoking the <i>close()</i> method.
+<br> In turn that will trigger the close_handler (if such was provided)
+
 --------------------------------------------
 ### Itertools integration
 Invoke <i>use</i> method by passing the itertools function and it's arguments as **kwargs
@@ -398,12 +421,7 @@ Stream(["ABC", "D", "EF"]).round_robin().to_list()
 <br>NB: FileStream reads data as series of DictItem objects from underlying dict_items view
 ```python
 FileStream("path/to/file").map(lambda x: f"{x.key}=>{x.value}").to_tuple()
-```
-```shell
-(
-  "abc=>xyz", 
-  "qwerty=>42",
-)
+# ("abc=>xyz", "qwerty=>42")
 ```
 ```python
 from operator import attrgetter
@@ -415,28 +433,19 @@ from pyrio import DictItem
     .sort(attrgetter("value"), reverse=True)
     .map(lambda x: f"{str(x.value)}::{x.key}")
     .to_list()) 
-```
-```shell
-["230::xza", "110::abba", "30::a"]
+# ["230::xza", "110::abba", "30::a"]
 ```
 - querying <i>csv</i> and <i>tsv</i> files
 <br>(each row is read as a dict with keys taken from the header)
 ```python
 FileStream("path/to/file").map(lambda x: f"fizz: {x['fizz']}, buzz: {x['buzz']}").to_tuple() 
-```
-```shell
-(
-  "fizz: 42, buzz: 45",
-  "fizz: aaa, buzz: bbb",
-)
+# ("fizz: 42, buzz: 45", "fizz: aaa, buzz: bbb")
 ```
 ```python
 from operator import itemgetter
 
-FileStream("path/to/file").map(itemgetter('fizz', 'buzz')).to_tuple()
-```
-```shell
-(('42', '45'), ('aaa', 'bbb'))
+FileStream("path/to/file").map(itemgetter('fizz')).to_list()
+# ['42', 'aaa']
 ```
 You could query the nested dicts by creating streams out of them
 ```python
@@ -455,18 +464,14 @@ from decimal import Decimal
     f_open_options={"encoding": "utf-8"}, 
     f_read_options={"parse_float": Decimal})
  .map(lambda x:x.value).to_list())
-```
-```shell
-['foo', True, Decimal('1.22'), Decimal('5.456367654369698986')]
+# ['foo', True, Decimal('1.22'), Decimal('5.456367654)]
 ```
 To include the <i>root</i> tag when loading an <i>.xml</i> file pass <i>'include_root=True'</i>
 ```python
 FileStream.process("path/to/custom_root.xml", include_root=True).map(
     lambda x: f"root={x.key}: inner_records={str(x.value)}"
 ).to_list()
-```
-```shell
-["root=custom-root: inner_records={'abc': 'xyz', 'qwerty': '42'}"]
+# ["root=custom-root: inner_records={'abc': 'xyz', 'qwerty': '42'}"]
 ```
 --------------------------------------------
 #### Saving to a file

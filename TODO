@@ -1,7 +1,4 @@
 - add to README and docs:
-    - collect(str), to_string -> update
-    - range -> all overloads
-    - Stream(None), Stream.of_nullable()
     - leetcode examples at the end
     - read_/ save_ plain files, append via f_open_opts in save()
 split docs?

@@ -58,6 +58,19 @@ Stream.generate(lambda: random.random())
 Stream.constant(42)
 ```
 
+- stream from range
+<br>(from <i>start</i> (inclusive) to <i>stop</i> (exclusive) by an incremental <i>step</i> (defaults to 1))
+```python
+Stream.from_range(0, 10).to_list()
+Stream.from_range(0, 10, 3).to_list()
+Stream.from_range(10, -1, -2).to_list()
+```
+(or from <i>range</i> object)
+```python
+range_obj = range(0, 10)
+Stream.from_range(range_obj).to_list()
+```
+
 - concat
 <br>(concatenate new streams/iterables with the current one)
 ```python
@@ -70,8 +83,12 @@ Stream([1, 2, 3]).concat([5, 6]).to_list()
 ```python
 Stream([2, 3, 4]).prepend(0, 1).to_list()
 Stream.of(3, 4, 5).prepend(Stream.of([0, 1], 2)).to_list()
-
 ```
+
+NB: creating new stream from None raises error.
+<br>In cases when the <i>iterable</i> could potentially be None use the <i>of_nullable()</i> method instead;
+<br>it returns an <i>empty stream</i> if None and a <i>regular</i> one otherwise
+
 --------------------------------------------
 ### Intermediate operations
 - filter
@@ -278,6 +295,7 @@ Stream([1, 2, 3]).collect(tuple)
 Stream.of(1, 2, 3).collect(list)
 Stream.of(1, 1, 2, 2, 2, 3).collect(set)
 Stream.of(1, 2, 3, 4).collect(dict, lambda x: (str(x), x * 10))
+Stream.of("x", "y", "z").collect(str, str_delimiter="->")
 ```
 
 - grouping

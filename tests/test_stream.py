@@ -108,7 +108,7 @@ def test_filter_map():
 
 
 def test_filter_map_discard_falsy():
-    assert Stream([None, "foo", "", "bar", 0, []]).filter_map(str.upper, discard_falsy=True).to_list() == [
+    assert Stream.of(None, "foo", "", "bar", 0, []).filter_map(str.upper, discard_falsy=True).to_list() == [
         "FOO",
         "BAR",
     ]

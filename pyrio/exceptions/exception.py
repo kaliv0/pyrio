@@ -12,7 +12,3 @@ class NoSuchElementError(ValueError):
 
 class UnsupportedTypeError(TypeError):
     pass
-
-
-class FileProcessingError(OSError):
-    pass

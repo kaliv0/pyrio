@@ -1,4 +1,5 @@
 import importlib
+import shutil
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -6,7 +7,7 @@ from aldict import AliasDict
 
 from pyrio.utils import DictItem
 from pyrio.streams import BaseStream, Stream
-from pyrio.exceptions import NoneTypeError, FileProcessingError
+from pyrio.exceptions import NoneTypeError
 
 TEMP_PATH = "{file_path}.bak"
 DSV_TYPES = {".csv", ".tsv"}
@@ -70,7 +71,7 @@ MAPPING_WRITE_CONFIG.add_alias(".yaml", ".yml")
 class FileStream(BaseStream):
     """Derived Stream class for querying files; maps file content to im-memory dict structures and vice versa"""
 
-    # NB: Dirty deeds for a nice-looking API
+    # Dirty deeds for a nice-looking API
     def __init__(self, file_path):  # noqa
         """Creates Stream from a file"""
         pass
@@ -101,15 +102,12 @@ class FileStream(BaseStream):
         if f_read_options is None:
             f_read_options = {}
 
-        try:
-            if (suffix := path.suffix) in DSV_TYPES:
-                return cls._read_dsv(path, f_open_options, f_read_options)
-            elif suffix in MAPPING_READ_CONFIG.keys():
-                return cls._read_mapping(path, f_open_options, f_read_options, **kwargs)
-            else:
-                return cls._read_plain(path, f_open_options)
-        except (IOError, Exception) as e:
-            raise FileProcessingError(f"Something went wrong while processing '{file_path}'") from e
+        if (suffix := path.suffix) in DSV_TYPES:
+            return cls._read_dsv(path, f_open_options, f_read_options)
+        elif suffix in MAPPING_READ_CONFIG.keys():
+            return cls._read_mapping(path, f_open_options, f_read_options, **kwargs)
+        else:
+            return cls._read_plain(path, f_open_options)
 
     @staticmethod
     def _read_dsv(path, f_open_options, f_read_options):
@@ -141,7 +139,6 @@ class FileStream(BaseStream):
 
     @staticmethod
     def _read_plain(path, f_open_options):
-        # NB: don't pass 'mode' explicitly and use the default one ('r')
         file_handler = open(path, **f_open_options)
         return file_handler, (line for line in file_handler)
 
@@ -162,7 +159,7 @@ class FileStream(BaseStream):
                 path, tmp_path, f_open_options, f_write_options, null_handler, **kwargs
             )
         else:
-            return self._write_plain(path, tmp_path, f_open_options)
+            return self._write_plain(path, tmp_path, f_open_options, f_write_options)
 
     def _write_dsv(self, path, tmp_path, f_open_options, f_write_options, null_handler=None):
         import csv
@@ -201,14 +198,10 @@ class FileStream(BaseStream):
         with self._atomic_write(path, tmp_path, f_open_options) as f:
             dump(output, f, **f_write_options)
 
-    # TODO: pass delimiter (default '\n' in w_write_opts)?
-    def _write_plain(self, path, tmp_path, f_open_options=None):
-        self._prepare_io_options([(f_open_options, "mode", "w")])
+    def _write_plain(self, path, tmp_path, f_open_options, f_write_options):
+        self._prepare_io_options([(f_open_options, "mode", "w"), (f_write_options, "delimiter", "\n")])
         with self._atomic_write(path, tmp_path, f_open_options) as f:
-            f.writelines(self.to_tuple())  # TODO: user should put \n with map() explicitly before save
-            # for line in self:
-            #     f.write(str(line))  # TODO: add \n here or custom delimiter from w_write_opts
-            #                         #     if using loop -> explicitly invoke self._file_handler.close()
+            f.writelines(self.to_string(**f_write_options))
 
     # ### helpers ###
     @staticmethod
@@ -232,17 +225,19 @@ class FileStream(BaseStream):
 
     @staticmethod
     def _prepare_io_options(settings):
-        for f_options, key, value in settings:
-            if key not in f_options:
-                f_options[key] = value
+        for options, key, value in settings:
+            if key not in options:
+                options[key] = value
 
     @contextmanager
     def _atomic_write(self, path, tmp_path, f_open_options):
         try:
-            # NB: 'mode' is passed as part of f_open_options
+            if f_open_options["mode"] == "a":
+                tmp_path = shutil.copyfile(path, tmp_path)
+
             with open(tmp_path, **f_open_options) as f:
                 yield f
             tmp_path.replace(path)
         except (IOError, Exception) as e:
             tmp_path.unlink(missing_ok=True)
-            raise FileProcessingError(f"Something went wrong while saving to '{path}'") from e
+            raise e

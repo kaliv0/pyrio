@@ -9,9 +9,7 @@
     - enumerate
     - Stream(None), Stream.of_nullable()
     - leetcode examples at the end
+    - read_/ save_ plain files, append via f_open_opts in save()
 split docs?
 
-file_stream:
-    - DictReader receives *args only too -> currently not passed by **f_read_options
-    - should private methods also have kwargs-only params as process() and save()?
-
+change description in pyproj about file types (and in docs?)

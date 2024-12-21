@@ -104,9 +104,6 @@ def test_read_plain_and_query():
     }
 
 
-# TODO: test raises -> e.g. binary file
-
-
 def test_nested_json():
     assert FileStream("./tests/resources/nested.json").map(lambda x: x.value).flat_map(
         lambda x: Stream(x).filter(lambda y: y.key == "second").flat_map(lambda z: z.value).to_tuple()
@@ -236,7 +233,7 @@ def test_save_toml(tmp_file_dir, json_dict):
         tmp_file_path,
         null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
     )
-    assert tmp_file_path.read_text(encoding="utf-8") == open("./tests/resources/save_output/test.toml").read()
+    assert tmp_file_path.read_text() == open("./tests/resources/save_output/test.toml").read()
 
 
 def test_save_toml_default_null_handler(tmp_file_dir, json_dict):
@@ -261,9 +258,7 @@ def test_save(tmp_file_dir, file_path, indent, json_dict):
         f_open_options={"encoding": "utf-8"},
         f_write_options={"indent": indent},
     )
-    assert (
-        tmp_file_path.read_text(encoding="utf-8") == open(f"./tests/resources/save_output/{file_path}").read()
-    )
+    assert tmp_file_path.read_text() == open(f"./tests/resources/save_output/{file_path}").read()
 
 
 @pytest.mark.parametrize(
@@ -279,9 +274,7 @@ def test_save_handle_null(tmp_file_dir, file_path, indent, json_dict):
         f_write_options={"indent": indent},
         null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
     )
-    assert (
-        tmp_file_path.read_text(encoding="utf-8") == open(f"./tests/resources/save_output/{file_path}").read()
-    )
+    assert tmp_file_path.read_text() == open(f"./tests/resources/save_output/{file_path}").read()
 
 
 def test_save_custom_xml_root(tmp_file_dir, json_dict):
@@ -292,35 +285,47 @@ def test_save_custom_xml_root(tmp_file_dir, json_dict):
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
     FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
         tmp_file_path,
-        f_open_options={"encoding": "utf-8"},
         f_write_options={"indent": indent},
         null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
         xml_root="my-root",
     )
-    assert (
-        tmp_file_path.read_text(encoding="utf-8") == open(f"./tests/resources/save_output/{file_path}").read()
-    )
+    assert tmp_file_path.read_text() == open(f"./tests/resources/save_output/{file_path}").read()
 
 
 def test_save_plain(tmp_file_dir):
     file_path = "lorem.txt"
-    tmp_file_path = tmp_file_dir / file_path
-
+    tmp_file_path = tmp_file_dir / "lorem.txt"
+    fs = FileStream("./tests/resources/plain.txt")
     (
-        FileStream("./tests/resources/plain.txt")
+        fs.map(lambda line: line.strip())
+        .enumerate()
+        .filter(lambda line: "x" in line[1])
+        .map(lambda line: f"line_num:{line[0]}, text='{line[1]}'")
+        .save(tmp_file_path)
+    )
+    assert tmp_file_path.read_text() == open(f"./tests/resources/save_output/{file_path}").read()
+    assert fs._file_handler.closed
+
+
+def test_save_raises():
+    with pytest.raises(UnicodeDecodeError) as e:
+        FileStream("./tests/resources/awake.mp3").save("./tests/resources/woke.json")
+    assert str(e.value) == "'utf-8' codec can't decode byte 0xff in position 45: invalid start byte"
+
+
+def test_update_plain(tmp_file_dir, json_dict):
+    file_path = "lorem.txt"
+    tmp_file_path = tmp_file_dir / file_path
+    shutil.copyfile("./tests/resources/plain.txt", tmp_file_path)
+    (
+        FileStream(tmp_file_path)
         .map(lambda line: line.strip())
         .enumerate()
         .filter(lambda line: "x" in line[1])
-        .map(lambda line: f"line_num:{line[0]}, text='{line[1]}'\n")
-        .save(tmp_file_path)
+        .map(lambda line: f"line_num:{line[0]}, text='{line[1]}'")
+        .save()
     )
-
-    assert (
-        tmp_file_path.read_text(encoding="utf-8") == open(f"./tests/resources/save_output/{file_path}").read()
-    )
-
-
-# TODO: test update; test dump dict/json as plain text; test with f_opts (append mode)
+    assert tmp_file_path.read_text() == open(f"./tests/resources/save_output/{file_path}").read()
 
 
 def test_update_file(tmp_file_dir, json_dict):
@@ -334,13 +339,12 @@ def test_update_file(tmp_file_dir, json_dict):
             null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
         )
     )
-    assert (
-        tmp_file_path.read_text(encoding="utf-8") == open("./tests/resources/save_output/updated.json").read()
-    )
+    assert tmp_file_path.read_text() == open("./tests/resources/save_output/updated.json").read()
 
 
 def test_filter_update_file(tmp_file_dir, json_dict):
-    tmp_file_path = tmp_file_dir / "filtered.toml"
+    file_path = "filtered.toml"
+    tmp_file_path = tmp_file_dir / file_path
     shutil.copyfile("./tests/resources/test.toml", tmp_file_path)
     (
         FileStream(tmp_file_path)
@@ -348,10 +352,7 @@ def test_filter_update_file(tmp_file_dir, json_dict):
         .reverse(comparator=lambda x: x.key)
         .save()
     )
-    assert (
-        tmp_file_path.read_text(encoding="utf-8")
-        == open("./tests/resources/save_output/filtered.toml").read()
-    )
+    assert tmp_file_path.read_text() == open(f"./tests/resources/save_output/{file_path}").read()
 
 
 @pytest.mark.parametrize(
@@ -361,9 +362,7 @@ def test_filter_update_file(tmp_file_dir, json_dict):
 def test_save_csv(tmp_file_dir, file_path):
     tmp_file_path = tmp_file_dir / file_path
     FileStream("./tests/resources/bar.csv").save(tmp_file_path)
-    assert (
-        tmp_file_path.read_text(encoding="utf-8") == open(f"./tests/resources/save_output/{file_path}").read()
-    )
+    assert tmp_file_path.read_text() == open(f"./tests/resources/save_output/{file_path}").read()
 
 
 def test_save_convert_to_csv(tmp_file_dir):
@@ -381,10 +380,7 @@ def test_save_convert_to_csv(tmp_file_dir):
         .map(lambda x: x.value)
         .save(tmp_file_path)
     )
-    assert (
-        tmp_file_path.read_text(encoding="utf-8")
-        == open("./tests/resources/save_output/converted.csv").read()
-    )
+    assert tmp_file_path.read_text() == open("./tests/resources/save_output/converted.csv").read()
 
 
 def test_save_to_csv_with_null_handler(tmp_file_dir):
@@ -404,10 +400,7 @@ def test_save_to_csv_with_null_handler(tmp_file_dir):
         .map(lambda x: x.value)
         .save(tmp_file_path, null_handler=_null_handler)
     )
-    assert (
-        tmp_file_path.read_text(encoding="utf-8")
-        == open("./tests/resources/save_output/converted_null.csv").read()
-    )
+    assert tmp_file_path.read_text() == open("./tests/resources/save_output/converted_null.csv").read()
 
 
 def test_save_empty_csv(tmp_file_dir):
@@ -416,7 +409,7 @@ def test_save_empty_csv(tmp_file_dir):
     stream = FileStream(tmp_file_path)
     stream._iterable = tuple()
     stream.save()
-    assert tmp_file_path.read_text(encoding="utf-8") == open("./tests/resources/save_output/empty.csv").read()
+    assert tmp_file_path.read_text() == open("./tests/resources/save_output/empty.csv").read()
 
 
 def test_update_csv(tmp_file_dir):
@@ -427,9 +420,7 @@ def test_update_csv(tmp_file_dir):
         .map(lambda x: (Stream(x).to_dict(lambda y: DictItem(y.key, y.value or "Unknown"))))
         .save(tmp_file_path)
     )
-    assert (
-        tmp_file_path.read_text(encoding="utf-8") == open("./tests/resources/save_output/updated.csv").read()
-    )
+    assert tmp_file_path.read_text() == open("./tests/resources/save_output/updated.csv").read()
 
 
 def test_update_fails(tmp_file_dir):
@@ -440,7 +431,7 @@ def test_update_fails(tmp_file_dir):
     shutil.copyfile("./tests/resources/editable.csv", tmp_file_path)
     with pytest.raises(IOError, match="Ooops Mr White..."):
         FileStream(tmp_file_path).save(tmp_file_path, null_handler=_raise(IOError("Ooops Mr White...")))
-    assert tmp_file_path.read_text(encoding="utf-8") == open("./tests/resources/editable.csv").read()
+    assert tmp_file_path.read_text() == open("./tests/resources/editable.csv").read()
 
 
 def test_combine_files_into_csv(tmp_file_dir):
@@ -463,6 +454,31 @@ def test_combine_files_into_csv(tmp_file_dir):
         .map(lambda x: (Stream(x).to_dict(lambda y: DictItem(y.key, y.value or "N/A"))))
         .save(tmp_file_path)
     )
-    assert (
-        tmp_file_path.read_text(encoding="utf-8") == open("./tests/resources/save_output/merged.csv").read()
+    assert tmp_file_path.read_text() == open("./tests/resources/save_output/merged.csv").read()
+
+
+def test_save_mapping_to_plain(tmp_file_dir, json_dict):
+    in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
+    file_path = "dict_2_plain.txt"
+    tmp_file_path = tmp_file_dir / file_path
+    FileStream("./tests/resources/nested.json").prepend(in_memory_dict).map(
+        lambda x: f"{x._key}: {x._value}"
+    ).save(
+        tmp_file_path,
     )
+    assert tmp_file_path.read_text() == open(f"./tests/resources/save_output/{file_path}").read()
+
+
+def test_append_to_plain(tmp_file_dir, json_dict):
+    file_path = "append_map.txt"
+    tmp_file_path = tmp_file_dir / file_path
+    shutil.copyfile("./tests/resources/plain_dict.txt", tmp_file_path)
+    (
+        FileStream(tmp_file_path)
+        .map(lambda line: line.strip())
+        .enumerate()
+        .filter(lambda line: "ne" in line[1])
+        .map(lambda line: f"line_num:{line[0]}, text='{line[1]}'")
+        .save(f_open_options={"mode": "a"})
+    )
+    assert tmp_file_path.read_text() == open(f"./tests/resources/save_output/{file_path}").read()

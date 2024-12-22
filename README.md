@@ -432,6 +432,7 @@ Stream([1, 2, 3]).ncycles(count=2).to_list()
 Stream.of(2, 3, 4).take_nth(10, default=66).get()
 Stream(["ABC", "D", "EF"]).round_robin().to_list()
 ```
+
 --------------------------------------------
 ### FileStreams
 #### Querying files
@@ -453,6 +454,7 @@ from pyrio import DictItem
     .to_list()) 
 # ["230::xza", "110::abba", "30::a"]
 ```
+
 - querying <i>csv</i> and <i>tsv</i> files
 <br>(each row is read as a dict with keys taken from the header)
 ```python
@@ -471,6 +473,21 @@ You could query the nested dicts by creating streams out of them
     .map(lambda x: (Stream(x).to_dict(lambda y: DictItem(y.key, y.value or "Unknown"))))
     .save())
 ```
+
+- reading <i>plain text</i> (if the file doesn't have one of the aforementioned extensions)
+```python
+(FileStream("path/to/lorem/ipsum")
+    .map(lambda x: x.strip())
+    .enumerate()
+    .filter(lambda line: "id" in line[1])
+    .to_dict()
+)
+
+# {1: "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+#  6: "Excepteur sint occaecat cupidatat non proident, sunt in culpa",
+#  7: "qui officia deserunt mollit anim id est laborum."}
+```
+
 - reading a file with <i>process()</i> method
   - use extra <i>f_open_options</i> (for the underlying <i>open file</i> function)
   - <i>f_read_options</i> (to be passed to the corresponding library function that is loading the file content e.g. tomllib, json)
@@ -491,6 +508,7 @@ FileStream.process("path/to/custom_root.xml", include_root=True).map(
 ).to_list()
 # ["root=custom-root: inner_records={'abc': 'xyz', 'qwerty': '42'}"]
 ```
+
 --------------------------------------------
 #### Saving to a file
 - write the contents of a FileStream by passing a <i>file_path</i> to the <i>save()</i> method
@@ -498,17 +516,19 @@ FileStream.process("path/to/custom_root.xml", include_root=True).map(
 in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
 FileStream("path/to/file.json").prepend(in_memory_dict).save("./tests/resources/updated.json")
 ```
-If no path is given, the source file for the FileStream will be updated
+If no path is given, the source file for the FileStream will be <i>updated</i>
 ```python
 FileStream("path/to/file.json").concat(in_memory_dict).save()
 ```
 NB: if while updating the file something goes wrong, the original content will be restored/preserved
+
 - handle null values
 <br>(pass <i>null_handler</i> function to replace null values)
 ```python
 FileStream("path/to/test.toml").save(null_handler=lambda x: DictItem(x.key, x.value or "N/A"))
 ```
 NB: useful for writing <i>.toml</i> files which don't allow None values
+
 - passing advanced <i>file open</i> and <i>write</i> options
 <br>similarly to the <i>process</i> method you could provide 
   - <i>f_open_options</i> (for the underlying <i>open</i> function)
@@ -520,7 +540,24 @@ FileStream("path/to/file.json").concat(in_memory_dict).save(
     f_write_options={"indent": 4},
 )
 ```
-To add <i>custom root</i> tag when saving an <i>.xml</i> file pass <i>'xml_root="my-custom-root"'</i>
+E.g. to <i>append</i> to existing file pass <i>f_open_options={"mode": "a"}</i> to the <i>save()</i> method.
+<br>Knowing that by default saving <i>plain text</i> uses <i>"\n"<i/> as <i>delimiter</i> between items,
+<br>you can pass <i>custom delimiter</i> using <i>f_write_options</i>
+```python
+(FileStream("path/to/lorem/ipsum")
+    .map(lambda line: line.strip())
+    .enumerate()
+    .filter(lambda line: "ad" in line[1])
+    .map(lambda line: f"line:{line[0]}, text='{line[1]}'")
+    .save(f_open_options={"mode": "a"}, f_write_options={"delimiter": " || "})
+)
+
+# Lorem ipsum...
+# ...
+# line:0, text='Lorem ipsum dolor sit amet, consectetur adipisicing elit,' || line:2, text='Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris'
+```
+
+<br>To add <i>custom root</i> tag when saving an <i>.xml</i> file pass <i>'xml_root="my-custom-root"'</i>
 ```python
 FileStream("path/to/file.json").concat(in_memory_dict).save(
     file_path="path/to/custom.xml",
@@ -529,6 +566,7 @@ FileStream("path/to/file.json").concat(in_memory_dict).save(
     xml_root="my-custom-root",
 )
 ```
+
 --------------------------------------------
 - how far can we actually push it?
 ```python
@@ -565,7 +603,7 @@ validate_str("x")
 # False
 # True
 ```
-- some more?
+- and another one?
 ```python
 # count vowels and constants in given string
 from curses.ascii import isalpha

@@ -1,5 +1,0 @@
-- add to README and docs:
-    - read_/ save_ plain files, append via f_open_opts in save()
-split docs?
-
-change description in pyproj about file types (and in docs?)

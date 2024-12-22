@@ -589,7 +589,7 @@ validate_str("x")
 from curses.ascii import isalpha
 
 def process_str(string):
-    ALL_VOWELS = "AEIOUYaeiouy"
+    ALL_VOWELS = "AEIOUaeiou"
     return (Stream(string)
         .filter(lambda ch: isalpha(ch))
         .partition(lambda ch: ch in ALL_VOWELS)  # Partitions entries into true and false ones

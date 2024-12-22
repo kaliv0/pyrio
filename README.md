@@ -14,9 +14,9 @@
 
 <br><b>Functional-style Streams API library</b><br>
 <br>Facilitates processing of collections and iterables using fluent APIs.
-<br>Gives access to files of various types (<i>json</i>, <i>toml</i>, <i>yaml</i>, <i>xml</i>, <i>csv</i>, <i>tsv</i>, <i>plain text</i>) for reading and executing complex queries
-<br>Provides easy integration with <i>itertools</i>
-<br>(NB: Commonly used <i>itertools 'recipes'</i> are included as part of the main APIs)
+<br>Gives access to files of various types (<i>json</i>, <i>toml</i>, <i>yaml</i>, <i>xml</i>, <i>csv</i>, <i>tsv</i>, <i>plain text</i>) for reading and executing complex queries.
+<br>Provides easy integration with <i>itertools</i>.
+<br>(NB: Commonly used <i>itertools 'recipes'</i> are included as part of the main APIs.)
 
 ## How to use
 ### Creating streams
@@ -40,7 +40,7 @@ Stream.empty()
 Stream.iterate(0, lambda x: x + 1)
 ```
 
-NB: in the same fashion you can create <i>finite ordered stream</i> by providing a <i>condition</i> predicate</i>
+NB: in similar fashion you can create <i>finite ordered stream</i> by providing a <i>condition</i> predicate</i>
 ```python
 Stream.iterate(10, operation=lambda x: x + 1, condition=lambda x: x < 15).to_list()
 # [10, 11, 12, 13, 14]
@@ -411,7 +411,7 @@ Stream([2, 3, 4, 5, 6]).quantify(predicate=lambda x: x % 2 == 0)
 
 NB: although the Stream is closed automatically by the <i>terminal operation</i>
 <br> you can still close it by hand (if needed) invoking the <i>close()</i> method.
-<br> In turn that will trigger the close_handler (if such was provided)
+<br> In turn that will trigger the <i>close_handler</i> (if such was provided)
 
 --------------------------------------------
 ### Itertools integration
@@ -541,7 +541,7 @@ FileStream("path/to/file.json").concat(in_memory_dict).save(
 )
 ```
 E.g. to <i>append</i> to existing file pass <i>f_open_options={"mode": "a"}</i> to the <i>save()</i> method.
-<br>Knowing that by default saving <i>plain text</i> uses <i>"\n"<i/> as <i>delimiter</i> between items,
+<br>Given that by default saving <i>plain text</i> uses <i>"\n"<i/> as <i>delimiter</i> between items,
 <br>you can pass <i>custom delimiter</i> using <i>f_write_options</i>
 ```python
 (FileStream("path/to/lorem/ipsum")
@@ -568,7 +568,7 @@ FileStream("path/to/file.json").concat(in_memory_dict).save(
 ```
 
 --------------------------------------------
-- how far can we actually push it?
+### How far can we actually push it?
 ```python
 (
     FileStream("path/to/file.csv")
@@ -588,7 +588,7 @@ FileStream("path/to/file.json").concat(in_memory_dict).save(
     .save("path/to/third/file.tsv")
 )
 ```
-- some leetcode maybe?
+- ...some leetcode maybe?
 ```python
 #  check if given string is palindrome; string length is guaranteed to be > 0
 def validate_str(string):    
@@ -603,7 +603,7 @@ validate_str("x")
 # False
 # True
 ```
-- and another one?
+- ...and another one?
 ```python
 # count vowels and constants in given string
 from curses.ascii import isalpha

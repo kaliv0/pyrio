@@ -9,7 +9,7 @@ from pyrio.utils import DictItem
 from pyrio.streams import BaseStream, Stream
 from pyrio.exceptions import NoneTypeError
 
-TEMP_PATH = "{file_path}.bak"
+TEMP_PATH = "{file_path}.tmp"
 DSV_TYPES = {".csv", ".tsv"}
 MAPPING_READ_CONFIG = AliasDict(
     {

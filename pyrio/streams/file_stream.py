@@ -1,81 +1,94 @@
 import importlib
+import shutil
 from contextlib import contextmanager
 from pathlib import Path
 
-from pyrio.utils.dict_item import DictItem
-from pyrio.streams.base_stream import BaseStream
-from pyrio.streams.stream import Stream
-from pyrio.utils.exception import UnsupportedFileTypeError
+from aldict import AliasDict
 
+from pyrio.utils import DictItem
+from pyrio.streams import BaseStream, Stream
+from pyrio.exceptions import NoneTypeError
 
 TEMP_PATH = "{file_path}.bak"
-GENERIC_READ_CONFIG = {
-    ".toml": {
-        "import_mod": "tomllib",
-        "callable": "load",
-        "read_mode": "rb",
-    },
-    ".json": {
-        "import_mod": "json",
-        "callable": "load",
-        "read_mode": "r",
-    },
-    ".yaml": {
-        "import_mod": "yaml",
-        "callable": "safe_load",
-        "read_mode": "r",
-    },
-    ".xml": {
-        "import_mod": "xmltodict",
-        "callable": "parse",
-        "read_mode": "rb",
-    },
-}
+DSV_TYPES = {".csv", ".tsv"}
+MAPPING_READ_CONFIG = AliasDict(
+    {
+        ".toml": {
+            "import_mod": "tomllib",
+            "callable": "load",
+            "read_mode": "rb",
+        },
+        ".json": {
+            "import_mod": "json",
+            "callable": "load",
+            "read_mode": "r",
+        },
+        ".yaml": {
+            "import_mod": "yaml",
+            "callable": "safe_load",
+            "read_mode": "r",
+        },
+        ".xml": {
+            "import_mod": "xmltodict",
+            "callable": "parse",
+            "read_mode": "rb",
+        },
+    }
+)
+MAPPING_READ_CONFIG.add_alias(".yaml", ".yml")
 
-GENERIC_WRITE_CONFIG = {
-    ".toml": {
-        "import_mod": "tomli_w",
-        "callable": "dump",
-        "write_mode": "wb",
-        "default_null_handler": lambda x: DictItem(x.key, "N/A") if x.value is None else x,
-    },
-    ".json": {
-        "import_mod": "json",
-        "callable": "dump",
-        "write_mode": "w",
-        "default_null_handler": None,
-    },
-    ".yaml": {
-        "import_mod": "yaml",
-        "callable": "dump",
-        "write_mode": "w",
-        "default_null_handler": None,
-    },
-    ".xml": {
-        "import_mod": "xmltodict",
-        "callable": "unparse",
-        "write_mode": "w",
-        "default_null_handler": None,
-    },
-}
+MAPPING_WRITE_CONFIG = AliasDict(
+    {
+        ".toml": {
+            "import_mod": "tomli_w",
+            "callable": "dump",
+            "write_mode": "wb",
+            "default_null_handler": lambda x: DictItem(x.key, "N/A") if x.value is None else x,
+        },
+        ".json": {
+            "import_mod": "json",
+            "callable": "dump",
+            "write_mode": "w",
+            "default_null_handler": None,
+        },
+        ".yaml": {
+            "import_mod": "yaml",
+            "callable": "dump",
+            "write_mode": "w",
+            "default_null_handler": None,
+        },
+        ".xml": {
+            "import_mod": "xmltodict",
+            "callable": "unparse",
+            "write_mode": "w",
+            "default_null_handler": None,
+        },
+    }
+)
+MAPPING_WRITE_CONFIG.add_alias(".yaml", ".yml")
 
 
 class FileStream(BaseStream):
     """Derived Stream class for querying files; maps file content to im-memory dict structures and vice versa"""
-    # NB: Dirty deeds for a nice-looking API
+
+    # Dirty deeds for a nice-looking API
     def __init__(self, file_path):  # noqa
         """Creates Stream from a file"""
         pass
 
     def __new__(cls, file_path, f_open_options=None, f_read_options=None, **kwargs):
         obj = super().__new__(cls)
-        iterable = cls._read_file(file_path, f_open_options, f_read_options, **kwargs)
+        if file_path is None:
+            raise NoneTypeError("File path cannot be None")
+        file_handler, iterable = cls._read_file(file_path, f_open_options, f_read_options, **kwargs)
         super(cls, obj).__init__(iterable)
-        obj.file_path = file_path
+        obj._file_path = file_path
+        obj._file_handler = file_handler
+        obj._on_close_handler = lambda: obj._file_handler.close() if not obj._file_handler.closed else None
         return obj
 
     @classmethod
-    def process(cls, file_path, f_open_options=None, f_read_options=None, **kwargs):
+    def process(cls, file_path, *, f_open_options=None, f_read_options=None, **kwargs):
         """Creates Stream from a file with advanced 'reading' options passed by the user"""
         return cls.__new__(cls, file_path, f_open_options, f_read_options, **kwargs)
 
@@ -84,87 +97,111 @@ class FileStream(BaseStream):
     def _read_file(cls, file_path, f_open_options=None, f_read_options=None, **kwargs):
         path = cls._get_file_path(file_path)
 
-        if path.suffix in {".csv", ".tsv"}:
-            return cls._read_csv(path, f_open_options, f_read_options, **kwargs)
-        return cls._read_generic(path, f_open_options, f_read_options, **kwargs)
+        if f_open_options is None:
+            f_open_options = {}
+        if f_read_options is None:
+            f_read_options = {}
+
+        if (suffix := path.suffix) in DSV_TYPES:
+            return cls._read_dsv(path, f_open_options, f_read_options)
+        elif suffix in MAPPING_READ_CONFIG.keys():
+            return cls._read_mapping(path, f_open_options, f_read_options, **kwargs)
+        else:
+            return cls._read_plain(path, f_open_options)
 
     @staticmethod
-    def _read_csv(path, f_open_options=None, f_read_options=None, **kwargs):
+    def _read_dsv(path, f_open_options, f_read_options):
         import csv
+
+        FileStream._prepare_io_options(
+            [
+                (f_open_options, "newline", ""),
+                (f_read_options, "delimiter", "\t" if path.suffix == ".tsv" else ","),
+            ]
+        )
+        file_handler = open(path, **f_open_options)
+        return file_handler, tuple(csv.DictReader(file_handler, **f_read_options))
+
+    @staticmethod
+    def _read_mapping(path, f_open_options, f_read_options, **kwargs):
+        config = MAPPING_READ_CONFIG[path.suffix]
+        load = getattr(importlib.import_module(config["import_mod"]), config["callable"])
+        FileStream._prepare_io_options([(f_open_options, "mode", config["read_mode"])])
+
+        file_handler = open(path, **f_open_options)
+        content = load(file_handler, **f_read_options)
+        if path.suffix == ".xml":
+            if kwargs.get("include_root"):
+                return file_handler, content
+            # NB: return dict (instead of dict_view) to re-map it later as DictItem records
+            return file_handler, next(iter(content.values()))
+        return file_handler, content
+
+    @staticmethod
+    def _read_plain(path, f_open_options):
+        file_handler = open(path, **f_open_options)
+        return file_handler, (line for line in file_handler)
+
+    # ### writing to file ###
+    def save(self, file_path=None, *, f_open_options=None, f_write_options=None, null_handler=None, **kwargs):
+        """Writes Stream to a new file (or updates an existing one) with advanced 'writing' options passed by the user"""
+        path, tmp_path = self._prepare_file_paths(file_path)
 
         if f_open_options is None:
             f_open_options = {}
-        f_open_options["newline"] = ""
-        if f_read_options is None:
-            f_read_options = {}
-        f_read_options["delimiter"] = "\t" if path.suffix == ".tsv" else ","
-        with open(path, **(f_open_options or {})) as f:
-            return tuple(csv.DictReader(f, **f_read_options))
+        if f_write_options is None:
+            f_write_options = {}
 
-    @staticmethod
-    def _read_generic(path, f_open_options=None, f_read_options=None, **kwargs):
-        suffix = ".yaml" if path.suffix == ".yml" else path.suffix
-        if suffix not in GENERIC_READ_CONFIG:
-            raise UnsupportedFileTypeError(f"Unsupported file type: '{suffix}'")
+        if (suffix := path.suffix) in DSV_TYPES:
+            return self._write_dsv(path, tmp_path, f_open_options, f_write_options, null_handler)
+        elif suffix in MAPPING_READ_CONFIG.keys():
+            return self._write_mapping(
+                path, tmp_path, f_open_options, f_write_options, null_handler, **kwargs
+            )
+        else:
+            return self._write_plain(path, tmp_path, f_open_options, f_write_options)
 
-        config = GENERIC_READ_CONFIG[suffix]
-        load = getattr(importlib.import_module(config["import_mod"]), config["callable"])
-        with open(path, config["read_mode"], **(f_open_options or {})) as f:
-            content = load(f, **(f_read_options or {}))
-            if suffix == ".xml":
-                if kwargs.get("include_root", None):
-                    return content
-                # NB: return dict (instead of dict_view) to re-map it later as DictItem records
-                return next(iter(content.values()))
-            return content
-
-    # ### writing to file ###
-    def save(self, file_path=None, null_handler=None, f_open_options=None, f_write_options=None, **kwargs):
-        """Writes Stream to a new file (or updates an existing one) with advanced 'writing' options passed by the user"""
-        path, tmp_path = self._prepare_file_paths(file_path)
-        if path.suffix in {".csv", ".tsv"}:
-            return self._write_csv(path, tmp_path, null_handler, f_open_options, f_write_options, **kwargs)
-        return self._write_generic(path, tmp_path, null_handler, f_open_options, f_write_options, **kwargs)
-
-    def _write_csv(
-        self, path, tmp_path, null_handler=None, f_open_options=None, f_write_options=None, **kwargs
-    ):
+    def _write_dsv(self, path, tmp_path, f_open_options, f_write_options, null_handler=None):
         import csv
 
         if null_handler:
             self.map(null_handler)
-        output = self.map(lambda x: Stream(x).to_dict()).to_list()
+        output = self.map(lambda x: Stream(x).to_dict()).to_tuple()
 
-        if f_write_options is None:
-            f_write_options = {}
-        f_write_options["delimiter"] = "\t" if path.suffix == ".tsv" else ","
-        f_write_options["fieldnames"] = output[0].keys() if output else ()
-        with self._atomic_write(path, tmp_path, "w", f_open_options) as f:
+        self._prepare_io_options(
+            [
+                (f_open_options, "mode", "w"),
+                (f_write_options, "delimiter", "\t" if path.suffix == ".tsv" else ","),
+                (f_write_options, "fieldnames", output[0].keys() if output else ()),
+            ]
+        )
+        with self._atomic_write(path, tmp_path, f_open_options) as f:
             writer = csv.DictWriter(f, **f_write_options)
             writer.writeheader()
             writer.writerows(output)
 
-    def _write_generic(
-        self, path, tmp_path, null_handler=None, f_open_options=None, f_write_options=None, **kwargs
-    ):
-        suffix = ".yaml" if path.suffix == ".yml" else path.suffix
-        if suffix not in GENERIC_WRITE_CONFIG:
-            raise UnsupportedFileTypeError(f"Unsupported file type: '{suffix}'")
-        config = GENERIC_WRITE_CONFIG[suffix]
+    def _write_mapping(self, path, tmp_path, f_open_options, f_write_options, null_handler=None, **kwargs):
+        config = MAPPING_WRITE_CONFIG[path.suffix]
         if existing_null_handler := null_handler or config["default_null_handler"]:
             self.map(existing_null_handler)
 
         output = self.to_dict()
-        if suffix == ".xml":
+
+        io_opts_setting = [(f_open_options, "mode", config["write_mode"])]
+        if path.suffix == ".xml":
             root = kwargs.get("xml_root", "root")
             output = {root: output}
-            if f_write_options is None:
-                f_write_options = {}
-            f_write_options["pretty"] = True
+            io_opts_setting.append((f_write_options, "pretty", True))
+        self._prepare_io_options(io_opts_setting)
 
         dump = getattr(importlib.import_module(config["import_mod"]), config["callable"])
-        with self._atomic_write(path, tmp_path, config["write_mode"], f_open_options) as f:
-            dump(output, f, **(f_write_options or {}))
+        with self._atomic_write(path, tmp_path, f_open_options) as f:
+            dump(output, f, **f_write_options)
+
+    def _write_plain(self, path, tmp_path, f_open_options, f_write_options):
+        self._prepare_io_options([(f_open_options, "mode", "w"), (f_write_options, "delimiter", "\n")])
+        with self._atomic_write(path, tmp_path, f_open_options) as f:
+            f.writelines(self.to_string(**f_write_options))
 
     # ### helpers ###
     @staticmethod
@@ -178,17 +215,27 @@ class FileStream(BaseStream):
 
     def _prepare_file_paths(self, file_path):
         if file_path is None:
-            file_path = self.file_path
+            file_path = self._file_path
         path = self._get_file_path(file_path, read_mode=False)
-        tmp_path = Path(TEMP_PATH.format(file_path=self.file_path))
+        tmp_path = Path(TEMP_PATH.format(file_path=self._file_path))
         if tmp_path.exists():
-            raise FileExistsError(f"Temporary file {tmp_path} already exists")
+            # So sorry Montessori...
+            tmp_path.unlink(missing_ok=True)
         return path, tmp_path
 
+    @staticmethod
+    def _prepare_io_options(settings):
+        for options, key, value in settings:
+            if key not in options:
+                options[key] = value
+
     @contextmanager
-    def _atomic_write(self, path, tmp_path, mode="w", f_open_options=None):
+    def _atomic_write(self, path, tmp_path, f_open_options):
         try:
-            with open(tmp_path, mode, **(f_open_options or {})) as f:
+            if f_open_options["mode"] == "a":
+                tmp_path = shutil.copyfile(path, tmp_path)
+
+            with open(tmp_path, **f_open_options) as f:
                 yield f
             tmp_path.replace(path)
         except (IOError, Exception) as e:

@@ -6,15 +6,29 @@ from operator import itemgetter
 import pytest
 
 from pyrio import Stream, Optional, DictItem
-from pyrio.utils.exception import IllegalStateError, UnsupportedTypeError
+from pyrio.exceptions import IllegalStateError, UnsupportedTypeError, NoneTypeError
 
 
 def test_stream():
     assert Stream([1, 2, 3])._iterable == [1, 2, 3]
 
 
+def test_stream_from_none():
+    with pytest.raises(NoneTypeError) as e:
+        Stream(None)
+    assert str(e.value) == "Cannot create Stream from None"
+
+
 def test_stream_of():
     assert Stream.of(1, 2, 3)._iterable == (1, 2, 3)
+
+
+def test_stream_of_nullable():
+    assert Stream.of_nullable(None).count() == 0
+
+    nonempty_stream = Stream.of_nullable([1, 2, 3])
+    assert nonempty_stream.count() != 0
+    assert nonempty_stream._iterable == [1, 2, 3]
 
 
 def test_empty_stream():
@@ -29,12 +43,28 @@ def test_iterate_skip():
     assert Stream.iterate(0, lambda x: x + 1).skip(5).limit(5).to_list() == [5, 6, 7, 8, 9]
 
 
+def test_iterate_with_predicate():
+    assert Stream.iterate(0, lambda x: x + 1, lambda x: x < 5).to_list() == [0, 1, 2, 3, 4]
+    assert Stream.iterate(0, lambda x: x + 1, lambda x: x < 0).to_list() == []
+
+
 def test_generate():
     assert Stream.generate(lambda: 42).limit(3).to_list() == [42, 42, 42]
 
 
 def test_constant():
     assert Stream.constant(8).limit(3).to_list() == [8, 8, 8]
+
+
+def test_range():
+    assert Stream.from_range(0, 10).to_list() == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    assert Stream.from_range(0, 10, 3).to_list() == [0, 3, 6, 9]
+    assert Stream.from_range(10, -1, -2).to_list() == [10, 8, 6, 4, 2, 0]
+
+
+def test_range_with_range_obj():
+    range_obj = range(0, 10)
+    assert Stream.from_range(range_obj).to_list() == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
 
 def test_iterable_from_string():
@@ -74,11 +104,11 @@ def test_map_dict():
 
 
 def test_filter_map():
-    assert Stream.of(None, "foo", "bar").filter_map(str.upper).to_list() == ["FOO", "BAR"]
+    assert Stream([None, "foo", "", "bar"]).filter_map(str.upper).to_list() == ["FOO", "", "BAR"]
 
 
-def test_filter_map_falsy():
-    assert Stream.of(None, "foo", "", "bar", 0, []).filter_map(str.upper, falsy=True).to_list() == [
+def test_filter_map_discard_falsy():
+    assert Stream.of(None, "foo", "", "bar", 0, []).filter_map(str.upper, discard_falsy=True).to_list() == [
         "FOO",
         "BAR",
     ]
@@ -101,6 +131,12 @@ def test_for_each():
     with redirect_stdout(f):
         Stream([1, 2, 3, 4]).for_each(lambda x: print(f"{'#' * x} ", end=""))
     assert f.getvalue() == "# ## ### #### "
+
+
+def test_enumerate():
+    iterable = ["x", "y", "z"]
+    assert Stream(iterable).enumerate().to_list() == [(0, "x"), (1, "y"), (2, "z")]
+    assert Stream(iterable).enumerate(start=1).to_list() == [(1, "x"), (2, "y"), (3, "z")]
 
 
 def test_peek():
@@ -319,12 +355,27 @@ def test_sum():
 
 def test_sum_empty_collection():
     assert Stream([]).sum() == 0
-    assert Stream.empty().count() == 0
+    assert Stream.empty().sum() == 0
 
 
 def test_sum_non_number_elements():
     with pytest.raises(ValueError) as e:
         Stream.of("a", "b").sum()
+    assert str(e.value) == "Cannot apply sum on non-number elements"
+
+
+def test_average():
+    assert Stream.of(1, 2, 3, 4, 5).average() == 3.0
+
+
+def test_average_empty_collection():
+    assert Stream([]).average() == 0
+    assert Stream.empty().average() == 0
+
+
+def test_average_non_number_elements():
+    with pytest.raises(ValueError) as e:
+        Stream.of("a", "b").average()
     assert str(e.value) == "Cannot apply sum on non-number elements"
 
 
@@ -355,12 +406,32 @@ def test_drop_while_no_elements():
     ).to_list() == ["adam", "aman", "ahmad", "hamid", "muhammad", "aladdin"]
 
 
+def test_take_first():
+    assert Stream.of(1, 2, 3, 4, 5).take_first().get() == 1
+    assert Stream({"a": 1, "b": 2}).take_first().get() == DictItem(key="a", value=1)
+
+    assert Stream.empty().take_first().is_empty()
+    assert Stream([]).take_first().is_empty()
+
+    assert Stream([]).take_first(default=33).get() == 33
+
+
+def test_take_last():
+    assert Stream.of(1, 2, 3, 4, 5).take_last().get() == 5
+    assert Stream({"a": 1, "b": 2}).take_last().get() == DictItem(key="b", value=2)
+
+    assert Stream.empty().take_last().is_empty()
+    assert Stream([]).take_last().is_empty()
+
+    assert Stream([]).take_last(default=33).get() == 33
+
+
 # ### sort ###
-def test_sorted():
+def test_sort():
     assert Stream.of(3, 5, 2, 1).map(lambda x: x * 10).sort().to_list() == [10, 20, 30, 50]
 
 
-def test_sorted_reverse():
+def test_sort_reverse():
     assert Stream.of(3, 5, 2, 1).map(lambda x: x * 10).sort(reverse=True).to_list() == [
         50,
         30,
@@ -369,7 +440,7 @@ def test_sorted_reverse():
     ]
 
 
-def test_sorted_comparator_function():
+def test_sort_comparator_function():
     assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sort(itemgetter(1)).to_list() == [
         ("1", 10),
         ("2", 20),
@@ -378,7 +449,7 @@ def test_sorted_comparator_function():
     ]
 
 
-def test_sorted_multiple_keys():
+def test_sort_multiple_keys():
     assert Stream.of((3, 30), (2, 30), (2, 20), (1, 20), (1, 10)).sort(lambda x: (x[0], x[1])).to_list() == [
         (1, 10),
         (1, 20),
@@ -388,7 +459,7 @@ def test_sorted_multiple_keys():
     ]
 
 
-def test_sorted_comparator_and_reverse():
+def test_sort_comparator_and_reverse():
     assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sort(
         itemgetter(1), reverse=True
     ).to_list() == [
@@ -436,6 +507,40 @@ def test_reusing_stream():
     with pytest.raises(IllegalStateError) as e:
         stream.map(lambda x: x * 10).to_list()
     assert str(e.value) == "Stream object already consumed"
+
+
+def test_stream_close():
+    stream = Stream.of(1, 2, 3)
+    assert stream._is_consumed is False
+
+    stream.close()
+    assert stream._is_consumed
+
+
+def test_stream_on_close_callback():
+    f = io.StringIO()
+    with redirect_stdout(f):
+        result = (
+            Stream([1, 2, 3, 4])
+            .on_close(lambda: print("It was an honor", end=""))
+            .peek(lambda x: print(f"{'#' * x} ", end=""))
+            .map(lambda x: x * 2)
+            .to_list()
+        )
+    assert result == [2, 4, 6, 8]
+    assert f.getvalue() == "# ## ### #### It was an honor"
+
+
+def test_stream_on_close_callback_using_pointer_to_self():
+    flag = False
+
+    def flip():
+        nonlocal flag
+        flag = True
+
+    result = Stream([1, 2, 3, 4]).on_close(flip).map(lambda x: x * 2).to_list()
+    assert result == [2, 4, 6, 8]
+    assert flag is True
 
 
 def test_compare_with():
@@ -655,8 +760,9 @@ def test_collect():
         "3": 30,
         "4": 40,
     }
-    assert Stream([1, 2, 3, 4, 5]).collect(str) == "Stream(1, 2, 3, 4, 5)"
-    assert Stream([1, 2, 3, 4, 5]).collect(str, str_delimiter=" | ") == "Stream(1 | 2 | 3 | 4 | 5)"
+    assert Stream([1, 2, 3, 4, 5]).collect(str) == "1, 2, 3, 4, 5"
+    assert Stream([1, 2, 3, 4, 5]).collect(str, str_delimiter=" | ") == "1 | 2 | 3 | 4 | 5"
+    assert Stream(["x", "y", "z"]).collect(str, str_delimiter="") == "xyz"
 
 
 def test_to_dict_no_collector(Foo):
@@ -731,23 +837,28 @@ def test_group_by_objects(Foo):
 
 
 def test_to_string(nested_json):
-    assert (
-        Stream({"a": 1, "b": [2, 3]}).to_string()
-        == "Stream(DictItem(key=a, value=1), DictItem(key=b, value=[2, 3]))"
-    )
+    assert Stream([1, (2, 3), {4, 5, 6}]).to_string() == "1, (2, 3), {4, 5, 6}"
     assert (
         Stream({"a": 1, "b": [2, 3]}).map(lambda x: {x.key: x.value}).to_string(delimiter=" | ")
-        == "Stream({'a': 1} | {'b': [2, 3]})"
+        == "{'a': 1} | {'b': [2, 3]}"
     )
+    assert Stream(["x", "y", "z"]).to_string(delimiter="") == "xyz"
+    assert Stream(json.loads(nested_json)).collect(str) == Stream(json.loads(nested_json)).to_string()
+
+
+def test_repr(nested_json):
+    assert str(Stream.of(1, 2, 3)) == "Stream.of(1, 2, 3)"
+    assert str(Stream([1, 2, 3])) == "Stream.of(1, 2, 3)"
     assert (
-        Stream(json.loads(nested_json)).collect(str)
-        == Stream(json.loads(nested_json)).to_string()
-        == str(Stream(json.loads(nested_json)))
-        == (
-            "Stream(DictItem(key=user, value=(DictItem(key=Name, value=John), DictItem(key=Phone, value=555-123-4568), DictItem(key=Security Number, value=3450678))), "
-            "DictItem(key=super_user, value=(DictItem(key=Name, value=sudo), DictItem(key=Email, value=admin@sudo.su), DictItem(key=Some Other Number, value=000-0011))), "
-            "DictItem(key=fraud, value=(DictItem(key=Name, value=Freud), DictItem(key=Email, value=ziggy@psycho.au))))"
-        )
+        str(Stream({"a": 1, "b": [2, 3], "c": {"x": "yz"}}))
+        == "Stream.of(DictItem(key='a', value=1), DictItem(key='b', value=[2, 3]), DictItem(key='c', value=(DictItem(key='x', value='yz'),)))"
+    )
+
+    assert str(Stream(json.loads(nested_json))) == (
+        "Stream.of("
+        "DictItem(key='user', value=(DictItem(key='Name', value='John'), DictItem(key='Phone', value='555-123-4568'), DictItem(key='Security Number', value='3450678'))), "
+        "DictItem(key='super_user', value=(DictItem(key='Name', value='sudo'), DictItem(key='Email', value='admin@sudo.su'), DictItem(key='Some Other Number', value='000-0011'))), "
+        "DictItem(key='fraud', value=(DictItem(key='Name', value='Freud'), DictItem(key='Email', value='ziggy@psycho.au'))))"
     )
 
 
@@ -778,3 +889,33 @@ def test_nested_json_querying_nested_dict_items(nested_json):
         .get()
         == "Freud"
     )
+
+
+# ### hacker-rank ###
+def test_hackerrank():
+    from curses.ascii import isalpha
+    from enum import Enum
+
+    # count vowels and constants in given string
+    string = "123Ab5oc-E6db#bCi9<>"
+    all_vowels = "AEIOUYaeiouy"
+
+    class CharType(Enum):
+        VOWELS = "vowels"
+        CONSONANTS = "consonants"
+
+    assert (
+        Stream(string)
+        .filter(lambda ch: isalpha(ch))
+        .partition(lambda ch: ch in all_vowels)
+        .enumerate()
+        .map(lambda x: (CharType.VOWELS if x[0] == 0 else CharType.CONSONANTS, len(tuple(x[1]))))
+        .to_dict()
+    ) == {CharType.CONSONANTS: 6, CharType.VOWELS: 4}
+
+
+@pytest.mark.parametrize("string, expected", [("a1b2c3c2b1a", True), ("abc321", False), ("x", True)])
+def test_leetcode(string, expected):
+    # check if given string is palindrome; string length is guaranteed to be > 0
+    stop = len(string) // 2 if len(string) > 1 else 1
+    assert Stream.from_range(0, stop).none_match(lambda x: string[x] != string[x - 1]) is expected

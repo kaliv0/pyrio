@@ -1,9 +1,9 @@
 [tool.poetry]
 name = "pyrio"
-version = "1.3.4"
+version = "1.4.0"
 authors = ["kaliv0 <kaloyan.ivanov88@gmail.com>"]
 readme = "README.md"
-description = "Functional-style Streams library for processing collections. Supports querying files (json, toml, yaml, xml, csv, tsv) - as well as creating and updating them. Provides easy integration with itertools"
+description = "Functional-style Streams library for processing collections. Supports querying files (json, toml, yaml, xml, csv, tsv, plain text) - as well as creating and updating them. Provides easy integration with itertools"
 keywords = ["stream", "functional", "processing", "collections", "fluent API", "file processing", "queries"]
 repository = "https://github.com/kaliv0/pyrio"
 documentation = "https://pyrio.readthedocs.io/en/latest"
@@ -12,6 +12,7 @@ documentation = "https://pyrio.readthedocs.io/en/latest"
 python = "^3.12"
 pyyaml = "^6.0.2"
 xmltodict = "^0.14.2"
+aldict = "^1.0.2"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.6.3"

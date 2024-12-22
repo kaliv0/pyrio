@@ -1,18 +1,21 @@
 from collections.abc import Mapping
 
-from pyrio.iterators.generator import Generator
-from pyrio.utils.decorator import pre_call, handle_consumed
-from pyrio.utils.dict_item import DictItem
-from pyrio.utils.exception import IllegalStateError, UnsupportedTypeError
-from pyrio.utils.optional import Optional
+from pyrio.iterators import StreamGenerator
+from pyrio.decorators import handle_consumed, pre_call
+from pyrio.utils import DictItem, Optional
+from pyrio.exceptions import IllegalStateError, UnsupportedTypeError, NoneTypeError
 
 
 @pre_call(handle_consumed)
 class BaseStream:
     """Base class for Stream objects; describes core supported operations"""
+
     def __init__(self, iterable):
+        if iterable is None:
+            raise NoneTypeError("Cannot create Stream from None")
         self._iterable = iterable
         self._is_consumed = False
+        self._on_close_handler = None
 
     def __iter__(self):
         return iter(self.iterable)
@@ -27,54 +30,49 @@ class BaseStream:
     def iterable(self, value):
         self._iterable = value
 
-    @classmethod
-    def empty(cls):
-        """Creates empty Stream"""
-        return cls([])
-
     def concat(self, *streams):
         """Concatenates several streams together or adds new streams/collections to the current one"""
-        self.iterable = Generator.concat(self.iterable, *streams)
+        self.iterable = StreamGenerator.concat(self.iterable, *streams)
         return self
 
     def prepend(self, iterable):
         """Prepends iterable to current stream"""
-        self.iterable = Generator.concat(iterable, self.iterable)
+        self.iterable = StreamGenerator.concat(iterable, self.iterable)
         return self
 
     def filter(self, predicate):
         """Filters values in stream based on given predicate function"""
-        self.iterable = Generator.filter(self.iterable, predicate)
+        self.iterable = StreamGenerator.filter(self.iterable, predicate)
         return self
 
     def map(self, mapper):
         """Returns a stream consisting of the results of applying the given function to the elements of this stream"""
-        self.iterable = Generator.map(self.iterable, mapper)
+        self.iterable = StreamGenerator.map(self.iterable, mapper)
         return self
 
-    def filter_map(self, mapper, *, falsy=False):
+    def filter_map(self, mapper, *, discard_falsy=False):
         """Filters out all None or falsy values and applies mapper function to the elements of the stream"""
-        self.iterable = Generator.filter_map(self.iterable, mapper, falsy)
+        self.iterable = StreamGenerator.filter_map(self.iterable, mapper, discard_falsy)
         return self
 
     def flat_map(self, mapper):
         """Maps each element of the stream and yields the elements of the produced iterators"""
-        self.iterable = Generator.flat_map(self.iterable, mapper)
+        self.iterable = StreamGenerator.flat_map(self.iterable, mapper)
         return self
 
     def flatten(self):
         """Converts a Stream of multidimensional collection into a one-dimensional"""
-        self.iterable = Generator.flatten(self.iterable)
+        self.iterable = StreamGenerator.flatten(self.iterable)
         return self
 
     def peek(self, operation):
         """Performs the provided operation on each element of the stream without consuming it"""
-        self.iterable = Generator.peek(self.iterable, operation)
+        self.iterable = StreamGenerator.peek(self.iterable, operation)
         return self
 
     def distinct(self):
         """Returns a stream with the distinct elements of the current one"""
-        self.iterable = Generator.distinct(self.iterable)
+        self.iterable = StreamGenerator.distinct(self.iterable)
         return self
 
     def count(self):
@@ -89,64 +87,89 @@ class BaseStream:
             raise ValueError("Cannot apply sum on non-number elements")
         return sum(self.iterable)
 
+    def average(self):
+        """Returns the average value of elements in the stream"""
+        if (stream_len := len(self.iterable)) == 0:
+            return 0
+        return self.sum() / stream_len
+
     def skip(self, count):
         """Discards the first n elements of the stream and returns a new stream with the remaining ones"""
         if count < 0:
             raise ValueError("Skip count cannot be negative")
-        self.iterable = Generator.skip(self.iterable, count)
+        self.iterable = StreamGenerator.skip(self.iterable, count)
         return self
 
     def limit(self, count):
         """Returns a stream with the first n elements, or fewer if the underlying iterator ends sooner"""
         if count < 0:
             raise ValueError("Limit count cannot be negative")
-        self.iterable = Generator.limit(self.iterable, count)
+        self.iterable = StreamGenerator.limit(self.iterable, count)
         return self
 
     def head(self, count):
         """Alias for 'limit'"""
         if count < 0:
             raise ValueError("Head count cannot be negative")
-        self.iterable = Generator.limit(self.iterable, count)
+        self.iterable = StreamGenerator.limit(self.iterable, count)
         return self
 
     def tail(self, count):
         """Returns a stream with the last n elements, or fewer if the underlying iterator ends sooner"""
         if count < 0:
             raise ValueError("Tail count cannot be negative")
-        self.iterable = Generator.tail(self.iterable, count)
+        self.iterable = StreamGenerator.tail(self.iterable, count)
         return self
 
     def take_while(self, predicate):
         """Returns a stream that yields elements based on a predicate"""
-        self.iterable = Generator.take_while(self.iterable, predicate)
+        self.iterable = StreamGenerator.take_while(self.iterable, predicate)
         return self
 
     def drop_while(self, predicate):
         """Returns a stream that skips elements based on a predicate and yields the remaining ones"""
-        self.iterable = Generator.drop_while(self.iterable, predicate)
+        self.iterable = StreamGenerator.drop_while(self.iterable, predicate)
         return self
 
+    def take_first(self, default=None):
+        """Returns Optional with the first element of the stream or a default value"""
+        return Optional.of_nullable(next(iter(self.iterable), default))
+
+    def take_last(self, default=None):
+        """Returns Optional with the last element of the stream or a default value"""
+        if self.iterable:
+            *_, last = self.iterable
+            return Optional.of_nullable(last)
+        return Optional.of_nullable(default)
+
     def sort(self, comparator=None, *, reverse=False):
-        """Sorts the elements of the current stream according to natural order or based on the given comparator.
-        If 'reverse' flag is True, the elements are sorted in descending order"""
-        self.iterable = Generator.sort(self.iterable, comparator, reverse)
+        """
+        Sorts the elements of the current stream according to natural order or based on the given comparator.
+        If 'reverse' flag is True, the elements are sorted in descending order
+        """
+        self.iterable = StreamGenerator.sort(self.iterable, comparator, reverse)
         return self
 
     def reverse(self, comparator=None):
-        """Sorts the elements of the current stream in descending order.
-        Alias for 'sort(comparator, reverse=True)'"""
-        self.iterable = Generator.sort(self.iterable, comparator, reverse=True)
+        """
+        Sorts the elements of the current stream in descending order.
+        Alias for 'sort(comparator, reverse=True)'
+        """
+        self.iterable = StreamGenerator.sort(self.iterable, comparator, reverse=True)
         return self
 
     def find_first(self, predicate=None):
-        """Searches for an element of the stream that satisfies a predicate.
-        Returns an Optional with the first found value, if any, or None"""
+        """
+        Searches for an element of the stream that satisfies a predicate.
+        Returns an Optional with the first found value, if any, or None
+        """
         return Optional.of_nullable(next(filter(predicate, self.iterable), None))
 
     def find_any(self, predicate=None):
-        """Searches for an element of the stream that satisfies a predicate.
-        Returns an Optional with some of the found values, if any, or None"""
+        """
+        Searches for an element of the stream that satisfies a predicate.
+        Returns an Optional with some of the found values, if any, or None
+        """
         import random
 
         if predicate:
@@ -181,9 +204,19 @@ class BaseStream:
         for i in self.iterable:
             operation(i)
 
+    def enumerate(self, start=0):
+        """
+        Returns each element of the Stream preceded by his corresponding index
+        (by default starting from 0 if not specified otherwise)
+        """
+        self.iterable = StreamGenerator.enumerate(self.iterable, start)
+        return self
+
     def reduce(self, accumulator, identity=None):
-        """Reduces the elements to a single one, by repeatedly applying a reducing operation.
-        Returns Optional with the result, if any, or None"""
+        """
+        Reduces the elements to a single one, by repeatedly applying a reducing operation.
+        Returns Optional with the result, if any, or None
+        """
         if len(self.iterable) == 0:
             return Optional.of_nullable(identity)
 
@@ -200,8 +233,9 @@ class BaseStream:
         return not any((comparator and not comparator(i, j)) or i != j for i, j in zip(self.iterable, other))
 
     # ### collectors ###
-    def collect(self, collection_type, dict_collector=None, dict_merger=None, str_delimiter=None):
-        """Returns a collection from the stream.
+    def collect(self, collection_type, dict_collector=None, dict_merger=None, str_delimiter=", "):
+        """
+        Returns a collection from the stream.
 
         In case of dict:
         The 'dict_collector' function receives an element from the stream and returns a (key, value) pair or a DictItem
@@ -211,8 +245,8 @@ class BaseStream:
         E.g. lambda old, new: new
 
         In case of str:
-        Concatenates the elements of the Stream, separated by the specified 'str_delimiter'.
-        If no delimiter is provided, ", " is used as the default one"""
+        Concatenates the elements of the Stream, separated by the specified 'str_delimiter'
+        """
         import builtins
 
         match collection_type:
@@ -242,13 +276,15 @@ class BaseStream:
         return set(self.iterable)
 
     def to_dict(self, collector=None, merger=None):
-        """Returns a dict of the elements of the current stream.
+        """
+        Returns a dict of the elements of the current stream.
 
         The 'collector' function receives an element from the stream and returns a (key, value) pair or a DictItem
         specifying how the dict should be constructed.
 
         The 'merger' functions indicates in the case of a collision (duplicate keys), which entry should be kept.
-        E.g. lambda old, new: new"""
+        E.g. lambda old, new: new
+        """
         result = {}
         source = (collector(i) for i in self.iterable) if collector else self.iterable
         for item in source:
@@ -270,19 +306,16 @@ class BaseStream:
             case _:
                 raise UnsupportedTypeError(f"Cannot create dict items from '{item.__class__.__name__}' type")
 
-    def to_string(self, delimiter=None):
-        """Concatenates the elements of the Stream, separated by the specified delimiter.
-        If no delimiter is provided, ", " is used as the default one"""
+    def to_string(self, delimiter=", "):
+        """Concatenates the elements of the Stream, separated by the specified delimiter"""
         return self._join(delimiter)
 
-    def _join(self, delimiter=None):
-        if delimiter is None:
-            delimiter = ", "
-        return f"{self.__class__.__name__}({delimiter.join(str(i) for i in self.iterable)})"
-
     def group_by(self, classifier=None, collector=None):
-        """Performs a "group by" operation on the elements of the stream according to a classification function.
-        Returns the results in a dict built using collector function (optionally provided by the user or via a default one)"""
+        """
+        Performs a "group by" operation on the elements of the stream according to a classification function.
+        Returns the results in a dict built using collector function
+        (optionally provided by the user or via a default one)
+        """
         if collector is None:
             return {key: list(group) for key, group in self._group_by(classifier)}
 
@@ -331,6 +364,20 @@ class BaseStream:
         """Count how many of the elements are Truthy or evaluate to True based on a given predicate"""
         return sum(self.map(predicate))
 
+    def close(self):
+        """Closes the stream, causing the provided close handler to be called"""
+        if self._on_close_handler:
+            self._on_close_handler()
+        self._is_consumed = True
+
+    def on_close(self, handler):
+        """Returns an equivalent stream with an additional close handler"""
+        self._on_close_handler = handler
+        return self
+
     # ### let's look nice ###
     def __repr__(self):
-        return self._join()
+        return f"{self.__class__.__name__}.of({self._join()})"
+
+    def _join(self, delimiter=", "):
+        return delimiter.join(str(i) for i in self.iterable)

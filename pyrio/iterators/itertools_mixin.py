@@ -196,7 +196,7 @@ class ItertoolsMixin:
 
     def partition(self, predicate):
         """
-        Partitions entries into false entries and true entries.
+        Partitions entries into true and false entries.
         Returns a stream of two nested generators
         """
         true_iter, false_iter = it.tee(self.iterable)

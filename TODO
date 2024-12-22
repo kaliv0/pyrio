@@ -1,5 +1,4 @@
 - add to README and docs:
-    - leetcode examples at the end
     - read_/ save_ plain files, append via f_open_opts in save()
 split docs?
 

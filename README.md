@@ -14,7 +14,7 @@
 
 <br><b>Functional-style Streams API library</b><br>
 <br>Facilitates processing of collections and iterables using fluent APIs.
-<br>Gives access to files of various types (<i>json</i>, <i>toml</i>, <i>yaml</i>, <i>xml</i>, <i>csv</i> and <i>tsv</i>) for reading and executing complex queries
+<br>Gives access to files of various types (<i>json</i>, <i>toml</i>, <i>yaml</i>, <i>xml</i>, <i>csv</i>, <i>tsv</i>, <i>plain text</i>) for reading and executing complex queries
 <br>Provides easy integration with <i>itertools</i>
 <br>(NB: Commonly used <i>itertools 'recipes'</i> are included as part of the main APIs)
 
@@ -550,7 +550,43 @@ FileStream("path/to/file.json").concat(in_memory_dict).save(
     .save("path/to/third/file.tsv")
 )
 ```
-or how hideous can it get?
+- some leetcode maybe?
+```python
+#  check if given string is palindrome; string length is guaranteed to be > 0
+def validate_str(string):    
+    stop = len(string) // 2 if len(string) > 1 else 1
+    return Stream.from_range(0, stop).none_match(lambda x: string[x] != string[x - 1])
+
+validate_str("a1b2c3c2b1a")
+validate_str("abc321")
+validate_str("x")
+
+# True
+# False
+# True
+```
+- some more?
+```python
+# count vowels and constants in given string
+from curses.ascii import isalpha
+
+def process_str(string):
+    ALL_VOWELS = "AEIOUYaeiouy"
+    return (Stream(string)
+        .filter(lambda ch: isalpha(ch))
+        .partition(lambda ch: ch in ALL_VOWELS)  # Partitions entries into true and false ones
+        .map(lambda p: tuple(p))
+        .enumerate()
+        .map(lambda x: ("Vowels" if x[0] == 0 else "Consonants", [len(x[1]), x[1]]))
+        .to_dict()
+    )
+
+process_str("123Ab5oc-E6db#bCi9<>")
+    
+# {'Vowels': [4, ('A', 'o', 'E', 'i')], 'Consonants': [6, ('b', 'c', 'd', 'b', 'b', 'C')]}
+```
+
+How hideous can it get?
 <p align="center">
   <img src="https://github.com/kaliv0/pyrio/blob/main/assets/Chubby.jpg?raw=true" width="400" alt="Chubby">
 </p>

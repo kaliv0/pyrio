@@ -897,8 +897,8 @@ def test_hackerrank():
     from enum import Enum
 
     # count vowels and constants in given string
-    string = "123ab5oc-e6db#bci9<>"
-    all_vowels = "aeiouy"
+    string = "123Ab5oc-E6db#bCi9<>"
+    all_vowels = "AEIOUYaeiouy"
 
     class CharType(Enum):
         VOWELS = "vowels"

@@ -1,0 +1,4 @@
+- extract Optional to 'drape' library
+- implement Result (as part of 'drape')
+- add 'header'/'footer' as 'f_write_options' -> used for 'append' mode
+    -> e.g. add new line before appended lines, or comma in case of json

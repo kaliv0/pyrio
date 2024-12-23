@@ -541,7 +541,7 @@ FileStream("path/to/file.json").concat(in_memory_dict).save(
 )
 ```
 E.g. to <i>append</i> to existing file pass <i>f_open_options={"mode": "a"}</i> to the <i>save()</i> method.
-<br>Given that by default saving <i>plain text</i> uses <i>"\n"</i> as <i>delimiter</i> between items,
+<br>NB: By default saving <i>plain text</i> uses <i>"\n"</i> as <i>delimiter</i> between items,
 <br>you can pass <i>custom delimiter</i> using <i>f_write_options</i>
 ```python
 (FileStream("path/to/lorem/ipsum")
@@ -556,8 +556,28 @@ E.g. to <i>append</i> to existing file pass <i>f_open_options={"mode": "a"}</i> 
 # ...
 # line:0, text='Lorem ipsum dolor sit amet, consectetur adipisicing elit,' || line:2, text='Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris'
 ```
+When working with <i>plain text</i> you can pass <i>'header'</i> and <i>'footer'</i> as <i>f_write_options</i> 
+<br>to be prepended or appended to the FileStream output
+```python
+(FileStream("path/to/lorem/ipsum")
+  .map(lambda line: line.strip())
+  .enumerate()
+  .filter(lambda line: line[0] == 3)
+  .map(lambda line: f"{line[0]}: {line[1]}")
+  .save(f_open_options={"mode": "a"}, f_write_options={"header": "\nHeader\n", "footer": "\nFooter\n"})
+ )
 
-<br>To add <i>custom root</i> tag when saving an <i>.xml</i> file pass <i>'xml_root="my-custom-root"'</i>
+# Lorem ipsum...
+# ...
+# qui officia deserunt mollit anim id est laborum.
+# 
+# Header
+# 3: nisi ut aliquip ex ea commodo consequat.
+# Footer
+#
+```
+
+To add <i>custom root</i> tag when saving an <i>.xml</i> file pass <i>'xml_root="my-custom-root"'</i>
 ```python
 FileStream("path/to/file.json").concat(in_memory_dict).save(
     file_path="path/to/custom.xml",

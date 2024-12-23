@@ -482,3 +482,18 @@ def test_append_to_plain(tmp_file_dir, json_dict):
         .save(f_open_options={"mode": "a"})
     )
     assert tmp_file_path.read_text() == open(f"./tests/resources/save_output/{file_path}").read()
+
+
+def test_plain_text_header_footer(tmp_file_dir):
+    file_path = "foo.txt"
+    tmp_file_path = tmp_file_dir / file_path
+    shutil.copyfile("./tests/resources/plain.txt", tmp_file_path)
+    (
+        FileStream(tmp_file_path)
+        .map(lambda line: line.strip())
+        .enumerate()
+        .filter(lambda line: line[0] == 3)
+        .map(lambda line: f"{line[0]}: {line[1]}")
+        .save(f_open_options={"mode": "a"}, f_write_options={"header": "\nHeader\n", "footer": "\nFooter\n"})
+    )
+    assert tmp_file_path.read_text() == open(f"./tests/resources/save_output/{file_path}").read()

@@ -199,9 +199,16 @@ class FileStream(BaseStream):
             dump(output, f, **f_write_options)
 
     def _write_plain(self, path, tmp_path, f_open_options, f_write_options):
-        self._prepare_io_options([(f_open_options, "mode", "w"), (f_write_options, "delimiter", "\n")])
+        self._prepare_io_options([(f_open_options, "mode", "w")])
+
+        output = self.to_string(f_write_options.pop("delimiter", "\n"))
+        header = f_write_options.pop("header", "")
+        footer = f_write_options.pop("footer", "")
+        if header or footer:
+            output = f"{header}{output}{footer}"
+
         with self._atomic_write(path, tmp_path, f_open_options) as f:
-            f.writelines(self.to_string(**f_write_options))
+            f.writelines(output)
 
     # ### helpers ###
     @staticmethod

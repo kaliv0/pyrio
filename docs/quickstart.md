@@ -607,12 +607,10 @@ validate_str("x")
 - ...and another one?
 ```python
 # count vowels and constants in given string
-from curses.ascii import isalpha
-
 def process_str(string):
     ALL_VOWELS = "AEIOUaeiou"
     return (Stream(string)
-        .filter(lambda ch: isalpha(ch))
+        .filter(lambda ch: ch.isalpha())
         .partition(lambda ch: ch in ALL_VOWELS)  # Partitions entries into true and false ones
         .map(lambda p: tuple(p))
         .enumerate()

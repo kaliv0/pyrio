@@ -442,16 +442,17 @@ Stream(["ABC", "D", "EF"]).round_robin().to_list()
 FileStream("path/to/file").map(lambda x: f"{x.key}=>{x.value}").to_tuple()
 # ("abc=>xyz", "qwerty=>42")
 ```
+
 ```python
 from operator import attrgetter
 from pyrio import DictItem
 
 (FileStream("path/to/file")
-    .filter(lambda x: "a" in x.key)
-    .map(lambda x: DictItem(x.key, sum(x.value) * 10))
-    .sort(attrgetter("value"), reverse=True)
-    .map(lambda x: f"{str(x.value)}::{x.key}")
-    .to_list()) 
+ .filter(lambda x: "a" in x.key)
+ .map(lambda x: DictItem(x.key, sum(x.value) * 10))
+ .sort(attrgetter("value"), reverse=True)
+ .map(lambda x: f"{str(x.value)}::{x.key}")
+ .to_list())
 # ["230::xza", "110::abba", "30::a"]
 ```
 

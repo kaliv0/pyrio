@@ -102,7 +102,7 @@ Stream([[1, 2], [3, 4], [5]]).flatten().to_list()
 # [1, 2, 3, 4, 5]
 ```
 
-- reduce 
+- reduce
 <br>(returns Optional)
 ```python
 Stream([1, 2, 3]).reduce(lambda acc, val: acc + val, identity=3).get()
@@ -119,7 +119,7 @@ Stream([1, 2, 3]).reduce(lambda acc, val: acc + val, identity=3).get()
 ```
 
 - enumerate
-<br>(returns each element of the Stream preceded by his corresponding index 
+<br>(returns each element of the Stream preceded by his corresponding index
 (by default starting from 0 if not specified otherwise))
 ```python
 iterable = ["x", "y", "z"]
@@ -195,7 +195,7 @@ Stream.of(1, 2, 3, 5, 6, 7, 2).drop_while(lambda x: x < 5).to_list()
 # [(3, 30), (2, 30), (2, 20), (1, 20), (1, 10)]
 ```
 
-<br>NB: in case of stream of dicts all key-value pairs are represented internally as <i>DictItem</i> objects 
+<br>NB: in case of stream of dicts all key-value pairs are represented internally as <i>DictItem</i> objects
 <br>(including recursively for nested Mapping structures)
 <br>to provide more convenient intermediate operations syntax e.g.
 ```python
@@ -204,7 +204,7 @@ second_dict = {"x": 3, "y": 4}
 (Stream(first_dict).concat(second_dict)
     .filter(lambda x: x.value % 2 == 0)
     .map(lambda x: x.key)
-    .to_list()) 
+    .to_list())
 ```
 
 - on_close
@@ -234,7 +234,7 @@ class Foo:
     def __init__(self, name, num):
         self.name = name
         self.num = num
-        
+
 Stream([Foo("fizz", 1), Foo("buzz", 2)]).to_dict(lambda x: (x.name, x.num))
 # {"fizz": 1, "buzz": 2}
 ```
@@ -250,12 +250,12 @@ Stream(collection).to_dict(collector=lambda x: (x.name, x.num), merger=lambda ol
 ```python
 first_dict = {"x": 1, "y": 2}
 second_dict = {"p": 33, "q": 44, "r": None}
-Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: DictItem(x.key, x.value or 0)) 
+Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: DictItem(x.key, x.value or 0))
 # {"x": 1, "y": 2, "p": 33, "q": 44, "r": 0}
 ```
 e.g. you could combine streams of dicts by writing:
 ```python
-Stream(first_dict).concat(Stream(second_dict)).to_dict() 
+Stream(first_dict).concat(Stream(second_dict)).to_dict()
 ```
 (simplified from <i>'.to_dict(lambda x: x)'</i>)
 
@@ -306,7 +306,7 @@ Stream([1, 2, 3, 4]).filter(lambda x: x % 2 == 0).count()
 
 - sum
 ```python
-Stream.of(1, 2, 3, 4).sum() 
+Stream.of(1, 2, 3, 4).sum()
 ```
 
 - min
@@ -363,7 +363,7 @@ Stream.of(1, 2, 3, 4).none_match(lambda x: x < 0)
 <br>(returns Optional with the first element of the stream or a default value)
 ```python
 Stream({"a": 1, "b": 2}).take_first().get()
-Stream([]).take_first(default=33).get() 
+Stream([]).take_first(default=33).get()
 # DictItem(key="a", value=1)
 # 33
 ```
@@ -372,7 +372,7 @@ Stream([]).take_first(default=33).get()
 <br>(returns Optional with the last element of the stream or a default value)
 ```python
 Stream({"a": 1, "b": 2}).take_last().get()
-Stream([]).take_last(default=33).get() 
+Stream([]).take_last(default=33).get()
 ```
 
 - compare_with
@@ -439,7 +439,7 @@ from pyrio import DictItem
 - querying <i>csv</i> and <i>tsv</i> files
 <br>(each row is read as a dict with keys taken from the header)
 ```python
-FileStream("path/to/file").map(lambda x: f"fizz: {x['fizz']}, buzz: {x['buzz']}").to_tuple() 
+FileStream("path/to/file").map(lambda x: f"fizz: {x['fizz']}, buzz: {x['buzz']}").to_tuple()
 # ("fizz: 42, buzz: 45", "fizz: aaa, buzz: bbb")
 ```
 ```python
@@ -476,8 +476,8 @@ You could query the nested dicts by creating streams out of them
 from decimal import Decimal
 
 (FileStream.process(
-    file_path="path/to/file.json", 
-    f_open_options={"encoding": "utf-8"}, 
+    file_path="path/to/file.json",
+    f_open_options={"encoding": "utf-8"},
     f_read_options={"parse_float": Decimal})
  .map(lambda x:x.value).to_list())
 # ['foo', True, Decimal('1.22'), Decimal('5.456367654)]
@@ -511,7 +511,7 @@ FileStream("path/to/test.toml").save(null_handler=lambda x: DictItem(x.key, x.va
 NB: useful for writing <i>.toml</i> files which don't allow None values
 
 - passing advanced <i>file open</i> and <i>write</i> options
-<br>similarly to the <i>process</i> method you could provide 
+<br>similarly to the <i>process</i> method you could provide
   - <i>f_open_options</i> (for the underlying <i>open</i> function)
   - <i>f_write_options</i> (passed to the corresponding library that will 'dump' the contents of the stream e.g. tomli-w, pyyaml)
 ```python
@@ -538,7 +538,7 @@ E.g. to <i>append</i> to existing file pass <i>f_open_options={"mode": "a"}</i> 
 # line:0, text='Lorem ipsum dolor sit amet, consectetur adipisicing elit,' || line:2, text='Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris'
 ```
 
-When working with <i>plain text</i> you can pass <i>'header'</i> and <i>'footer'</i> as <i>f_write_options</i> 
+When working with <i>plain text</i> you can pass <i>'header'</i> and <i>'footer'</i> as <i>f_write_options</i>
 <br>to be prepended or appended to the FileStream output
 ```python
 (FileStream("path/to/lorem/ipsum")
@@ -552,7 +552,7 @@ When working with <i>plain text</i> you can pass <i>'header'</i> and <i>'footer'
 # Lorem ipsum...
 # ...
 # qui officia deserunt mollit anim id est laborum.
-# 
+#
 # Header
 # 3: nisi ut aliquip ex ea commodo consequat.
 # Footer
@@ -593,7 +593,7 @@ FileStream("path/to/file.json").concat(in_memory_dict).save(
 - ...some leetcode maybe?
 ```python
 #  check if given string is palindrome; string length is guaranteed to be > 0
-def validate_str(string):    
+def validate_str(string):
     stop = len(string) // 2 if len(string) > 1 else 1
     return Stream.from_range(0, stop).none_match(lambda x: string[x] != string[x - 1])
 
@@ -620,7 +620,7 @@ def process_str(string):
     )
 
 process_str("123Ab5oc-E6db#bCi9<>")
-    
+
 # {'Vowels': [4, ('A', 'o', 'E', 'i')], 'Consonants': [6, ('b', 'c', 'd', 'b', 'b', 'C')]}
 ```
 

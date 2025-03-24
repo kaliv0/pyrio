@@ -43,20 +43,20 @@ def nested_json():
     return """
     {
         "user": {
-            "Name": "John", 
-            "Phone": "555-123-4568", 
+            "Name": "John",
+            "Phone": "555-123-4568",
             "Security Number": "3450678"
-        }, 
+        },
         "super_user": {
-            "Name": "sudo", 
+            "Name": "sudo",
             "Email": "admin@sudo.su",
-            "Some Other Number": "000-0011" 
+            "Some Other Number": "000-0011"
 
         },
         "fraud": {
-            "Name": "Freud", 
+            "Name": "Freud",
             "Email": "ziggy@psycho.au"
-        }    
+        }
     }
     """
 

@@ -614,14 +614,18 @@ FileStream("path/to/file.json").concat(in_memory_dict).save(
 #  check if given string is palindrome; string length is guaranteed to be > 0
 def validate_str(string):
     stop = len(string) // 2 if len(string) > 1 else 1
-    return Stream.from_range(0, stop).none_match(lambda x: string[x] != string[x - 1])
+    return Stream.from_range(0, stop).all_match(lambda x: string[x] == string[-x - 1])
 
 validate_str("a1b2c3c2b1a")
 validate_str("abc321")
-validate_str("x")
+validate_str("xyyx")
+validate_str("aba")
+validate_str("z")
 
 # True
 # False
+# True
+# True
 # True
 ```
 - ...and another one?

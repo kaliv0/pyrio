@@ -1,6 +1,6 @@
 [project]
 name = "pyrio"
-version = "1.4.6"
+version = "1.4.7"
 requires-python = ">=3.12"
 authors = [
     { name = "kaliv0", email = "kaloyan.ivanov88@gmail.com" },

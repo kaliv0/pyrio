@@ -183,7 +183,7 @@ class FileStream(BaseStream):
     def _write_mapping(self, path, tmp_path, f_open_options, f_write_options, null_handler=None, **kwargs):
         config = MAPPING_WRITE_CONFIG[path.suffix]
         if existing_null_handler := null_handler or config["default_null_handler"]:
-            self.map(existing_null_handler)
+            self.map(existing_null_handler)  # noqa
 
         output = self.to_dict()
 
@@ -233,8 +233,7 @@ class FileStream(BaseStream):
     @staticmethod
     def _prepare_io_options(settings):
         for options, key, value in settings:
-            if key not in options:
-                options[key] = value
+            options.setdefault(key, value)
 
     @contextmanager
     def _atomic_write(self, path, tmp_path, f_open_options):

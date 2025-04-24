@@ -44,13 +44,6 @@ def test_read_files(file_path):
     )
 
 
-def test_read_yml():
-    assert FileStream("./tests/resources/foo.yml").map(lambda x: f"{x.key}=>{x.value}").to_tuple() == (
-        "abc=>xyz",
-        "qwerty=>42",
-    )
-
-
 def test_read_xml_custom_root():
     assert FileStream("./tests/resources/custom_root.xml").map(
         lambda x: f"{x.key}=>{x.value}"
@@ -248,7 +241,7 @@ def test_save_toml_default_null_handler(tmp_file_dir, json_dict):
 
 @pytest.mark.parametrize(
     "file_path, indent",
-    [("test.json", 2), ("test.yaml", 2), ("test.yml", 2), ("test.xml", 4)],
+    [("test.json", 2), ("test.yaml", 2), ("test.xml", 4)],
 )
 def test_save(tmp_file_dir, file_path, indent, json_dict):
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()

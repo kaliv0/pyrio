@@ -62,11 +62,6 @@ def test_range():
     assert Stream.from_range(10, -1, -2).to_list() == [10, 8, 6, 4, 2, 0]
 
 
-# def test_range_with_range_obj():
-#     range_obj = range(0, 10)
-#     assert Stream.from_range(range_obj.start, range_obj.stop).to_list() == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-
-
 def test_iterable_from_string():
     json_str = '{"Name": "Jennifer Smith", "Phone": "555-123-4568", "Email": "jen123@gmail.com"}'
     json_map = json.loads(json_str)

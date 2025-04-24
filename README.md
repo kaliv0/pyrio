@@ -65,11 +65,6 @@ Stream.from_range(0, 10).to_list()
 Stream.from_range(0, 10, 3).to_list()
 Stream.from_range(10, -1, -2).to_list()
 ```
-(or from <i>range</i> object)
-```python
-range_obj = range(0, 10)
-Stream.from_range(range_obj).to_list()
-```
 
 - concat
 <br>(concatenate new streams/iterables with the current one)
@@ -435,6 +430,8 @@ Stream(["ABC", "D", "EF"]).round_robin().to_list()
 
 --------------------------------------------
 ### FileStreams
+<i>NB: use <b>'pip install pyrio[fs]'</b> to install necessary extra dependencies</i>
+
 #### Querying files
 - working with <i>json</i>, <i>toml</i>, <i>yaml</i>, <i>xml</i> files
 <br>NB: FileStream reads data as series of DictItem objects from underlying dict_items view

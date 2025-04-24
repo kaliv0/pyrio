@@ -1,6 +1,6 @@
 [project]
 name = "pyrio"
-version = "1.4.8"
+version = "1.5.0"
 requires-python = ">=3.12"
 authors = [
     { name = "kaliv0", email = "kaloyan.ivanov88@gmail.com" },
@@ -10,11 +10,11 @@ keywords = ["stream", "functional", "processing", "collections", "fluent API", "
 readme = "README.md"
 license-files = ["LICENSE"]
 
-dependencies = [
+[project.optional-dependencies]
+fs = [
     "pyyaml>=6.0.2",
     "tomli-w>=1.1.0",
     "xmltodict>=0.14.2",
-    "aldict>=1.0.3"
 ]
 
 [dependency-groups]

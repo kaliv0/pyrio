@@ -1,4 +1,3 @@
-from collections.abc import Iterable, Sized
 import itertools as it
 import operator
 
@@ -6,8 +5,6 @@ from pyrio.utils import Optional
 
 
 class ItertoolsMixin:
-    iterable: Iterable | Sized
-
     def use(self, it_function, **kwargs):
         """Provides integration with itertools methods; pass corresponding parameters as kwargs"""
         import inspect

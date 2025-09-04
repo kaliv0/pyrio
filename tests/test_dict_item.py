@@ -39,7 +39,10 @@ def test_dict_item_map_nested_dict(nested_json):
         ),
         DictItem(
             key="fraud",
-            value=(DictItem(key="Name", value="Freud"), DictItem(key="Email", value="ziggy@psycho.au")),
+            value=(
+                DictItem(key="Name", value="Freud"),
+                DictItem(key="Email", value="ziggy@psycho.au"),
+            ),
         ),
     )
 
@@ -63,7 +66,9 @@ def test_dict_item_eq(json_dict, nested_json):
     assert DictItem(key="foo", value=json.loads(nested_json)) != DictItem(
         key="data", value=json.loads(nested_json)
     )
-    assert DictItem(key="data", value=json_dict) != DictItem(key="data", value=json.loads(nested_json))
+    assert DictItem(key="data", value=json_dict) != DictItem(
+        key="data", value=json.loads(nested_json)
+    )
 
 
 def test_dict_item_eq_raises(json_dict):

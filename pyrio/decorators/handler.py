@@ -1,4 +1,6 @@
+from __future__ import annotations
 from functools import wraps
+from typing import Any, Callable, TypeVar
 
 from pyrio.exceptions import IllegalStateError
 
@@ -32,19 +34,23 @@ TERMINAL_FUNCTIONS = [
 ]
 
 
-def pre_call(function_decorator):
-    def decorator(cls):
+T = TypeVar("T")
+F = TypeVar("F", bound=Callable[..., Any])
+
+
+def pre_call(function_decorator: Callable[[F], F]) -> Callable[[type[T]], type[T]]:
+    def decorator(cls: type[T]) -> type[T]:
         for name, obj in vars(cls).items():
             if callable(obj):
-                setattr(cls, name, function_decorator(obj))
+                setattr(cls, name, function_decorator(obj))  # type: ignore
         return cls
 
     return decorator
 
 
-def handle_consumed(func):
+def handle_consumed(func: F) -> F:
     @wraps(func)
-    def wrapper(*args, **kw):
+    def wrapper(*args: Any, **kw: Any) -> Any:
         from pyrio.streams.base_stream import BaseStream
 
         stream = args[0] if args else None
@@ -60,4 +66,4 @@ def handle_consumed(func):
             stream.close()
         return result
 
-    return wrapper
+    return wrapper  # type: ignore

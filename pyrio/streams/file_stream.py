@@ -71,12 +71,22 @@ class FileStream(BaseStream):
         obj = super().__new__(cls)
         if file_path is None:
             raise NoneTypeError("File path cannot be None")
-        file_handler, iterable = cls._read_file(file_path, f_open_options, f_read_options, **kwargs)
-        super(cls, obj).__init__(iterable)
-        obj._file_path = file_path
-        obj._file_handler = file_handler
-        obj._on_close_handler = lambda: obj._file_handler.close() if not obj._file_handler.closed else None
-        return obj
+        file_handler = None
+        try:
+            file_handler, iterable = cls._read_file(
+                file_path, f_open_options, f_read_options, **kwargs
+            )
+            super(cls, obj).__init__(iterable)
+            obj._file_path = file_path
+            obj._file_handler = file_handler
+            obj._on_close_handler = (
+                lambda: obj._file_handler.close() if not obj._file_handler.closed else None
+            )
+            return obj
+        except Exception:
+            if file_handler is not None and not file_handler.closed:
+                file_handler.close()
+            raise
 
     @classmethod
     def process(cls, file_path, *, f_open_options=None, f_read_options=None, **kwargs):
@@ -134,7 +144,15 @@ class FileStream(BaseStream):
         return file_handler, (line for line in file_handler)
 
     # ### writing to file ###
-    def save(self, file_path=None, *, f_open_options=None, f_write_options=None, null_handler=None, **kwargs):
+    def save(
+        self,
+        file_path=None,
+        *,
+        f_open_options=None,
+        f_write_options=None,
+        null_handler=None,
+        **kwargs,
+    ):
         """Writes Stream to a new file (or updates an existing one) with advanced 'writing' options passed by the user"""
         path, tmp_path = self._prepare_file_paths(file_path)
 
@@ -171,7 +189,9 @@ class FileStream(BaseStream):
             writer.writeheader()
             writer.writerows(output)
 
-    def _write_mapping(self, path, tmp_path, f_open_options, f_write_options, null_handler=None, **kwargs):
+    def _write_mapping(
+        self, path, tmp_path, f_open_options, f_write_options, null_handler=None, **kwargs
+    ):
         config = MAPPING_WRITE_CONFIG[path.suffix]
         if existing_null_handler := null_handler or config["default_null_handler"]:
             self.map(existing_null_handler)  # noqa

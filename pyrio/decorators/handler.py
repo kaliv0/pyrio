@@ -33,6 +33,8 @@ TERMINAL_FUNCTIONS = [
 
 
 def pre_call(function_decorator):
+    """Applies a function decorator to all callable methods"""
+
     def decorator(cls):
         for name, obj in vars(cls).items():
             if callable(obj):
@@ -43,13 +45,15 @@ def pre_call(function_decorator):
 
 
 def handle_consumed(func):
+    """Prevents operations on consumed streams and auto-closes after terminal operations"""
+
     @wraps(func)
     def wrapper(*args, **kw):
         from pyrio.streams.base_stream import BaseStream
 
         stream = args[0] if args else None
         if not (stream and isinstance(stream, BaseStream)):
-            return func(*args, **kw)
+            return func(*args, **kw)  # pragma: no cover
 
         is_consumed = getattr(stream, "_is_consumed", None)
         if is_consumed and func.__name__ != "close":

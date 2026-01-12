@@ -23,7 +23,7 @@ class BaseStream:
     @property
     def iterable(self):
         if isinstance(self._iterable, Mapping):
-            return (DictItem(k, v) for k, v in self._iterable.items())
+            self._iterable = tuple(DictItem(k, v) for k, v in self._iterable.items())
         return self._iterable
 
     @iterable.setter
@@ -79,19 +79,21 @@ class BaseStream:
         """Returns the count of elements in the stream"""
         return len(tuple(self.iterable))
 
+    def _validate_numeric_data(self, op):
+        data = tuple(self.iterable)
+        if not all(isinstance(x, (int, float)) or x is None for x in data):
+            raise ValueError(f"Cannot apply {op} on non-number elements")
+        return [x for x in data if x is not None]
+
     def sum(self):
         """Sums the elements of the stream"""
-        if len(self.iterable) == 0:
-            return 0
-        if not any(isinstance(x, (int | float | None)) for x in self.iterable):
-            raise ValueError("Cannot apply sum on non-number elements")
-        return sum(self.iterable)
+        valid_data = self._validate_numeric_data(self.sum.__name__)
+        return sum(valid_data) if valid_data else 0
 
     def average(self):
         """Returns the average value of elements in the stream"""
-        if (stream_len := len(self.iterable)) == 0:
-            return 0
-        return self.sum() / stream_len
+        valid_data = self._validate_numeric_data(self.average.__name__)
+        return sum(valid_data) / len(valid_data) if valid_data else 0
 
     def skip(self, count):
         """Discards the first n elements of the stream and returns a new stream with the remaining ones"""
@@ -137,10 +139,10 @@ class BaseStream:
 
     def take_last(self, default=None):
         """Returns Optional with the last element of the stream or a default value"""
-        if self.iterable:
-            *_, last = self.iterable
-            return Optional.of_nullable(last)
-        return Optional.of_nullable(default)
+        from collections import deque
+
+        last_item = deque(self.iterable, maxlen=1)
+        return Optional.of_nullable(last_item[0] if last_item else default)
 
     def sort(self, comparator=None, *, reverse=False):
         """
@@ -189,7 +191,7 @@ class BaseStream:
 
     def none_match(self, predicate):
         """Returns whether no elements of the stream match the given predicate"""
-        return any(not predicate(i) for i in self.iterable)
+        return not any(predicate(i) for i in self.iterable)
 
     def min(self, comparator=None, default=None):
         """Returns the minimum element of the stream according to the given comparator"""
@@ -217,12 +219,12 @@ class BaseStream:
         Reduces the elements to a single one, by repeatedly applying a reducing operation.
         Returns Optional with the result, if any, or None
         """
-        if len(self.iterable) == 0:
-            return Optional.of_nullable(identity)
-
         curr_iter = iter(self.iterable)
-        if identity is None:
-            identity = next(curr_iter)
+        try:
+            if identity is None:
+                identity = next(curr_iter)
+        except StopIteration:
+            return Optional.of_nullable(identity)
 
         for i in curr_iter:
             identity = accumulator(identity, i)
@@ -230,7 +232,9 @@ class BaseStream:
 
     def compare_with(self, other, comparator=None):
         """Compares current stream with another one based on a given comparator"""
-        return not any((comparator and not comparator(i, j)) or i != j for i, j in zip(self.iterable, other))
+        return not any(
+            (comparator and not comparator(i, j)) or i != j for i, j in zip(self.iterable, other)
+        )
 
     # ### collectors ###
     def collect(self, collection_type, dict_collector=None, dict_merger=None, str_delimiter=", "):
@@ -304,7 +308,9 @@ class BaseStream:
                 # let's not make unnecessary calls to property getters
                 return item._key, item._value  # noqa
             case _:
-                raise UnsupportedTypeError(f"Cannot create dict items from '{item.__class__.__name__}' type")
+                raise UnsupportedTypeError(
+                    f"Cannot create dict items from '{item.__class__.__name__}' type"
+                )
 
     def to_string(self, delimiter=", "):
         """Concatenates the elements of the Stream, separated by the specified delimiter"""

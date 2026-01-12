@@ -103,7 +103,9 @@ def test_filter_map():
 
 
 def test_filter_map_discard_falsy():
-    assert Stream.of(None, "foo", "", "bar", 0, []).filter_map(str.upper, discard_falsy=True).to_list() == [
+    assert Stream.of(None, "foo", "", "bar", 0, []).filter_map(
+        str.upper, discard_falsy=True
+    ).to_list() == [
         "FOO",
         "BAR",
     ]
@@ -119,6 +121,27 @@ def test_reduce_no_identity_provided():
 
 def test_reduce_empty_collection():
     assert Stream([]).reduce(lambda acc, val: acc + val).is_empty()
+
+
+def test_reduce_on_iterator():
+    # NB: iterator has no len()
+    assert Stream(iter([1, 2, 3, 4])).reduce(lambda acc, val: acc + val).get() == 10
+
+
+def test_reduce_on_iterator_with_identity():
+    assert Stream(iter([1, 2, 3])).reduce(lambda acc, val: acc + val, identity=10).get() == 16
+
+
+def test_reduce_on_empty_iterator():
+    assert Stream(iter([])).reduce(lambda acc, val: acc + val).is_empty()
+
+
+def test_reduce_on_empty_iterator_with_identity():
+    assert Stream(iter([])).reduce(lambda acc, val: acc + val, identity=42).get() == 42
+
+
+def test_reduce_on_single_element_iterator():
+    assert Stream(iter([5])).reduce(lambda acc, val: acc + val).get() == 5
 
 
 def test_for_each():
@@ -191,6 +214,12 @@ def test_head():
         Stream([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).limit(3).to_tuple()
         == Stream([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).head(3).to_tuple()
     )
+
+
+def test_head_negative_count():
+    with pytest.raises(ValueError) as e:
+        Stream([1, 2]).head(-5).to_tuple()
+    assert str(e.value) == "Head count cannot be negative"
 
 
 # ### tail ###
@@ -359,6 +388,28 @@ def test_sum_non_number_elements():
     assert str(e.value) == "Cannot apply sum on non-number elements"
 
 
+def test_sum_on_iterator():
+    assert Stream(iter([1, 2, 3, 4])).sum() == 10
+
+
+def test_sum_with_floats():
+    assert Stream.of(1.5, 2.5, 3.0).sum() == 7.0
+
+
+def test_sum_with_none_values():
+    assert Stream.of(1, None, 2, None, 3).sum() == 6
+
+
+def test_sum_mixed_types_raises():
+    with pytest.raises(ValueError) as e:
+        Stream.of(1, 2, "three", 4).sum()
+    assert str(e.value) == "Cannot apply sum on non-number elements"
+
+
+def test_sum_all_none():
+    assert Stream.of(None, None, None).sum() == 0
+
+
 def test_average():
     assert Stream.of(1, 2, 3, 4, 5).average() == 3.0
 
@@ -371,7 +422,29 @@ def test_average_empty_collection():
 def test_average_non_number_elements():
     with pytest.raises(ValueError) as e:
         Stream.of("a", "b").average()
-    assert str(e.value) == "Cannot apply sum on non-number elements"
+    assert str(e.value) == "Cannot apply average on non-number elements"
+
+
+def test_average_on_iterator():
+    assert Stream(iter([1, 2, 3, 4, 5])).average() == 3.0
+
+
+def test_average_with_floats():
+    assert Stream.of(1.0, 2.0, 3.0).average() == 2.0
+
+
+def test_average_with_none_values():
+    assert Stream.of(1, None, 2, None, 3).average() == 2.0
+
+
+def test_average_mixed_types_raises():
+    with pytest.raises(ValueError) as e:
+        Stream.of(1, 2, "three", 4).average()
+    assert str(e.value) == "Cannot apply average on non-number elements"
+
+
+def test_average_all_none():
+    assert Stream.of(None, None, None).average() == 0
 
 
 def test_take_while():
@@ -421,6 +494,22 @@ def test_take_last():
     assert Stream([]).take_last(default=33).get() == 33
 
 
+def test_take_last_on_iterator():
+    assert Stream(iter([1, 2, 3, 4, 5])).take_last().get() == 5
+
+
+def test_take_last_on_empty_iterator():
+    assert Stream(iter([])).take_last().is_empty()
+
+
+def test_take_last_on_empty_iterator_with_default():
+    assert Stream(iter([])).take_last(default=99).get() == 99
+
+
+def test_take_last_on_single_element_iterator():
+    assert Stream(iter([42])).take_last().get() == 42
+
+
 # ### sort ###
 def test_sort():
     assert Stream.of(3, 5, 2, 1).map(lambda x: x * 10).sort().to_list() == [10, 20, 30, 50]
@@ -445,7 +534,9 @@ def test_sort_comparator_function():
 
 
 def test_sort_multiple_keys():
-    assert Stream.of((3, 30), (2, 30), (2, 20), (1, 20), (1, 10)).sort(lambda x: (x[0], x[1])).to_list() == [
+    assert Stream.of((3, 30), (2, 30), (2, 20), (1, 20), (1, 10)).sort(
+        lambda x: (x[0], x[1])
+    ).to_list() == [
         (1, 10),
         (1, 20),
         (2, 20),
@@ -476,7 +567,9 @@ def test_reverse():
 
 
 def test_reverse_with_custom_comparator():
-    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).reverse(itemgetter(1)).to_list() == [
+    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).reverse(
+        itemgetter(1)
+    ).to_list() == [
         ("5", 50),
         ("3", 30),
         ("2", 20),
@@ -486,9 +579,9 @@ def test_reverse_with_custom_comparator():
 
 # ### ###
 def test_complex_pipeline():
-    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sort(itemgetter(1), reverse=True).to_dict(
-        lambda x: (x[0], x[1])
-    ) == {"5": 50, "3": 30, "2": 20, "1": 10}
+    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sort(
+        itemgetter(1), reverse=True
+    ).to_dict(lambda x: (x[0], x[1])) == {"5": 50, "3": 30, "2": 20, "1": 10}
 
 
 def test_reusing_stream():
@@ -625,7 +718,19 @@ def test_none_match_false():
 
 
 def test_none_match_empty():
-    assert Stream.empty().none_match(lambda x: x > 10) is False
+    assert Stream.empty().none_match(lambda x: x > 10)
+
+
+def test_none_match_partial_match():
+    assert Stream.of(1, 2, 3, 4).none_match(lambda x: x > 2) is False
+
+
+def test_none_match_all_match():
+    assert Stream.of(1, 2, 3, 4).none_match(lambda x: x > 0) is False
+
+
+def test_none_match_single_match():
+    assert Stream.of(1, 2, 3, 4).none_match(lambda x: x == 4) is False
 
 
 # ### min ###
@@ -725,7 +830,9 @@ def test_to_dict_via_dict_items(Foo):
 
 def test_to_dict_merger(Foo):
     coll = [Foo("fizz", 1), Foo("fizz", 2), Foo("buzz", 2)]
-    assert Stream(coll).to_dict(collector=lambda x: (x.name, x.num), merger=lambda old, new: old) == {
+    assert Stream(coll).to_dict(
+        collector=lambda x: (x.name, x.num), merger=lambda old, new: old
+    ) == {
         "fizz": 1,
         "buzz": 2,
     }
@@ -831,6 +938,17 @@ def test_group_by_objects(Foo):
     }
 
 
+def test_group_by_empty():
+    assert Stream.empty().group_by() == {}
+    assert Stream([]).group_by(classifier=lambda x: x) == {}
+
+
+def test_group_by_unconsumed_groups():
+    stream = Stream("AAABBB")
+    keys = [key for key, group in stream._group_by()]
+    assert keys == ["A", "B"]
+
+
 def test_to_string(nested_json):
     assert Stream([1, (2, 3), {4, 5, 6}]).to_string() == "1, (2, 3), {4, 5, 6}"
     assert (
@@ -838,7 +956,9 @@ def test_to_string(nested_json):
         == "{'a': 1} | {'b': [2, 3]}"
     )
     assert Stream(["x", "y", "z"]).to_string(delimiter="") == "xyz"
-    assert Stream(json.loads(nested_json)).collect(str) == Stream(json.loads(nested_json)).to_string()
+    assert (
+        Stream(json.loads(nested_json)).collect(str) == Stream(json.loads(nested_json)).to_string()
+    )
 
 
 def test_repr(nested_json):
@@ -909,7 +1029,8 @@ def test_hackerrank():
 
 
 @pytest.mark.parametrize(
-    "string, expected", [("a1b2c3c2b1a", True), ("abc321", False), ("xyyx", True), ("aba", True), ("z", True)]
+    "string, expected",
+    [("a1b2c3c2b1a", True), ("abc321", False), ("xyyx", True), ("aba", True), ("z", True)],
 )
 def test_leetcode(string, expected):
     # check if given string is palindrome; string length is guaranteed to be > 0

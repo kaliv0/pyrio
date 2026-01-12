@@ -42,7 +42,7 @@ excludes = ["tests/"]
 
 [tool.ruff]
 fix = true
-line-length = 110
+line-length = 100
 
 [tool.pytest.ini_options]
 tmp_path_retention_policy = "none"

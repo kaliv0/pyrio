@@ -29,4 +29,8 @@ class DictItem:
         return self._key == other._key and self._value == other._value  # noqa
 
     def __hash__(self):
-        return hash((self._key, self._value))
+        try:
+            return hash((self._key, self._value))
+        except TypeError:
+            # Value is unhashable (e.g., list, dict), use key hash combined with value's id
+            return hash((self._key, id(self._value)))

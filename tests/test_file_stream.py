@@ -67,7 +67,9 @@ def test_read_xml_include_root():
     ],
 )
 def test_dsv(file_path):
-    assert FileStream(file_path).map(lambda x: f"fizz: {x['fizz']}, buzz: {x['buzz']}").to_tuple() == (
+    assert FileStream(file_path).map(
+        lambda x: f"fizz: {x['fizz']}, buzz: {x['buzz']}"
+    ).to_tuple() == (
         "fizz: 42, buzz: 45",
         "fizz: aaa, buzz: bbb",
     )
@@ -99,7 +101,10 @@ def test_read_plain_and_query():
 
 def test_nested_json():
     assert FileStream("./tests/resources/nested.json").map(lambda x: x.value).flat_map(
-        lambda x: Stream(x).filter(lambda y: y.key == "second").flat_map(lambda z: z.value).to_tuple()
+        lambda x: Stream(x)
+        .filter(lambda y: y.key == "second")
+        .flat_map(lambda z: z.value)
+        .to_tuple()
     ).to_list() == [
         1,
         2,
@@ -215,7 +220,9 @@ def test_process(file_path):
             case _:
                 return False
 
-    assert FileStream.process(file_path, f_read_options={"parse_float": Decimal}).all_match(check_type)
+    assert FileStream.process(file_path, f_read_options={"parse_float": Decimal}).all_match(
+        check_type
+    )
 
 
 # ### save to file ###
@@ -326,7 +333,9 @@ def test_update_file(tmp_file_dir, json_dict):
     shutil.copyfile("./tests/resources/long.json", tmp_file_path)
     (
         FileStream(tmp_file_path)
-        .map(lambda x: DictItem(x.key, ", ".join((str(y) for y in x.value)) if x.value else x.value))
+        .map(
+            lambda x: DictItem(x.key, ", ".join((str(y) for y in x.value)) if x.value else x.value)
+        )
         .save(
             f_write_options={"indent": 2},
             null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
@@ -393,7 +402,9 @@ def test_save_to_csv_with_null_handler(tmp_file_dir):
         .map(lambda x: x.value)
         .save(tmp_file_path, null_handler=_null_handler)
     )
-    assert tmp_file_path.read_text() == open("./tests/resources/save_output/converted_null.csv").read()
+    assert (
+        tmp_file_path.read_text() == open("./tests/resources/save_output/converted_null.csv").read()
+    )
 
 
 def test_save_empty_csv(tmp_file_dir):
@@ -423,7 +434,9 @@ def test_update_fails(tmp_file_dir):
     tmp_file_path = tmp_file_dir / "fail.csv"
     shutil.copyfile("./tests/resources/editable.csv", tmp_file_path)
     with pytest.raises(IOError, match="Ooops Mr White..."):
-        FileStream(tmp_file_path).save(tmp_file_path, null_handler=_raise(IOError("Ooops Mr White...")))
+        FileStream(tmp_file_path).save(
+            tmp_file_path, null_handler=_raise(IOError("Ooops Mr White..."))
+        )
     assert tmp_file_path.read_text() == open("./tests/resources/editable.csv").read()
 
 
@@ -487,6 +500,43 @@ def test_plain_text_header_footer(tmp_file_dir):
         .enumerate()
         .filter(lambda line: line[0] == 3)
         .map(lambda line: f"{line[0]}: {line[1]}")
-        .save(f_open_options={"mode": "a"}, f_write_options={"header": "\nHeader\n", "footer": "\nFooter\n"})
+        .save(
+            f_open_options={"mode": "a"},
+            f_write_options={"header": "\nHeader\n", "footer": "\nFooter\n"},
+        )
     )
     assert tmp_file_path.read_text() == open(f"./tests/resources/save_output/{file_path}").read()
+
+
+def test_file_handler_closed_on_exception(monkeypatch):
+    from pyrio.streams import BaseStream
+    import builtins
+
+    # Track if close was called
+    close_called = []
+    original_init = BaseStream.__init__
+    original_open = builtins.open
+
+    def mock_init(self, iterable):
+        # set up _iterable
+        original_init(self, iterable)
+        raise RuntimeError("Simulated initialization error")
+
+    def tracking_open(*args, **kwargs):
+        f = original_open(*args, **kwargs)
+        original_close = f.close
+
+        def tracked_close():
+            close_called.append(True)
+            return original_close()
+
+        f.close = tracked_close
+        return f
+
+    monkeypatch.setattr(BaseStream, "__init__", mock_init)
+    monkeypatch.setattr(builtins, "open", tracking_open)
+
+    with pytest.raises(RuntimeError, match="Simulated initialization error"):
+        FileStream("./tests/resources/foo.json")
+
+    assert len(close_called) > 0, "File handler was not closed after exception"

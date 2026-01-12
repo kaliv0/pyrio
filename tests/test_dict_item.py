@@ -39,7 +39,10 @@ def test_dict_item_map_nested_dict(nested_json):
         ),
         DictItem(
             key="fraud",
-            value=(DictItem(key="Name", value="Freud"), DictItem(key="Email", value="ziggy@psycho.au")),
+            value=(
+                DictItem(key="Name", value="Freud"),
+                DictItem(key="Email", value="ziggy@psycho.au"),
+            ),
         ),
     )
 
@@ -63,7 +66,9 @@ def test_dict_item_eq(json_dict, nested_json):
     assert DictItem(key="foo", value=json.loads(nested_json)) != DictItem(
         key="data", value=json.loads(nested_json)
     )
-    assert DictItem(key="data", value=json_dict) != DictItem(key="data", value=json.loads(nested_json))
+    assert DictItem(key="data", value=json_dict) != DictItem(
+        key="data", value=json.loads(nested_json)
+    )
 
 
 def test_dict_item_eq_raises(json_dict):
@@ -71,3 +76,14 @@ def test_dict_item_eq_raises(json_dict):
     with pytest.raises(TypeError) as e:
         DictItem(key="data", value=json_dict) == nums  # noqa
     assert str(e.value) == f"{nums} is not a DictItem"
+
+
+@pytest.mark.parametrize("value", ["John", [1, 2, 3], {"a": 1}, {"list": [1, 2], "dict": {"a": 1}}])
+def test_dict_item_hash_returns_int(value):
+    assert isinstance(hash(DictItem(key="k", value=value)), int)
+
+
+@pytest.mark.parametrize("value", ["John", [1, 2, 3], {"a": 1}])
+def test_dict_item_hash_consistency(value):
+    item = DictItem(key="k", value=value)
+    assert hash(item) == hash(item)

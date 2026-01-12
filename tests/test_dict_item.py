@@ -78,12 +78,27 @@ def test_dict_item_eq_raises(json_dict):
     assert str(e.value) == f"{nums} is not a DictItem"
 
 
-@pytest.mark.parametrize("value", ["John", [1, 2, 3], {"a": 1}, {"list": [1, 2], "dict": {"a": 1}}])
+@pytest.mark.parametrize("value", ["John", 42, (1, 2, 3), None])
 def test_dict_item_hash_returns_int(value):
     assert isinstance(hash(DictItem(key="k", value=value)), int)
 
 
-@pytest.mark.parametrize("value", ["John", [1, 2, 3], {"a": 1}])
+@pytest.mark.parametrize("value", ["John", 42, (1, 2, 3)])
 def test_dict_item_hash_consistency(value):
     item = DictItem(key="k", value=value)
-    assert hash(item) == hash(item)
+    other = DictItem(key="k", value=value)
+    assert item == other
+    assert hash(item) == hash(other)
+
+
+@pytest.mark.parametrize(
+    "value,expected_type",
+    [([1, 2, 3], "list"), ({"a": 1}, "dict"), ({"list": [1, 2], "dict": {"a": 1}}, "dict")],
+)
+def test_dict_item_hash_unhashable_value_raises(value, expected_type):
+    with pytest.raises(TypeError) as e:
+        hash(DictItem(key="k", value=value))
+    assert (
+        str(e.value)
+        == f"unhashable type: 'DictItem' (value of type '{expected_type}' is unhashable)"
+    )

@@ -31,6 +31,7 @@ class DictItem:
     def __hash__(self):
         try:
             return hash((self._key, self._value))
-        except TypeError:
-            # Value is unhashable (e.g., list, dict), use key hash combined with value's id
-            return hash((self._key, id(self._value)))
+        except TypeError as e:
+            raise TypeError(
+                f"unhashable type: 'DictItem' (value of type '{type(self._value).__name__}' is unhashable)"
+            ) from e

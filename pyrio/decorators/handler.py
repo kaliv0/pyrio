@@ -49,7 +49,7 @@ def handle_consumed(func):
 
         stream = args[0] if args else None
         if not (stream and isinstance(stream, BaseStream)):
-            return func(*args, **kw)
+            return func(*args, **kw)  # pragma: no cover
 
         is_consumed = getattr(stream, "_is_consumed", None)
         if is_consumed and func.__name__ != "close":

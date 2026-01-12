@@ -11,27 +11,6 @@ def Foo():
     return Foo
 
 
-@pytest.fixture()
-def alias_dict():
-    return {
-        ".json": {
-            "import_mod": "json",
-            "callable": "load",
-            "read_mode": "r",
-        },
-        ".yaml": {
-            "import_mod": "yaml",
-            "callable": "safe_load",
-            "read_mode": "r",
-        },
-        ".toml": {
-            "import_mod": "tomli",
-            "callable": "load",
-            "read_mode": "r",
-        },
-    }
-
-
 @pytest.fixture
 def nested_json():
     return """

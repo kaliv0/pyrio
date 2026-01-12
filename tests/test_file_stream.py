@@ -540,3 +540,40 @@ def test_file_handler_closed_on_exception(monkeypatch):
         FileStream("./tests/resources/foo.json")
 
     assert len(close_called) > 0, "File handler was not closed after exception"
+
+
+def test_save_with_cleaning_up_tmp_file(tmp_file_dir):
+    from pathlib import Path
+
+    source_path = tmp_file_dir / "stale_tmp_source.json"
+    shutil.copyfile("./tests/resources/foo.json", source_path)
+
+    tmp_path = Path(f"{source_path}.tmp")
+    tmp_path.write_text("stale tmp content")
+    assert tmp_path.exists()
+
+    FileStream(source_path).save()
+    assert not tmp_path.exists()
+
+
+def test_atomic_write_cleanup_on_serialization_error(tmp_file_dir):
+    from pathlib import Path
+
+    class NotSerializable:
+        pass
+
+    source_path = tmp_file_dir / "serialize_fail.json"
+    shutil.copyfile("./tests/resources/foo.json", source_path)
+
+    fs = FileStream(source_path)
+    fs._iterable = (DictItem("key", NotSerializable()),)
+
+    with pytest.raises(TypeError):
+        fs.save()
+
+    # Tmp file should be cleaned up
+    tmp_path = Path(f"{source_path}.tmp")
+    assert not tmp_path.exists()
+
+    # Source file should be unchanged
+    assert source_path.read_text() == open("./tests/resources/foo.json").read()

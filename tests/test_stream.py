@@ -216,6 +216,12 @@ def test_head():
     )
 
 
+def test_head_negative_count():
+    with pytest.raises(ValueError) as e:
+        Stream([1, 2]).head(-5).to_tuple()
+    assert str(e.value) == "Head count cannot be negative"
+
+
 # ### tail ###
 def test_tail():
     assert Stream.of(1, 2, 3, 4).tail(2).to_list() == [3, 4]
@@ -930,6 +936,17 @@ def test_group_by_objects(Foo):
         "fizz": [("fizz", 1), ("fizz", 2), ("fizz", 3)],
         "buzz": [("buzz", 2), ("buzz", 3), ("buzz", 4), ("buzz", 5)],
     }
+
+
+def test_group_by_empty():
+    assert Stream.empty().group_by() == {}
+    assert Stream([]).group_by(classifier=lambda x: x) == {}
+
+
+def test_group_by_unconsumed_groups():
+    stream = Stream("AAABBB")
+    keys = [key for key, group in stream._group_by()]
+    assert keys == ["A", "B"]
 
 
 def test_to_string(nested_json):

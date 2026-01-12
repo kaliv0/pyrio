@@ -5,6 +5,8 @@ from pyrio.utils import DictItem
 
 
 def map_dict_items(func):
+    """Converts Mapping arguments to DictItem generators"""
+
     @wraps(func)
     def wrapper(*args, **kw):
         if not any(isinstance(arg, Mapping) for arg in args):

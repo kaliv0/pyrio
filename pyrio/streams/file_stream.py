@@ -3,60 +3,70 @@ import shutil
 from contextlib import contextmanager
 from pathlib import Path
 
+from aldict import AliasDict
+
 from pyrio.utils import DictItem, Mappable
 from pyrio.streams import BaseStream, Stream
 from pyrio.exceptions import NoneTypeError
 
 TEMP_PATH = "{file_path}.tmp"
 DSV_TYPES = {".csv", ".tsv"}
-MAPPING_READ_CONFIG = {
-    ".toml": {
-        "import_mod": "tomllib",
-        "callable": "load",
-        "read_mode": "rb",
+
+MAPPING_READ_CONFIG = AliasDict(
+    {
+        ".toml": {
+            "import_mod": "tomllib",
+            "callable": "load",
+            "read_mode": "rb",
+        },
+        ".json": {
+            "import_mod": "json",
+            "callable": "load",
+            "read_mode": "r",
+        },
+        ".yaml": {
+            "import_mod": "yaml",
+            "callable": "safe_load",
+            "read_mode": "r",
+        },
+        ".xml": {
+            "import_mod": "xmltodict",
+            "callable": "parse",
+            "read_mode": "rb",
+        },
     },
-    ".json": {
-        "import_mod": "json",
-        "callable": "load",
-        "read_mode": "r",
+    aliases={".yaml": ".yml"},
+)
+
+MAPPING_WRITE_CONFIG = AliasDict(
+    {
+        ".toml": {
+            "import_mod": "tomli_w",
+            "callable": "dump",
+            "write_mode": "wb",
+            "default_null_handler": lambda x: DictItem(x.key, "N/A") if x.value is None else x,
+        },
+        ".json": {
+            "import_mod": "json",
+            "callable": "dump",
+            "write_mode": "w",
+            "default_null_handler": None,
+        },
+        ".yaml": {
+            "import_mod": "yaml",
+            "callable": "dump",
+            "write_mode": "w",
+            "default_null_handler": None,
+        },
+        ".xml": {
+            "import_mod": "xmltodict",
+            "callable": "unparse",
+            "write_mode": "w",
+            "default_null_handler": None,
+        },
     },
-    ".yaml": {
-        "import_mod": "yaml",
-        "callable": "safe_load",
-        "read_mode": "r",
-    },
-    ".xml": {
-        "import_mod": "xmltodict",
-        "callable": "parse",
-        "read_mode": "rb",
-    },
-}
-MAPPING_WRITE_CONFIG = {
-    ".toml": {
-        "import_mod": "tomli_w",
-        "callable": "dump",
-        "write_mode": "wb",
-        "default_null_handler": lambda x: DictItem(x.key, "N/A") if x.value is None else x,
-    },
-    ".json": {
-        "import_mod": "json",
-        "callable": "dump",
-        "write_mode": "w",
-        "default_null_handler": None,
-    },
-    ".yaml": {
-        "import_mod": "yaml",
-        "callable": "dump",
-        "write_mode": "w",
-        "default_null_handler": None,
-    },
-    ".xml": {
-        "import_mod": "xmltodict",
-        "callable": "unparse",
-        "write_mode": "w",
-        "default_null_handler": None,
-    },
-}
+    aliases={".yaml": ".yml"},
+)
 
 
 class FileStream(BaseStream):

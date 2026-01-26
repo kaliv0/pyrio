@@ -44,6 +44,7 @@ class TestFileStream:
             "./tests/resources/foo.json",
             "./tests/resources/foo.toml",
             "./tests/resources/foo.yaml",
+            "./tests/resources/foo.yml",
             "./tests/resources/foo.xml",
         ],
     )
@@ -243,7 +244,7 @@ class TestFileStream:
 
     @pytest.mark.parametrize(
         "file_path, indent",
-        [("test.json", 2), ("test.yaml", 2), ("test.xml", 4)],
+        [("test.json", 2), ("test.yaml", 2), ("test.yml", 2), ("test.xml", 4)],
     )
     def test_save(self, tmp_file_dir, file_path, indent, json_dict):
         in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
@@ -262,6 +263,7 @@ class TestFileStream:
         [
             ("test_null_handler.json", 2),
             ("test_null_handler.yaml", 2),
+            ("test_null_handler.yml", 2),
             ("test_null_handler.xml", 4),
         ],
     )

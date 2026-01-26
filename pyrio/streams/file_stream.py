@@ -3,7 +3,7 @@ import shutil
 from contextlib import contextmanager
 from pathlib import Path
 
-from pyrio.utils import DictItem
+from pyrio.utils import DictItem, Mappable
 from pyrio.streams import BaseStream, Stream
 from pyrio.exceptions import NoneTypeError
 
@@ -98,14 +98,12 @@ class FileStream(BaseStream):
     def _read_file(cls, file_path, f_open_options=None, f_read_options=None, **kwargs):
         path = cls._get_file_path(file_path)
 
-        if f_open_options is None:
-            f_open_options = {}
-        if f_read_options is None:
-            f_read_options = {}
+        f_open_options = cls._normalize_options(f_open_options)
+        f_read_options = cls._normalize_options(f_read_options)
 
         if (suffix := path.suffix) in DSV_TYPES:
             return cls._read_dsv(path, f_open_options, f_read_options)
-        elif suffix in MAPPING_READ_CONFIG.keys():
+        elif suffix in MAPPING_READ_CONFIG:
             return cls._read_mapping(path, f_open_options, f_read_options, **kwargs)
         else:
             return cls._read_plain(path, f_open_options)
@@ -156,14 +154,12 @@ class FileStream(BaseStream):
         """Writes Stream to a new file (or updates an existing one) with advanced 'writing' options passed by the user"""
         path, tmp_path = self._prepare_file_paths(file_path)
 
-        if f_open_options is None:
-            f_open_options = {}
-        if f_write_options is None:
-            f_write_options = {}
+        f_open_options = self._normalize_options(f_open_options)
+        f_write_options = self._normalize_options(f_write_options)
 
         if (suffix := path.suffix) in DSV_TYPES:
             return self._write_dsv(path, tmp_path, f_open_options, f_write_options, null_handler)
-        elif suffix in MAPPING_READ_CONFIG.keys():
+        elif suffix in MAPPING_READ_CONFIG:
             return self._write_mapping(
                 path, tmp_path, f_open_options, f_write_options, null_handler, **kwargs
             )
@@ -184,7 +180,7 @@ class FileStream(BaseStream):
                 (f_write_options, "fieldnames", output[0].keys() if output else ()),
             ]
         )
-        with self._atomic_write(path, tmp_path, f_open_options) as f:
+        with self._atomic_write(path, tmp_path, f_open_options) as f:  # noqa
             writer = csv.DictWriter(f, **f_write_options)
             writer.writeheader()
             writer.writerows(output)
@@ -202,11 +198,11 @@ class FileStream(BaseStream):
         if path.suffix == ".xml":
             root = kwargs.get("xml_root", "root")
             output = {root: output}
-            io_opts_setting.append((f_write_options, "pretty", True))
+            io_opts_setting.append((f_write_options, "pretty", True))  # noqa
         self._prepare_io_options(io_opts_setting)
 
         dump = getattr(importlib.import_module(config["import_mod"]), config["callable"])
-        with self._atomic_write(path, tmp_path, f_open_options) as f:
+        with self._atomic_write(path, tmp_path, f_open_options) as f:  # noqa
             dump(output, f, **f_write_options)
 
     def _write_plain(self, path, tmp_path, f_open_options, f_write_options):
@@ -218,10 +214,19 @@ class FileStream(BaseStream):
         if header or footer:
             output = f"{header}{output}{footer}"
 
-        with self._atomic_write(path, tmp_path, f_open_options) as f:
+        with self._atomic_write(path, tmp_path, f_open_options) as f:  # noqa
             f.writelines(output)
 
     # ### helpers ###
+    @staticmethod
+    def _normalize_options(options):
+        """Converts option objects to dicts if needed, returns empty dict for None."""
+        if options is None:
+            return {}
+        if isinstance(options, Mappable):
+            return options.to_dict()
+        return options
+
     @staticmethod
     def _get_file_path(file_path, read_mode=True):
         path = Path(file_path)

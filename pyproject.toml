@@ -1,6 +1,6 @@
 [project]
 name = "pyrio"
-version = "1.6.0"
+version = "1.6.1"
 requires-python = ">=3.12"
 authors = [
     { name = "kaliv0", email = "kaloyan.ivanov88@gmail.com" },
@@ -12,6 +12,7 @@ license-files = ["LICENSE"]
 
 [project.optional-dependencies]
 fs = [
+    "aldict>=1.1.2",
     "pyyaml>=6.0.2",
     "tomli-w>=1.1.0",
     "xmltodict>=0.14.2",

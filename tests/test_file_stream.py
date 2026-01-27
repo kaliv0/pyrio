@@ -34,6 +34,7 @@ def test_path_is_dir_error():
         "./tests/resources/foo.json",
         "./tests/resources/foo.toml",
         "./tests/resources/foo.yaml",
+        "./tests/resources/foo.yml",
         "./tests/resources/foo.xml",
     ],
 )
@@ -248,7 +249,7 @@ def test_save_toml_default_null_handler(tmp_file_dir, json_dict):
 
 @pytest.mark.parametrize(
     "file_path, indent",
-    [("test.json", 2), ("test.yaml", 2), ("test.xml", 4)],
+    [("test.json", 2), ("test.yaml", 2), ("test.yml", 2), ("test.xml", 4)],
 )
 def test_save(tmp_file_dir, file_path, indent, json_dict):
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
@@ -263,7 +264,12 @@ def test_save(tmp_file_dir, file_path, indent, json_dict):
 
 @pytest.mark.parametrize(
     "file_path, indent",
-    [("test_null_handler.json", 2), ("test_null_handler.yaml", 2), ("test_null_handler.xml", 4)],
+    [
+        ("test_null_handler.json", 2),
+        ("test_null_handler.yaml", 2),
+        ("test_null_handler.yml", 2),
+        ("test_null_handler.xml", 4),
+    ],
 )
 def test_save_handle_null(tmp_file_dir, file_path, indent, json_dict):
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
@@ -428,15 +434,15 @@ def test_update_csv(tmp_file_dir):
 
 
 def test_update_fails(tmp_file_dir):
-    def _raise(exception):
-        raise exception
+    err_msg = "Ooops Mr. White..."
+
+    def _err_raiser(_):
+        raise IOError(err_msg)
 
     tmp_file_path = tmp_file_dir / "fail.csv"
     shutil.copyfile("./tests/resources/editable.csv", tmp_file_path)
-    with pytest.raises(IOError, match="Ooops Mr White..."):
-        FileStream(tmp_file_path).save(
-            tmp_file_path, null_handler=_raise(IOError("Ooops Mr White..."))
-        )
+    with pytest.raises(IOError, match=err_msg):
+        FileStream(tmp_file_path).save(tmp_file_path, null_handler=_err_raiser)
     assert tmp_file_path.read_text() == open("./tests/resources/editable.csv").read()
 
 

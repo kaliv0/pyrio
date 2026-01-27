@@ -3,60 +3,79 @@ import shutil
 from contextlib import contextmanager
 from pathlib import Path
 
+from aldict import AliasDict
+
 from pyrio.utils import DictItem
 from pyrio.streams import BaseStream, Stream
 from pyrio.exceptions import NoneTypeError
 
 TEMP_PATH = "{file_path}.tmp"
-DSV_TYPES = {".csv", ".tsv"}
-MAPPING_READ_CONFIG = {
-    ".toml": {
-        "import_mod": "tomllib",
-        "callable": "load",
-        "read_mode": "rb",
+
+
+DSV_CONFIG = {
+    ".csv": {
+        "delimiter": ",",
     },
-    ".json": {
-        "import_mod": "json",
-        "callable": "load",
-        "read_mode": "r",
-    },
-    ".yaml": {
-        "import_mod": "yaml",
-        "callable": "safe_load",
-        "read_mode": "r",
-    },
-    ".xml": {
-        "import_mod": "xmltodict",
-        "callable": "parse",
-        "read_mode": "rb",
+    ".tsv": {
+        "delimiter": "\t",
     },
 }
-MAPPING_WRITE_CONFIG = {
-    ".toml": {
-        "import_mod": "tomli_w",
-        "callable": "dump",
-        "write_mode": "wb",
-        "default_null_handler": lambda x: DictItem(x.key, "N/A") if x.value is None else x,
+
+MAPPING_READ_CONFIG = AliasDict(
+    {
+        ".toml": {
+            "import_mod": "tomllib",
+            "callable": "load",
+            "read_mode": "rb",
+        },
+        ".json": {
+            "import_mod": "json",
+            "callable": "load",
+            "read_mode": "r",
+        },
+        ".yaml": {
+            "import_mod": "yaml",
+            "callable": "safe_load",
+            "read_mode": "r",
+        },
+        ".xml": {
+            "import_mod": "xmltodict",
+            "callable": "parse",
+            "read_mode": "rb",
+        },
     },
-    ".json": {
-        "import_mod": "json",
-        "callable": "dump",
-        "write_mode": "w",
-        "default_null_handler": None,
+    aliases={".yaml": ".yml"},
+)
+
+MAPPING_WRITE_CONFIG = AliasDict(
+    {
+        ".toml": {
+            "import_mod": "tomli_w",
+            "callable": "dump",
+            "write_mode": "wb",
+            "default_null_handler": lambda x: DictItem(x.key, "N/A") if x.value is None else x,
+        },
+        ".json": {
+            "import_mod": "json",
+            "callable": "dump",
+            "write_mode": "w",
+            "default_null_handler": None,
+        },
+        ".yaml": {
+            "import_mod": "yaml",
+            "callable": "dump",
+            "write_mode": "w",
+            "default_null_handler": None,
+        },
+        ".xml": {
+            "import_mod": "xmltodict",
+            "callable": "unparse",
+            "write_mode": "w",
+            "default_null_handler": None,
+        },
     },
-    ".yaml": {
-        "import_mod": "yaml",
-        "callable": "dump",
-        "write_mode": "w",
-        "default_null_handler": None,
-    },
-    ".xml": {
-        "import_mod": "xmltodict",
-        "callable": "unparse",
-        "write_mode": "w",
-        "default_null_handler": None,
-    },
-}
+    aliases={".yaml": ".yml"},
+)
 
 
 class FileStream(BaseStream):
@@ -98,14 +117,12 @@ class FileStream(BaseStream):
     def _read_file(cls, file_path, f_open_options=None, f_read_options=None, **kwargs):
         path = cls._get_file_path(file_path)
 
-        if f_open_options is None:
-            f_open_options = {}
-        if f_read_options is None:
-            f_read_options = {}
+        f_open_options = f_open_options or {}
+        f_read_options = f_read_options or {}
 
-        if (suffix := path.suffix) in DSV_TYPES:
+        if (suffix := path.suffix) in DSV_CONFIG:
             return cls._read_dsv(path, f_open_options, f_read_options)
-        elif suffix in MAPPING_READ_CONFIG.keys():
+        elif suffix in MAPPING_READ_CONFIG:
             return cls._read_mapping(path, f_open_options, f_read_options, **kwargs)
         else:
             return cls._read_plain(path, f_open_options)
@@ -117,7 +134,7 @@ class FileStream(BaseStream):
         FileStream._prepare_io_options(
             [
                 (f_open_options, "newline", ""),
-                (f_read_options, "delimiter", "\t" if path.suffix == ".tsv" else ","),
+                (f_read_options, "delimiter", DSV_CONFIG[path.suffix]["delimiter"]),
             ]
         )
         file_handler = open(path, **f_open_options)
@@ -156,14 +173,12 @@ class FileStream(BaseStream):
         """Writes Stream to a new file (or updates an existing one) with advanced 'writing' options passed by the user"""
         path, tmp_path = self._prepare_file_paths(file_path)
 
-        if f_open_options is None:
-            f_open_options = {}
-        if f_write_options is None:
-            f_write_options = {}
+        f_open_options = f_open_options or {}
+        f_write_options = f_write_options or {}
 
-        if (suffix := path.suffix) in DSV_TYPES:
+        if (suffix := path.suffix) in DSV_CONFIG:
             return self._write_dsv(path, tmp_path, f_open_options, f_write_options, null_handler)
-        elif suffix in MAPPING_READ_CONFIG.keys():
+        elif suffix in MAPPING_WRITE_CONFIG:
             return self._write_mapping(
                 path, tmp_path, f_open_options, f_write_options, null_handler, **kwargs
             )
@@ -180,11 +195,11 @@ class FileStream(BaseStream):
         self._prepare_io_options(
             [
                 (f_open_options, "mode", "w"),
-                (f_write_options, "delimiter", "\t" if path.suffix == ".tsv" else ","),
+                (f_write_options, "delimiter", DSV_CONFIG[path.suffix]["delimiter"]),
                 (f_write_options, "fieldnames", output[0].keys() if output else ()),
             ]
         )
-        with self._atomic_write(path, tmp_path, f_open_options) as f:
+        with self._atomic_write(path, tmp_path, f_open_options) as f:  # noqa
             writer = csv.DictWriter(f, **f_write_options)
             writer.writeheader()
             writer.writerows(output)
@@ -206,7 +221,7 @@ class FileStream(BaseStream):
         self._prepare_io_options(io_opts_setting)
 
         dump = getattr(importlib.import_module(config["import_mod"]), config["callable"])
-        with self._atomic_write(path, tmp_path, f_open_options) as f:
+        with self._atomic_write(path, tmp_path, f_open_options) as f:  # noqa
             dump(output, f, **f_write_options)
 
     def _write_plain(self, path, tmp_path, f_open_options, f_write_options):
@@ -218,7 +233,7 @@ class FileStream(BaseStream):
         if header or footer:
             output = f"{header}{output}{footer}"
 
-        with self._atomic_write(path, tmp_path, f_open_options) as f:
+        with self._atomic_write(path, tmp_path, f_open_options) as f:  # noqa
             f.writelines(output)
 
     # ### helpers ###

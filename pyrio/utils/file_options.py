@@ -1,7 +1,4 @@
-from abc import ABC
-
-
-class Mappable(ABC):
+class Mappable:
     def to_dict(self):
         """Returns dict with only non-None values"""
         return {attr: val for attr, val in vars(self).items() if val is not None}
@@ -10,7 +7,7 @@ class Mappable(ABC):
         return f"{self.__class__.__name__}({', '.join(f'{attr}={val!r}' for attr, val in vars(self).items() if val is not None)})"
 
 
-class FileOptions(Mappable):
+class FileOpts(Mappable):
     """Options for file opening - applies to all file formats"""
 
     def __init__(self, encoding=None, errors=None, newline=None, buffering=None, mode=None):
@@ -23,21 +20,16 @@ class FileOptions(Mappable):
     @staticmethod
     def utf8(errors=None):
         """Creates FileOptions with UTF-8 encoding"""
-        return FileOptions(encoding="utf-8", errors=errors)
+        return FileOpts(encoding="utf-8", errors=errors)
 
     @staticmethod
     def ascii(errors=None):
         """Creates FileOptions with ASCII encoding"""
-        return FileOptions(encoding="ascii", errors=errors)
-
-    @staticmethod
-    def append(encoding=None):
-        """Creates FileOptions for append mode"""
-        return FileOptions(mode="a", encoding=encoding)
+        return FileOpts(encoding="ascii", errors=errors)
 
 
 # CSV
-class CsvReadOptions(Mappable):
+class CsvReadOpts(Mappable):
     """Options for reading CSV files"""
 
     def __init__(
@@ -67,15 +59,15 @@ class CsvReadOptions(Mappable):
     @staticmethod
     def excel():
         """Creates CsvReadOptions for Excel CSV dialect"""
-        return CsvReadOptions(dialect="excel")
+        return CsvReadOpts(dialect="excel")
 
     @staticmethod
     def unix():
         """Creates CsvReadOptions for Unix CSV dialect"""
-        return CsvReadOptions(dialect="unix")
+        return CsvReadOpts(dialect="unix")
 
 
-class CsvWriteOptions(Mappable):
+class CsvWriteOpts(Mappable):
     """Options for writing CSV files"""
 
     def __init__(
@@ -107,7 +99,7 @@ class CsvWriteOptions(Mappable):
         self.extrasaction = extrasaction
 
 
-class JsonReadOptions(Mappable):
+class JsonReadOpts(Mappable):
     """Options for reading JSON files"""
 
     def __init__(
@@ -129,10 +121,10 @@ class JsonReadOptions(Mappable):
         """Creates JsonReadOptions that parses floats as Decimal"""
         from decimal import Decimal
 
-        return JsonReadOptions(parse_float=Decimal)
+        return JsonReadOpts(parse_float=Decimal)
 
 
-class JsonWriteOptions(Mappable):
+class JsonWriteOpts(Mappable):
     """Options for writing JSON files"""
 
     def __init__(
@@ -158,27 +150,27 @@ class JsonWriteOptions(Mappable):
     @staticmethod
     def pretty(indent=2):
         """Creates JsonWriteOptions for pretty-printed output"""
-        return JsonWriteOptions(indent=indent)
+        return JsonWriteOpts(indent=indent)
 
     @staticmethod
     def compact():
         """Creates JsonWriteOptions for compact output with minimal whitespace"""
-        return JsonWriteOptions(separators=(",", ":"))
+        return JsonWriteOpts(separators=(",", ":"))
 
     @staticmethod
     def sorted(indent=2):
         """Creates JsonWriteOptions with sorted keys and pretty-printing"""
-        return JsonWriteOptions(indent=indent, sort_keys=True)
+        return JsonWriteOpts(indent=indent, sort_keys=True)
 
 
-class YamlReadOptions(Mappable):
+class YamlReadOpts(Mappable):
     """Options for reading YAML files"""
 
     def __init__(self, loader=None):  # noqa
         self.loader = loader
 
 
-class YamlWriteOptions(Mappable):
+class YamlWriteOpts(Mappable):
     """Options for writing YAML files"""
 
     def __init__(
@@ -196,15 +188,15 @@ class YamlWriteOptions(Mappable):
     @staticmethod
     def block_style(indent=2):
         """Creates YamlWriteOptions for block-style output"""
-        return YamlWriteOptions(default_flow_style=False, indent=indent)
+        return YamlWriteOpts(default_flow_style=False, indent=indent)
 
     @staticmethod
     def flow_style():
         """Creates YamlWriteOptions for flow-style (inline) output"""
-        return YamlWriteOptions(default_flow_style=True)
+        return YamlWriteOpts(default_flow_style=True)
 
 
-class XmlReadOptions(Mappable):
+class XmlReadOpts(Mappable):
     """Options for reading XML files"""
 
     def __init__(
@@ -220,7 +212,7 @@ class XmlReadOptions(Mappable):
         self.cdata_key = cdata_key
 
 
-class XmlWriteOptions(Mappable):
+class XmlWriteOpts(Mappable):
     """Options for writing XML files"""
 
     def __init__(
@@ -234,12 +226,12 @@ class XmlWriteOptions(Mappable):
         self.short_empty_elements = short_empty_elements
 
     @staticmethod
-    def pretty_print(indent=4):
+    def pretty(indent=4):
         """Creates XmlWriteOptions for pretty-printed output"""
-        return XmlWriteOptions(pretty=True, indent=indent)
+        return XmlWriteOpts(pretty=True, indent=indent)
 
 
-class PlainTextWriteOptions(Mappable):
+class TextWriteOpts(Mappable):
     """Options for writing plain text files"""
 
     def __init__(
@@ -253,6 +245,6 @@ class PlainTextWriteOptions(Mappable):
         self.footer = footer
 
     @staticmethod
-    def with_header_footer(header="", footer="", delimiter="\n"):
+    def with_(*, header="", footer="", delimiter="\n"):
         """Creates PlainTextWriteOptions with header and footer"""
-        return PlainTextWriteOptions(delimiter=delimiter, header=header, footer=footer)
+        return TextWriteOpts(delimiter=delimiter, header=header, footer=footer)

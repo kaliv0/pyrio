@@ -10,7 +10,15 @@ from pyrio.streams import BaseStream, Stream
 from pyrio.exceptions import NoneTypeError
 
 TEMP_PATH = "{file_path}.tmp"
-DSV_TYPES = {".csv", ".tsv"}
+
+DSV_CONFIG = {
+    ".csv": {
+        "delimiter": ",",
+    },
+    ".tsv": {
+        "delimiter": "\t",
+    },
+}
 
 MAPPING_READ_CONFIG = AliasDict(
     {
@@ -111,7 +119,7 @@ class FileStream(BaseStream):
         f_open_options = cls._normalize_options(f_open_options)
         f_read_options = cls._normalize_options(f_read_options)
 
-        if (suffix := path.suffix) in DSV_TYPES:
+        if (suffix := path.suffix) in DSV_CONFIG:
             return cls._read_dsv(path, f_open_options, f_read_options)
         elif suffix in MAPPING_READ_CONFIG:
             return cls._read_mapping(path, f_open_options, f_read_options, **kwargs)
@@ -125,7 +133,7 @@ class FileStream(BaseStream):
         FileStream._prepare_io_options(
             [
                 (f_open_options, "newline", ""),
-                (f_read_options, "delimiter", "\t" if path.suffix == ".tsv" else ","),
+                (f_read_options, "delimiter", DSV_CONFIG[path.suffix]["delimiter"]),
             ]
         )
         file_handler = open(path, **f_open_options)
@@ -167,9 +175,9 @@ class FileStream(BaseStream):
         f_open_options = self._normalize_options(f_open_options)
         f_write_options = self._normalize_options(f_write_options)
 
-        if (suffix := path.suffix) in DSV_TYPES:
+        if (suffix := path.suffix) in DSV_CONFIG:
             return self._write_dsv(path, tmp_path, f_open_options, f_write_options, null_handler)
-        elif suffix in MAPPING_READ_CONFIG:
+        elif suffix in MAPPING_WRITE_CONFIG:
             return self._write_mapping(
                 path, tmp_path, f_open_options, f_write_options, null_handler, **kwargs
             )
@@ -186,7 +194,7 @@ class FileStream(BaseStream):
         self._prepare_io_options(
             [
                 (f_open_options, "mode", "w"),
-                (f_write_options, "delimiter", "\t" if path.suffix == ".tsv" else ","),
+                (f_write_options, "delimiter", DSV_CONFIG[path.suffix]["delimiter"]),
                 (f_write_options, "fieldnames", output[0].keys() if output else ()),
             ]
         )

@@ -877,34 +877,36 @@ class TestStream:
             == "Freud"
         )
 
+    # ### hacker-rank ###
+    def test_hackerrank(self):
+        from enum import Enum
 
-# ### hacker-rank ###
-def test_hackerrank():
-    from enum import Enum
+        # count vowels and constants in given string
+        string = "123Ab5oc-E6db#bCi9<>"
+        all_vowels = "AEIOUaeiou"
 
-    # count vowels and constants in given string
-    string = "123Ab5oc-E6db#bCi9<>"
-    all_vowels = "AEIOUaeiou"
+        class CharType(Enum):
+            VOWELS = "vowels"
+            CONSONANTS = "consonants"
 
-    class CharType(Enum):
-        VOWELS = "vowels"
-        CONSONANTS = "consonants"
+        assert (
+            Stream(string)
+            .filter(lambda ch: ch.isalpha())
+            .partition(lambda ch: ch in all_vowels)
+            .enumerate()
+            .map(
+                lambda x: (CharType.VOWELS if x[0] == 0 else CharType.CONSONANTS, len(tuple(x[1])))
+            )
+            .to_dict()
+        ) == {CharType.CONSONANTS: 6, CharType.VOWELS: 4}
 
-    assert (
-        Stream(string)
-        .filter(lambda ch: ch.isalpha())
-        .partition(lambda ch: ch in all_vowels)
-        .enumerate()
-        .map(lambda x: (CharType.VOWELS if x[0] == 0 else CharType.CONSONANTS, len(tuple(x[1]))))
-        .to_dict()
-    ) == {CharType.CONSONANTS: 6, CharType.VOWELS: 4}
-
-
-@pytest.mark.parametrize(
-    "string, expected",
-    [("a1b2c3c2b1a", True), ("abc321", False), ("xyyx", True), ("aba", True), ("z", True)],
-)
-def test_leetcode(string, expected):
-    # check if given string is palindrome; string length is guaranteed to be > 0
-    stop = len(string) // 2 if len(string) > 1 else 1
-    assert Stream.from_range(0, stop).all_match(lambda x: string[x] == string[-x - 1]) is expected
+    @pytest.mark.parametrize(
+        "string, expected",
+        [("a1b2c3c2b1a", True), ("abc321", False), ("xyyx", True), ("aba", True), ("z", True)],
+    )
+    def test_leetcode(self, string, expected):
+        # check if given string is palindrome; string length is guaranteed to be > 0
+        stop = len(string) // 2 if len(string) > 1 else 1
+        assert (
+            Stream.from_range(0, stop).all_match(lambda x: string[x] == string[-x - 1]) is expected
+        )

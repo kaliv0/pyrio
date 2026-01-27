@@ -8,14 +8,14 @@ from pyrio import (
     FileStream,
     Stream,
     DictItem,
-    FileOptions,
-    CsvReadOptions,
-    CsvWriteOptions,
-    JsonReadOptions,
-    JsonWriteOptions,
-    YamlWriteOptions,
-    XmlWriteOptions,
-    PlainTextWriteOptions,
+    FileOpts,
+    CsvReadOpts,
+    CsvWriteOpts,
+    JsonReadOpts,
+    JsonWriteOpts,
+    YamlWriteOpts,
+    XmlWriteOpts,
+    TextWriteOpts,
 )
 from pyrio.exceptions import IllegalStateError, NoneTypeError
 
@@ -440,15 +440,13 @@ class TestFileStream:
         assert tmp_file_path.read_text() == open("./tests/resources/save_output/updated.csv").read()
 
     def test_update_fails(self, tmp_file_dir):
-        def _raise(exception):
-            raise exception
+        def _raise_err(_):
+            raise IOError("Ooops Mr White...")
 
         tmp_file_path = tmp_file_dir / "fail.csv"
         shutil.copyfile("./tests/resources/editable.csv", tmp_file_path)
         with pytest.raises(IOError, match="Ooops Mr White..."):
-            FileStream(tmp_file_path).save(
-                tmp_file_path, null_handler=_raise(IOError("Ooops Mr White..."))
-            )
+            FileStream(tmp_file_path).save(tmp_file_path, null_handler=_raise_err)
         assert tmp_file_path.read_text() == open("./tests/resources/editable.csv").read()
 
     def test_combine_files_into_csv(self, tmp_file_dir):
@@ -530,9 +528,9 @@ class TestFileStream:
         original_init = BaseStream.__init__
         original_open = builtins.open
 
-        def mock_init(self, iterable):
+        def mock_init(self_, iterable):
             # set up _iterable
-            original_init(self, iterable)
+            original_init(self_, iterable)
             raise RuntimeError("Simulated initialization error")
 
         def tracking_open(*args, **kwargs):
@@ -593,7 +591,8 @@ class TestFileStream:
     # JSON options
     def test_read_json_with_options(self):
         result = FileStream.process(
-            "./tests/resources/parse_float.json", f_read_options=JsonReadOptions.with_decimal()
+            "./tests/resources/parse_float.json",
+            f_read_options=JsonReadOpts(parse_float=Decimal),
         ).to_tuple()
         assert any(isinstance(item.value, Decimal) for item in result if hasattr(item, "value"))
 
@@ -602,8 +601,8 @@ class TestFileStream:
         tmp_file_path = tmp_file_dir / "test_opts.json"
         FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
             tmp_file_path,
-            f_open_options=FileOptions.utf8(),
-            f_write_options=JsonWriteOptions.pretty(indent=2),
+            f_open_options=FileOpts.utf8(),
+            f_write_options=JsonWriteOpts.pretty(indent=2),
         )
         assert tmp_file_path.read_text() == open("./tests/resources/save_output/test.json").read()
 
@@ -611,7 +610,7 @@ class TestFileStream:
         tmp_file_path = tmp_file_dir / "sorted.json"
         FileStream("./tests/resources/foo.json").save(
             tmp_file_path,
-            f_write_options=JsonWriteOptions.sorted(indent=2),
+            f_write_options=JsonWriteOpts.sorted(indent=2),
         )
         content = tmp_file_path.read_text()
         # With sort_keys=True, "abc" should come before "qwerty"
@@ -621,7 +620,7 @@ class TestFileStream:
         tmp_file_path = tmp_file_dir / "compact.json"
         FileStream("./tests/resources/foo.json").save(
             tmp_file_path,
-            f_write_options=JsonWriteOptions.compact(),
+            f_write_options=JsonWriteOpts.compact(),
         )
         content = tmp_file_path.read_text()
         # Compact format has no spaces after colons/commas
@@ -639,7 +638,7 @@ class TestFileStream:
                 )
             )
             .save(
-                f_write_options=JsonWriteOptions(indent=2),
+                f_write_options=JsonWriteOpts(indent=2),
                 null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
             )
         )
@@ -651,7 +650,7 @@ class TestFileStream:
     def test_read_csv_with_options(self):
         result = FileStream.process(
             "./tests/resources/bar.csv",
-            f_read_options=CsvReadOptions(delimiter=","),
+            f_read_options=CsvReadOpts(delimiter=","),
         ).to_tuple()
         assert len(result) == 2
         assert result[0]["fizz"] == "42"
@@ -659,7 +658,7 @@ class TestFileStream:
     def test_read_csv_with_excel_dialect(self):
         result = FileStream.process(
             "./tests/resources/bar.csv",
-            f_read_options=CsvReadOptions.excel(),
+            f_read_options=CsvReadOpts.excel(),
         ).to_tuple()
         assert len(result) == 2
 
@@ -667,7 +666,7 @@ class TestFileStream:
         tmp_file_path = tmp_file_dir / "test_opts.csv"
         FileStream("./tests/resources/bar.csv").save(
             tmp_file_path,
-            f_write_options=CsvWriteOptions(delimiter=","),
+            f_write_options=CsvWriteOpts(delimiter=","),
         )
         assert tmp_file_path.read_text() == open("./tests/resources/save_output/test.csv").read()
 
@@ -675,7 +674,7 @@ class TestFileStream:
         tmp_file_path = tmp_file_dir / "semicolon.csv"
         FileStream("./tests/resources/bar.csv").save(
             tmp_file_path,
-            f_write_options=CsvWriteOptions(delimiter=";"),
+            f_write_options=CsvWriteOpts(delimiter=";"),
         )
         content = tmp_file_path.read_text()
         assert ";" in content
@@ -687,7 +686,7 @@ class TestFileStream:
         tmp_file_path.write_text("name,value\n'hello','world'\n")
         result = FileStream.process(
             tmp_file_path,
-            f_read_options=CsvReadOptions(quotechar="'"),
+            f_read_options=CsvReadOpts(quotechar="'"),
         ).to_tuple()
         assert len(result) == 1
 
@@ -697,8 +696,8 @@ class TestFileStream:
         tmp_file_path = tmp_file_dir / "test_opts.yaml"
         FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
             tmp_file_path,
-            f_open_options=FileOptions(encoding="utf-8"),
-            f_write_options=YamlWriteOptions(indent=2),
+            f_open_options=FileOpts.utf8(),
+            f_write_options=YamlWriteOpts.block_style(),
         )
         assert tmp_file_path.read_text() == open("./tests/resources/save_output/test.yaml").read()
 
@@ -706,7 +705,7 @@ class TestFileStream:
         tmp_file_path = tmp_file_dir / "block.yaml"
         FileStream("./tests/resources/foo.yaml").save(
             tmp_file_path,
-            f_write_options=YamlWriteOptions.block_style(indent=2),
+            f_write_options=YamlWriteOpts.block_style(indent=2),
         )
         assert tmp_file_path.read_text() == "abc: xyz\nqwerty: 42\n"
 
@@ -714,7 +713,7 @@ class TestFileStream:
         tmp_file_path = tmp_file_dir / "flow.yaml"
         FileStream("./tests/resources/foo.yaml").save(
             tmp_file_path,
-            f_write_options=YamlWriteOptions.flow_style(),
+            f_write_options=YamlWriteOpts.flow_style(),
         )
         assert tmp_file_path.read_text() == "{abc: xyz, qwerty: 42}\n"
 
@@ -724,8 +723,8 @@ class TestFileStream:
         tmp_file_path = tmp_file_dir / "test_opts.xml"
         FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
             tmp_file_path,
-            f_open_options=FileOptions.utf8(),
-            f_write_options=XmlWriteOptions(pretty=True, indent=4),
+            f_open_options=FileOpts.utf8(),
+            f_write_options=XmlWriteOpts(pretty=True, indent=4),
         )
         assert tmp_file_path.read_text() == open("./tests/resources/save_output/test.xml").read()
 
@@ -735,7 +734,7 @@ class TestFileStream:
         in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
         FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
             tmp_file_path,
-            f_write_options=XmlWriteOptions.pretty_print(indent=4),
+            f_write_options=XmlWriteOpts.pretty(indent=4),
             null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
             xml_root="my-root",
         )
@@ -748,9 +747,7 @@ class TestFileStream:
         tmp_file_path = tmp_file_dir / "test_opts.txt"
         FileStream("./tests/resources/plain.txt").map(lambda x: x.strip()).head(2).save(
             tmp_file_path,
-            f_write_options=PlainTextWriteOptions.with_header_footer(
-                header="---START---\n", footer="\n---END---"
-            ),
+            f_write_options=TextWriteOpts.with_(header="---START---\n", footer="\n---END---"),
         )
         assert tmp_file_path.read_text() == (
             "---START---\n"
@@ -759,7 +756,7 @@ class TestFileStream:
             "---END---"
         )
 
-    # FileOptions tests
+    # FileOpts tests
     def test_append_to_plain_with_file_options(self, tmp_file_dir):
         file_path = "append_map.txt"
         tmp_file_path = tmp_file_dir / file_path
@@ -770,7 +767,7 @@ class TestFileStream:
             .enumerate()
             .filter(lambda line: "ne" in line[1])
             .map(lambda line: f"line_num:{line[0]}, text='{line[1]}'")
-            .save(f_open_options=FileOptions.append())
+            .save(f_open_options=FileOpts(mode="a"))
         )
         assert (
             tmp_file_path.read_text() == open(f"./tests/resources/save_output/{file_path}").read()
@@ -781,8 +778,8 @@ class TestFileStream:
         tmp_file_path = tmp_file_dir / "utf8_opts.json"
         FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
             tmp_file_path,
-            f_open_options=FileOptions.utf8(),
-            f_write_options=JsonWriteOptions(indent=2),
+            f_open_options=FileOpts.utf8(),
+            f_write_options=JsonWriteOpts(indent=2),
         )
         assert tmp_file_path.read_text() == open("./tests/resources/save_output/test.json").read()
 
@@ -790,8 +787,8 @@ class TestFileStream:
         tmp_file_path = tmp_file_dir / "ascii.json"
         FileStream("./tests/resources/foo.json").save(
             tmp_file_path,
-            f_open_options=FileOptions.ascii(),
-            f_write_options=JsonWriteOptions(indent=2, ensure_ascii=True),
+            f_open_options=FileOpts.ascii(),
+            f_write_options=JsonWriteOpts(indent=2, ensure_ascii=True),
         )
         content = tmp_file_path.read_text()
         assert "abc" in content
@@ -802,8 +799,8 @@ class TestFileStream:
         tmp_file_path = tmp_file_dir / "combined.json"
         FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
             tmp_file_path,
-            f_open_options=FileOptions(encoding="utf-8"),
-            f_write_options=JsonWriteOptions(indent=2),
+            f_open_options=FileOpts(encoding="utf-8"),
+            f_write_options=JsonWriteOpts(indent=2),
             null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
         )
         assert (

@@ -567,6 +567,42 @@ FileStream("path/to/file.json").concat(in_memory_dict).save(
 ```
 
 --------------------------------------------
+NB: instead of passing file_options as dict you can use provided custom classes for the different supported file types
+```python
+FileStream("./tests/resources/plain.txt").map(lambda x: x.strip()).head(2).save(
+    file_path="path/to/file.txt",
+    f_write_options=TextWriteOpts.with_(header="---START---\n", footer="\n---END---"),
+)
+
+# ---START---
+# Lorem ipsum dolor sit amet, consectetur adipisicing elit,
+# sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+# ---END---
+```
+
+```python
+FileStream("./tests/resources/nested.md").save(
+    file_path="path/to/output.yaml",
+    f_open_options=FileOpts.utf8(),
+    f_write_options=YamlWriteOpts.block_style(),
+)
+
+# Email:
+#   primary: jen123@gmail.com
+# Job: null
+# Name: Jennifer Smith
+# Phone: 555-123-4568
+# first:
+#   second:
+#   - 1
+#   - 2
+#   - 3
+#   - 4
+#   still-second:
+#     third: 42
+```
+
+--------------------------------------------
 ### How far can we actually push it?
 ```python
 (

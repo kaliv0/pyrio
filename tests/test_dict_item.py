@@ -6,7 +6,7 @@ from pyrio import DictItem
 
 
 class TestDictItem:
-    def test_dict_item_map(self, json_dict):
+    def test_map(self, json_dict):
         dictitem = DictItem(key="data", value=json_dict)
         assert dictitem.key == "data"
         assert dictitem.value == (
@@ -18,7 +18,7 @@ class TestDictItem:
             DictItem(key="Job", value=None),
         )
 
-    def test_dict_item_map_nested_dict(self, nested_json):
+    def test_map_nested_dict(self, nested_json):
         dictitem = DictItem(key="data", value=json.loads(nested_json))
         assert dictitem.value == (
             DictItem(
@@ -46,7 +46,7 @@ class TestDictItem:
             ),
         )
 
-    def test_dict_item_repr(self, json_dict):
+    def test_repr(self, json_dict):
         assert str(DictItem(key="data", value=json_dict)) == (
             "DictItem(key='data', value=("
             "DictItem(key='Name', value='Jennifer Smith'), "
@@ -57,7 +57,7 @@ class TestDictItem:
             "DictItem(key='Job', value=None)))"
         )
 
-    def test_dict_item_eq(self, json_dict, nested_json):
+    def test_eq(self, json_dict, nested_json):
         assert DictItem(key="data", value=json.loads(nested_json)) == DictItem(
             key="data", value=json.loads(nested_json)
         )
@@ -68,18 +68,18 @@ class TestDictItem:
             key="data", value=json.loads(nested_json)
         )
 
-    def test_dict_item_eq_raises(self, json_dict):
+    def test_eq_raises(self, json_dict):
         nums = [1, 2, 3]
         with pytest.raises(TypeError) as e:
             DictItem(key="data", value=json_dict) == nums  # noqa
         assert str(e.value) == f"{nums} is not a DictItem"
 
     @pytest.mark.parametrize("value", ["John", 42, (1, 2, 3), None])
-    def test_dict_item_hash_returns_int(self, value):
+    def test_hash_returns_int(self, value):
         assert isinstance(hash(DictItem(key="k", value=value)), int)
 
     @pytest.mark.parametrize("value", ["John", 42, (1, 2, 3)])
-    def test_dict_item_hash_consistency(self, value):
+    def test_hash_consistency(self, value):
         item = DictItem(key="k", value=value)
         other = DictItem(key="k", value=value)
         assert item == other
@@ -89,7 +89,7 @@ class TestDictItem:
         "value,expected_type",
         [([1, 2, 3], "list"), ({"a": 1}, "dict"), ({"list": [1, 2], "dict": {"a": 1}}, "dict")],
     )
-    def test_dict_item_hash_unhashable_value_raises(self, value, expected_type):
+    def test_hash_unhashable_value_raises(self, value, expected_type):
         with pytest.raises(TypeError) as e:
             hash(DictItem(key="k", value=value))
         assert (

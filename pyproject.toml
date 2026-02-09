@@ -1,9 +1,9 @@
 [project]
 name = "pyrio"
-version = "1.6.3"
+version = "1.6.1"
 requires-python = ">=3.12"
 authors = [
-    { name = "kaliv0", email = "kaliv.zero@gmail.com" },
+    { name = "kaliv0", email = "kaloyan.ivanov88@gmail.com" },
 ]
 description = "Functional-style Streams library for processing collections. Supports querying files (json, toml, yaml, xml, csv, tsv, plain text) - as well as creating and updating them. Provides easy integration with itertools"
 keywords = ["stream", "functional", "processing", "collections", "fluent API", "file processing", "queries"]

@@ -3,4 +3,5 @@ from .exception import (
     NoneTypeError as NoneTypeError,
     NoSuchElementError as NoSuchElementError,
     UnsupportedTypeError as UnsupportedTypeError,
+    MethodNotFoundError as MethodNotFoundError,
 )

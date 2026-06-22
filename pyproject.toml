@@ -9,6 +9,12 @@ description = "Functional-style Streams library for processing collections. Supp
 keywords = ["stream", "functional", "processing", "collections", "fluent API", "file processing", "queries"]
 readme = "README.md"
 license-files = ["LICENSE"]
+dependencies = [
+    "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
+    "ruff==0.15.18",
+    "sphinx>=8.2.3",
+]
 
 [project.optional-dependencies]
 fs = [
@@ -42,7 +48,6 @@ build-backend = "pdm.backend"
 excludes = ["tests/"]
 
 [tool.ruff]
-fix = true
 line-length = 100
 
 [tool.pytest.ini_options]

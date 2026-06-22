@@ -102,10 +102,9 @@ def test_read_plain_and_query():
 
 def test_nested_json():
     assert FileStream("./tests/resources/nested.json").map(lambda x: x.value).flat_map(
-        lambda x: Stream(x)
-        .filter(lambda y: y.key == "second")
-        .flat_map(lambda z: z.value)
-        .to_tuple()
+        lambda x: (
+            Stream(x).filter(lambda y: y.key == "second").flat_map(lambda z: z.value).to_tuple()
+        )
     ).to_list() == [
         1,
         2,
@@ -379,11 +378,13 @@ def test_save_convert_to_csv(tmp_file_dir):
         FileStream("./tests/resources/convertable.json")
         .filter(
             lambda x: (
-                Stream(x.value)
-                .find_first(lambda y: y.key == "name" and y.value == "Snake")
-                .or_else_get(lambda: None)
+                (
+                    Stream(x.value)
+                    .find_first(lambda y: y.key == "name" and y.value == "Snake")
+                    .or_else_get(lambda: None)
+                )
+                is None
             )
-            is None
         )
         .map(lambda x: x.value)
         .save(tmp_file_path)
@@ -427,7 +428,7 @@ def test_update_csv(tmp_file_dir):
     shutil.copyfile("./tests/resources/editable.csv", tmp_file_path)
     (
         FileStream(tmp_file_path)
-        .map(lambda x: (Stream(x).to_dict(lambda y: DictItem(y.key, y.value or "Unknown"))))
+        .map(lambda x: Stream(x).to_dict(lambda y: DictItem(y.key, y.value or "Unknown")))
         .save(tmp_file_path)
     )
     assert tmp_file_path.read_text() == open("./tests/resources/save_output/updated.csv").read()
@@ -455,15 +456,17 @@ def test_combine_files_into_csv(tmp_file_dir):
             FileStream("./tests/resources/convertable.json")
             .filter(
                 lambda x: (
-                    Stream(x.value)
-                    .find_first(lambda y: y.key == "name" and y.value != "Snake")
-                    .or_else_get(lambda: None)
-                )
-                is not None  # explicit is better than implicit
+                    (
+                        Stream(x.value)
+                        .find_first(lambda y: y.key == "name" and y.value != "Snake")
+                        .or_else_get(lambda: None)
+                    )
+                    is not None
+                )  # explicit is better than implicit
             )
             .map(lambda x: x.value)
         )
-        .map(lambda x: (Stream(x).to_dict(lambda y: DictItem(y.key, y.value or "N/A"))))
+        .map(lambda x: Stream(x).to_dict(lambda y: DictItem(y.key, y.value or "N/A")))
         .save(tmp_file_path)
     )
     assert tmp_file_path.read_text() == open("./tests/resources/save_output/merged.csv").read()

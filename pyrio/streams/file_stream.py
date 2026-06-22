@@ -98,8 +98,8 @@ class FileStream(BaseStream):
             super(cls, obj).__init__(iterable)
             obj._file_path = file_path
             obj._file_handler = file_handler
-            obj._on_close_handler = (
-                lambda: obj._file_handler.close() if not obj._file_handler.closed else None
+            obj._on_close_handler = lambda: (
+                obj._file_handler.close() if not obj._file_handler.closed else None
             )
             return obj
         except Exception:

@@ -75,7 +75,7 @@ class BaseStream:
         self.iterable = StreamGenerator.distinct(self.iterable)
         return self
 
-    def count(self):
+    def len(self):
         """Returns the count of elements in the stream"""
         return len(tuple(self.iterable))
 

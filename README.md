@@ -313,10 +313,11 @@ Stream(coll).group_by(
 Stream([1, 2, 3, 4]).for_each(lambda x: print(f"{'#' * x} ", end=""))
 ```
 
-- count
+- len
 <br>(returns the count of elements in the stream)
+
 ```python
-Stream([1, 2, 3, 4]).filter(lambda x: x % 2 == 0).count()
+Stream([1, 2, 3, 4]).filter(lambda x: x % 2 == 0).len()
 ```
 
 - sum
@@ -410,14 +411,13 @@ NB: although the Stream is closed automatically by the <i>terminal operation</i>
 
 --------------------------------------------
 ### Itertools integration
-Invoke <i>use</i> method by passing the itertools function and it's arguments as **kwargs
+Invoke selected <i>itertools</i> function directly as native Stream method and pass its arguments as **kwargs
 ```python
-import itertools
 import operator
 
-Stream([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).use(itertools.islice, start=3, stop=8)
-Stream.of(1, 2, 3, 4, 5).use(itertools.accumulate, func=operator.mul).to_list()
-Stream(range(3)).use(itertools.permutations, r=3).to_list()
+Stream([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).islice(start=3, stop=8).to_list()
+Stream.of(1, 2, 3, 4, 5).accumulate(func=operator.mul).to_list()
+Stream(range(3)).permutations(r=3).to_list()
 
 ```
 #### Itertools 'recipes'

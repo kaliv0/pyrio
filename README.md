@@ -418,6 +418,7 @@ import operator
 Stream([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).islice(start=3, stop=8).to_list()
 Stream.of(1, 2, 3, 4, 5).accumulate(func=operator.mul).to_list()
 Stream(range(3)).permutations(r=3).to_list()
+Stream(["ABC", "DEF"]).chain_from_iterable().to_list()
 
 ```
 #### Itertools 'recipes'

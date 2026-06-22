@@ -619,7 +619,13 @@ def test_stream_on_close_callback():
     assert f.getvalue() == "# ## ### #### It was an honor"
 
 
-def test_stream_on_close_callback_using_pointer_to_self():
+def test_stream_on_close_handler_is_not_callable():
+    with pytest.raises(TypeError) as e:
+        Stream.of(1, 2, 3).on_close("foo").to_list()
+    assert str(e.value) == "'foo' is not callable"
+
+
+def test_stream_on_close_callback_using_pointer_to_enclosing_scope():
     flag = False
 
     def flip():

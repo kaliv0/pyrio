@@ -177,13 +177,13 @@ class FileStream(BaseStream):
         f_write_options = f_write_options or {}
 
         if (suffix := path.suffix) in DSV_CONFIG:
-            return self._write_dsv(path, tmp_path, f_open_options, f_write_options, null_handler)
+            self._write_dsv(path, tmp_path, f_open_options, f_write_options, null_handler)
         elif suffix in MAPPING_WRITE_CONFIG:
-            return self._write_mapping(
+            self._write_mapping(
                 path, tmp_path, f_open_options, f_write_options, null_handler, **kwargs
             )
         else:
-            return self._write_plain(path, tmp_path, f_open_options, f_write_options)
+            self._write_plain(path, tmp_path, f_open_options, f_write_options)
 
     def _write_dsv(self, path, tmp_path, f_open_options, f_write_options, null_handler=None):
         import csv

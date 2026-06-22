@@ -10,6 +10,8 @@ class ItertoolsMixin:
     NO_SIGNATURE_FUNCTIONS = ["chain", "islice", "product", "repeat", "zip_longest"]
     NO_KWARGS_FUNCTIONS = ["dropwhile", "filterfalse", "starmap", "takewhile", "tee"]
 
+    iterable = None
+
     def use(self, it_function, **kwargs):
         """Provides integration with itertools methods; pass corresponding parameters as kwargs"""
         import inspect

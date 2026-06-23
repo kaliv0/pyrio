@@ -24,15 +24,15 @@ def test_stream_of():
 
 
 def test_stream_of_nullable():
-    assert Stream.of_nullable(None).count() == 0
+    assert Stream.of_nullable(None).len() == 0
 
     nonempty_stream = Stream.of_nullable([1, 2, 3])
-    assert nonempty_stream.count() != 0
+    assert nonempty_stream.len() != 0
     assert nonempty_stream._iterable == [1, 2, 3]
 
 
 def test_empty_stream():
-    assert Stream.empty().count() == 0
+    assert Stream.empty().len() == 0
 
 
 def test_iterate():
@@ -364,13 +364,13 @@ def test_distinct():
     assert Stream([1, 1, 2, 2, 2, 3]).distinct().to_list() == [1, 2, 3]
 
 
-def test_count():
-    assert Stream([1, 2, 3, 4]).filter(lambda x: x % 2 == 0).count() == 2
+def test_len():
+    assert Stream([1, 2, 3, 4]).filter(lambda x: x % 2 == 0).len() == 2
 
 
-def test_count_empty_collection():
-    assert Stream([]).count() == 0
-    assert Stream.empty().count() == 0
+def test_len_empty_collection():
+    assert Stream([]).len() == 0
+    assert Stream.empty().len() == 0
 
 
 def test_sum():
@@ -619,7 +619,13 @@ def test_stream_on_close_callback():
     assert f.getvalue() == "# ## ### #### It was an honor"
 
 
-def test_stream_on_close_callback_using_pointer_to_self():
+def test_stream_on_close_handler_is_not_callable():
+    with pytest.raises(TypeError) as e:
+        Stream.of(1, 2, 3).on_close("foo").to_list()
+    assert str(e.value) == "'foo' is not callable"
+
+
+def test_stream_on_close_callback_using_pointer_to_enclosing_scope():
     flag = False
 
     def flip():

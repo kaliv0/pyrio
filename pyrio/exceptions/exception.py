@@ -12,3 +12,7 @@ class NoSuchElementError(ValueError):
 
 class UnsupportedTypeError(TypeError):
     pass
+
+
+class MethodNotFoundError(AttributeError):
+    pass

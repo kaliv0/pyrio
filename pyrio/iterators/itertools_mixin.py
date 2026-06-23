@@ -1,17 +1,32 @@
 import itertools as it
 import operator
+from functools import wraps
 
+from pyrio.exceptions import MethodNotFoundError
 from pyrio.utils import Optional
 
 
 class ItertoolsMixin:
-    """Provides integration with itertools methods; pass corresponding parameters as kwargs"""
+    """Provides integration with itertools methods. Pass corresponding parameters as kwargs"""
 
     NO_SIGNATURE_FUNCTIONS = ["chain", "islice", "product", "repeat", "zip_longest"]
     NO_KWARGS_FUNCTIONS = ["dropwhile", "filterfalse", "starmap", "takewhile", "tee"]
+    NAME_2_FUNCTION = {"chain_from_iterable": it.chain.from_iterable}
 
-    def use(self, it_function, **kwargs):
-        """Provides integration with itertools methods; pass corresponding parameters as kwargs"""
+    iterable = None
+
+    def __getattr__(self, item):
+        func = getattr(it, item, self.NAME_2_FUNCTION.get(item))
+        if func is None:
+            raise MethodNotFoundError(f"'{item}' not found")
+
+        @wraps(func)
+        def wrapper(**kwargs):
+            return self._integrate(func, **kwargs)
+
+        return wrapper
+
+    def _integrate(self, it_function, **kwargs):
         import inspect
 
         if self._handle_no_signature_functions(it_function, **kwargs):

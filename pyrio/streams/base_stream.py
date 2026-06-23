@@ -75,7 +75,7 @@ class BaseStream:
         self.iterable = StreamGenerator.distinct(self.iterable)
         return self
 
-    def count(self):
+    def len(self):
         """Returns the count of elements in the stream"""
         return len(tuple(self.iterable))
 
@@ -378,6 +378,9 @@ class BaseStream:
 
     def on_close(self, handler):
         """Returns an equivalent stream with an additional close handler"""
+        if not callable(handler):
+            # since handler is called after stream result is materialized - check early on to avoid expensive computation
+            raise TypeError(f"'{handler}' is not callable")
         self._on_close_handler = handler
         return self
 

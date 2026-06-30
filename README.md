@@ -418,7 +418,6 @@ import operator
 Stream([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).islice(start=3, stop=8).to_list()
 Stream.of(1, 2, 3, 4, 5).accumulate(func=operator.mul).to_list()
 Stream(range(3)).permutations(r=3).to_list()
-Stream(["ABC", "DEF"]).chain_from_iterable().to_list()
 
 ```
 #### Itertools 'recipes'
@@ -488,15 +487,15 @@ You could query the nested dicts by creating streams out of them
 ```
 
 - reading a file with <i>process()</i> method
-  - use extra <i>f_open_options</i> (for the underlying <i>open file</i> function)
-  - <i>f_read_options</i> (to be passed to the corresponding library function that is loading the file content e.g. tomllib, json)
+  - use extra <i>f_open</i> options (for the underlying <i>open file</i> function)
+  - <i>f_read</i> (to be passed to the corresponding library function that is loading the file content e.g. tomllib, json)
 ```python
 from decimal import Decimal
 
 (FileStream.process(
     file_path="path/to/file.json",
-    f_open_options={"encoding": "utf-8"},
-    f_read_options={"parse_float": Decimal})
+    f_open={"encoding": "utf-8"},
+    f_read={"parse_float": Decimal})
  .map(lambda x:x.value).to_list())
 # ['foo', True, Decimal('1.22'), Decimal('5.456367654)]
 ```
@@ -530,32 +529,32 @@ NB: useful for writing <i>.toml</i> files which don't allow None values
 
 - passing advanced <i>file open</i> and <i>write</i> options
 <br>similarly to the <i>process</i> method you could provide
-  - <i>f_open_options</i> (for the underlying <i>open</i> function)
-  - <i>f_write_options</i> (passed to the corresponding library that will 'dump' the contents of the stream e.g. tomli-w, pyyaml)
+  - <i>f_open</i> (for the underlying <i>open</i> function)
+  - <i>f_write</i> (passed to the corresponding library that will 'dump' the contents of the stream e.g. tomli-w, pyyaml)
 ```python
 FileStream("path/to/file.json").concat(in_memory_dict).save(
     file_path="merged.xml",
-    f_open_options={"encoding": "utf-8"},
-    f_write_options={"indent": 4},
+    f_open={"encoding": "utf-8"},
+    f_write={"indent": 4},
 )
 ```
-E.g. to <i>append</i> to existing file pass <i>f_open_options={"mode": "a"}</i> to the <i>save()</i> method.
+E.g. to <i>append</i> to existing file pass <i>f_open={"mode": "a"}</i> to the <i>save()</i> method.
 <br>NB: By default saving <i>plain text</i> uses <i>"\n"</i> as <i>delimiter</i> between items,
-<br>you can pass <i>custom delimiter</i> using <i>f_write_options</i>
+<br>you can pass <i>custom delimiter</i> using <i>f_write</i>
 ```python
 (FileStream("path/to/lorem/ipsum")
     .map(lambda line: line.strip())
     .enumerate()
     .filter(lambda line: "ad" in line[1])
     .map(lambda line: f"line:{line[0]}, text='{line[1]}'")
-    .save(f_open_options={"mode": "a"}, f_write_options={"delimiter": " || "})
+    .save(f_open={"mode": "a"}, f_write={"delimiter": " || "})
 )
 
 # Lorem ipsum...
 # ...
 # line:0, text='Lorem ipsum dolor sit amet, consectetur adipisicing elit,' || line:2, text='Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris'
 ```
-When working with <i>plain text</i> you can pass <i>'header'</i> and <i>'footer'</i> as <i>f_write_options</i>
+When working with <i>plain text</i> you can pass <i>'header'</i> and <i>'footer'</i> as <i>f_write</i> options
 <br>to be prepended or appended to the FileStream output
 ```python
 (FileStream("path/to/lorem/ipsum")
@@ -563,7 +562,7 @@ When working with <i>plain text</i> you can pass <i>'header'</i> and <i>'footer'
   .enumerate()
   .filter(lambda line: line[0] == 3)
   .map(lambda line: f"{line[0]}: {line[1]}")
-  .save(f_open_options={"mode": "a"}, f_write_options={"header": "\nHeader\n", "footer": "\nFooter\n"})
+  .save(f_open={"mode": "a"}, f_write={"header": "\nHeader\n", "footer": "\nFooter\n"})
  )
 
 # Lorem ipsum...
@@ -580,8 +579,8 @@ To add <i>custom root</i> tag when saving an <i>.xml</i> file pass <i>'xml_root=
 ```python
 FileStream("path/to/file.json").concat(in_memory_dict).save(
     file_path="path/to/custom.xml",
-    f_open_options={"encoding": "utf-8"},
-    f_write_options={"indent": 4},
+    f_open={"encoding": "utf-8"},
+    f_write={"indent": 4},
     xml_root="my-custom-root",
 )
 ```

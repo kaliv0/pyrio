@@ -220,9 +220,7 @@ def test_process(file_path):
             case _:
                 return False
 
-    assert FileStream.process(file_path, f_read_options={"parse_float": Decimal}).all_match(
-        check_type
-    )
+    assert FileStream.process(file_path, f_read={"parse_float": Decimal}).all_match(check_type)
 
 
 # ### save to file ###
@@ -255,8 +253,8 @@ def test_save(tmp_file_dir, file_path, indent, json_dict):
     tmp_file_path = tmp_file_dir / file_path
     FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
         tmp_file_path,
-        f_open_options={"encoding": "utf-8"},
-        f_write_options={"indent": indent},
+        f_open={"encoding": "utf-8"},
+        f_write={"indent": indent},
     )
     assert tmp_file_path.read_text() == open(f"./tests/resources/save_output/{file_path}").read()
 
@@ -275,8 +273,8 @@ def test_save_handle_null(tmp_file_dir, file_path, indent, json_dict):
     tmp_file_path = tmp_file_dir / file_path
     FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
         tmp_file_path,
-        f_open_options={"encoding": "utf-8"},
-        f_write_options={"indent": indent},
+        f_open={"encoding": "utf-8"},
+        f_write={"indent": indent},
         null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
     )
     assert tmp_file_path.read_text() == open(f"./tests/resources/save_output/{file_path}").read()
@@ -290,7 +288,7 @@ def test_save_custom_xml_root(tmp_file_dir, json_dict):
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
     FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
         tmp_file_path,
-        f_write_options={"indent": indent},
+        f_write={"indent": indent},
         null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
         xml_root="my-root",
     )
@@ -342,7 +340,7 @@ def test_update_file(tmp_file_dir, json_dict):
             lambda x: DictItem(x.key, ", ".join((str(y) for y in x.value)) if x.value else x.value)
         )
         .save(
-            f_write_options={"indent": 2},
+            f_write={"indent": 2},
             null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
         )
     )
@@ -494,7 +492,7 @@ def test_append_to_plain(tmp_file_dir, json_dict):
         .enumerate()
         .filter(lambda line: "ne" in line[1])
         .map(lambda line: f"line_num:{line[0]}, text='{line[1]}'")
-        .save(f_open_options={"mode": "a"})
+        .save(f_open={"mode": "a"})
     )
     assert tmp_file_path.read_text() == open(f"./tests/resources/save_output/{file_path}").read()
 
@@ -510,8 +508,8 @@ def test_plain_text_header_footer(tmp_file_dir):
         .filter(lambda line: line[0] == 3)
         .map(lambda line: f"{line[0]}: {line[1]}")
         .save(
-            f_open_options={"mode": "a"},
-            f_write_options={"header": "\nHeader\n", "footer": "\nFooter\n"},
+            f_open={"mode": "a"},
+            f_write={"header": "\nHeader\n", "footer": "\nFooter\n"},
         )
     )
     assert tmp_file_path.read_text() == open(f"./tests/resources/save_output/{file_path}").read()

@@ -245,6 +245,8 @@ def test_tail_negative_count():
 def test_concat():
     assert Stream.of(1, 2, 3).concat(Stream.of(4, 5, 6)).to_list() == [1, 2, 3, 4, 5, 6]
     assert Stream([1, 2, 3]).concat([4, 5]).to_list() == [1, 2, 3, 4, 5]
+    assert Stream(range(1, 4)).concat([4, 5, 6]).to_list() == [1, 2, 3, 4, 5, 6]
+    assert Stream([1, 2, 3]).concat(range(4, 7)).to_list() == [1, 2, 3, 4, 5, 6]
 
 
 def test_concat_empty():

@@ -9,14 +9,10 @@ from pyrio.utils import Optional
 class ItertoolsMixin:
     """Provides integration with itertools methods. Pass corresponding parameters as kwargs"""
 
-    NO_SIGNATURE_FUNCTIONS = ["chain", "islice", "product", "repeat", "zip_longest"]
-    NO_KWARGS_FUNCTIONS = ["dropwhile", "filterfalse", "starmap", "takewhile", "tee"]
-    NAME_2_FUNCTION = {"chain_from_iterable": it.chain.from_iterable}
-
     iterable = None
 
     def __getattr__(self, item):
-        func = getattr(it, item, self.NAME_2_FUNCTION.get(item))
+        func = getattr(it, item, None)
         if func is None:
             raise MethodNotFoundError(f"'{item}' not found")
 
@@ -29,51 +25,32 @@ class ItertoolsMixin:
     def _integrate(self, it_function, **kwargs):
         import inspect
 
-        if self._handle_no_signature_functions(it_function, **kwargs):
-            return self
+        try:
+            signature = inspect.signature(it_function).parameters
+        except ValueError:
+            signature = {}
 
-        signature = inspect.signature(it_function).parameters
-        if self._handle_no_kwargs_functions(signature, it_function, **kwargs):
-            return self
-
-        return self._handle_default_signature_functions(signature, it_function, **kwargs)
-
-    def _handle_no_signature_functions(self, it_function, **kwargs):
-        if it_function.__name__ not in self.NO_SIGNATURE_FUNCTIONS:
-            return False
-
-        if it_function.__name__ in ("product", "zip_longest"):
-            if isinstance(self.iterable, range):
-                self.iterable = it_function(self.iterable, **kwargs)
-            else:
-                self.iterable = it_function(*self.iterable, **kwargs)
-            return True
-
-        # functions like 'chain' don't expect key-word arguments
-        self.iterable = it_function(self.iterable, *kwargs.values())
-        return True
-
-    def _handle_no_kwargs_functions(self, signature, it_function, **kwargs):
-        # handle functions that take only iterable as arg
-        if len(signature.keys()) == 1 and "iterable" in signature:
-            self.iterable = it_function(self.iterable)
-            return True
-
-        # handle functions that take no kwargs
-        if it_function.__name__ in self.NO_KWARGS_FUNCTIONS:
-            if it_function.__name__ == "tee":
+        match it_function.__name__:
+            # handle functions that take no kwargs
+            case "islice" | "repeat" | "tee" | "chain":
                 self.iterable = it_function(self.iterable, *kwargs.values())
-            else:
+            case "dropwhile" | "filterfalse" | "starmap" | "takewhile" | "islice" | "repeat":
                 self.iterable = it_function(*kwargs.values(), self.iterable)
-            return True
-        return False
+            # mixed
+            case "product" | "zip_longest":
+                self.iterable = it_function(*self.iterable, **kwargs)
+            # only iterable as arg
+            case _:
+                if len(signature) == 1 and "iterable" in signature:
+                    self.iterable = it_function(self.iterable)
+                # all kwargs
+                else:
+                    if sequence := next(
+                        (name for name in {"iterable", "data"} if name in signature), None
+                    ):
+                        kwargs[sequence] = self.iterable
+                    self.iterable = it_function(**kwargs)
 
-    def _handle_default_signature_functions(self, signature, it_function, **kwargs):
-        if "iterable" in signature:
-            kwargs["iterable"] = self.iterable
-        elif "data" in signature:
-            kwargs["data"] = self.iterable
-        self.iterable = it_function(**kwargs)
         return self
 
     # ### 'recipes' ###

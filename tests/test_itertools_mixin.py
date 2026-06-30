@@ -25,13 +25,7 @@ def test_batched():
 
 
 def test_chain():
-    assert Stream("ABC").chain(iterables="DEF").to_list() == list(it.chain("ABC", "DEF"))
-
-
-def test_chain_from_iterable():
-    assert Stream(["ABC", "DEF"]).chain_from_iterable().to_list() == list(
-        it.chain.from_iterable(["ABC", "DEF"])
-    )
+    assert Stream("ABC").chain(iterable="DEF").to_list() == list(it.chain("ABC", "DEF"))
 
 
 def test_combinations():
@@ -124,7 +118,15 @@ def test_product():
     assert Stream.of([1, 2, 3, 4], [5, 6]).product().to_list() == list(
         it.product([1, 2, 3, 4], [5, 6])
     )
-    assert Stream(range(3)).product(repeat=2).to_list() == list(it.product(range(3), repeat=2))
+    assert Stream.of(range(3)).product(repeat=2).to_list() == list(it.product(range(3), repeat=2))
+
+    assert Stream.of(range(3)).concat(Stream.of([100, 200, 300])).product(
+        repeat=2
+    ).to_list() == list(it.product(range(3), [100, 200, 300], repeat=2))
+
+    assert Stream.of([1, 2, 3]).concat(Stream.of(range(100, 400, 100))).product(
+        repeat=2
+    ).to_list() == list(it.product([1, 2, 3], range(100, 400, 100), repeat=2))
 
 
 def test_repeat():
@@ -158,6 +160,13 @@ def test_zip_longest():
     assert Stream.of(range(3), range(2)).zip_longest().to_list() == list(
         it.zip_longest(range(3), range(2))
     )
+
+    assert Stream.of([1, 2, 3, 4]).concat(Stream.of([5, 6, 7])).zip_longest().to_list() == list(
+        it.zip_longest([1, 2, 3, 4], [5, 6, 7])
+    )
+    assert Stream.of(range(1, 7, 2)).concat(
+        Stream.of([50, 60, 70])
+    ).zip_longest().to_list() == list(it.zip_longest(range(1, 7, 2), [50, 60, 70]))
 
 
 def test_non_existing_function_called():

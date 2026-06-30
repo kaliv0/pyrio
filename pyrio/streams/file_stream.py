@@ -86,15 +86,13 @@ class FileStream(BaseStream):
         """Creates Stream from a file"""
         pass
 
-    def __new__(cls, file_path, f_open_options=None, f_read_options=None, **kwargs):
+    def __new__(cls, file_path, f_open=None, f_read=None, **kwargs):
         obj = super().__new__(cls)
         if file_path is None:
             raise NoneTypeError("File path cannot be None")
         file_handler = None
         try:
-            file_handler, iterable = cls._read_file(
-                file_path, f_open_options, f_read_options, **kwargs
-            )
+            file_handler, iterable = cls._read_file(file_path, f_open, f_read, **kwargs)
             super(cls, obj).__init__(iterable)
             obj._file_path = file_path
             obj._file_handler = file_handler
@@ -108,46 +106,46 @@ class FileStream(BaseStream):
             raise
 
     @classmethod
-    def process(cls, file_path, *, f_open_options=None, f_read_options=None, **kwargs):
+    def process(cls, file_path, *, f_open=None, f_read=None, **kwargs):
         """Creates Stream from a file with advanced 'reading' options passed by the user"""
-        return cls.__new__(cls, file_path, f_open_options, f_read_options, **kwargs)
+        return cls.__new__(cls, file_path, f_open, f_read, **kwargs)
 
     # ### reading from file ###
     @classmethod
-    def _read_file(cls, file_path, f_open_options=None, f_read_options=None, **kwargs):
+    def _read_file(cls, file_path, f_open=None, f_read=None, **kwargs):
         path = cls._get_file_path(file_path)
 
-        f_open_options = f_open_options or {}
-        f_read_options = f_read_options or {}
+        f_open = f_open or {}
+        f_read = f_read or {}
 
         if (suffix := path.suffix) in DSV_CONFIG:
-            return cls._read_dsv(path, f_open_options, f_read_options)
+            return cls._read_dsv(path, f_open, f_read)
         elif suffix in MAPPING_READ_CONFIG:
-            return cls._read_mapping(path, f_open_options, f_read_options, **kwargs)
+            return cls._read_mapping(path, f_open, f_read, **kwargs)
         else:
-            return cls._read_plain(path, f_open_options)
+            return cls._read_plain(path, f_open)
 
     @staticmethod
-    def _read_dsv(path, f_open_options, f_read_options):
+    def _read_dsv(path, f_open, f_read):
         import csv
 
         FileStream._prepare_io_options(
             [
-                (f_open_options, "newline", ""),
-                (f_read_options, "delimiter", DSV_CONFIG[path.suffix]["delimiter"]),
+                (f_open, "newline", ""),
+                (f_read, "delimiter", DSV_CONFIG[path.suffix]["delimiter"]),
             ]
         )
-        file_handler = open(path, **f_open_options)
-        return file_handler, tuple(csv.DictReader(file_handler, **f_read_options))
+        file_handler = open(path, **f_open)
+        return file_handler, tuple(csv.DictReader(file_handler, **f_read))
 
     @staticmethod
-    def _read_mapping(path, f_open_options, f_read_options, **kwargs):
+    def _read_mapping(path, f_open, f_read, **kwargs):
         config = MAPPING_READ_CONFIG[path.suffix]
         load = getattr(importlib.import_module(config["import_mod"]), config["callable"])
-        FileStream._prepare_io_options([(f_open_options, "mode", config["read_mode"])])
+        FileStream._prepare_io_options([(f_open, "mode", config["read_mode"])])
 
-        file_handler = open(path, **f_open_options)
-        content = load(file_handler, **f_read_options)
+        file_handler = open(path, **f_open)
+        content = load(file_handler, **f_read)
         if path.suffix == ".xml":
             if kwargs.get("include_root"):
                 return file_handler, content
@@ -156,8 +154,8 @@ class FileStream(BaseStream):
         return file_handler, content
 
     @staticmethod
-    def _read_plain(path, f_open_options):
-        file_handler = open(path, **f_open_options)
+    def _read_plain(path, f_open):
+        file_handler = open(path, **f_open)
         return file_handler, (line for line in file_handler)
 
     # ### writing to file ###
@@ -165,27 +163,25 @@ class FileStream(BaseStream):
         self,
         file_path=None,
         *,
-        f_open_options=None,
-        f_write_options=None,
+        f_open=None,
+        f_write=None,
         null_handler=None,
         **kwargs,
     ):
         """Writes Stream to a new file (or updates an existing one) with advanced 'writing' options passed by the user"""
         path, tmp_path = self._prepare_file_paths(file_path)
 
-        f_open_options = f_open_options or {}
-        f_write_options = f_write_options or {}
+        f_open = f_open or {}
+        f_write = f_write or {}
 
         if (suffix := path.suffix) in DSV_CONFIG:
-            self._write_dsv(path, tmp_path, f_open_options, f_write_options, null_handler)
+            self._write_dsv(path, tmp_path, f_open, f_write, null_handler)
         elif suffix in MAPPING_WRITE_CONFIG:
-            self._write_mapping(
-                path, tmp_path, f_open_options, f_write_options, null_handler, **kwargs
-            )
+            self._write_mapping(path, tmp_path, f_open, f_write, null_handler, **kwargs)
         else:
-            self._write_plain(path, tmp_path, f_open_options, f_write_options)
+            self._write_plain(path, tmp_path, f_open, f_write)
 
-    def _write_dsv(self, path, tmp_path, f_open_options, f_write_options, null_handler=None):
+    def _write_dsv(self, path, tmp_path, f_open, f_write, null_handler=None):
         import csv
 
         if null_handler:
@@ -194,46 +190,44 @@ class FileStream(BaseStream):
 
         self._prepare_io_options(
             [
-                (f_open_options, "mode", "w"),
-                (f_write_options, "delimiter", DSV_CONFIG[path.suffix]["delimiter"]),
-                (f_write_options, "fieldnames", output[0].keys() if output else ()),
+                (f_open, "mode", "w"),
+                (f_write, "delimiter", DSV_CONFIG[path.suffix]["delimiter"]),
+                (f_write, "fieldnames", output[0].keys() if output else ()),
             ]
         )
-        with self._atomic_write(path, tmp_path, f_open_options) as f:  # noqa
-            writer = csv.DictWriter(f, **f_write_options)
+        with self._atomic_write(path, tmp_path, f_open) as f:  # noqa
+            writer = csv.DictWriter(f, **f_write)
             writer.writeheader()
             writer.writerows(output)
 
-    def _write_mapping(
-        self, path, tmp_path, f_open_options, f_write_options, null_handler=None, **kwargs
-    ):
+    def _write_mapping(self, path, tmp_path, f_open, f_write, null_handler=None, **kwargs):
         config = MAPPING_WRITE_CONFIG[path.suffix]
         if existing_null_handler := null_handler or config["default_null_handler"]:
             self.map(existing_null_handler)  # noqa
 
         output = self.to_dict()
 
-        io_opts_setting = [(f_open_options, "mode", config["write_mode"])]
+        io_opts_setting = [(f_open, "mode", config["write_mode"])]
         if path.suffix == ".xml":
             root = kwargs.get("xml_root", "root")
             output = {root: output}
-            io_opts_setting.append((f_write_options, "pretty", True))
+            io_opts_setting.append((f_write, "pretty", True))
         self._prepare_io_options(io_opts_setting)
 
         dump = getattr(importlib.import_module(config["import_mod"]), config["callable"])
-        with self._atomic_write(path, tmp_path, f_open_options) as f:  # noqa
-            dump(output, f, **f_write_options)
+        with self._atomic_write(path, tmp_path, f_open) as f:  # noqa
+            dump(output, f, **f_write)
 
-    def _write_plain(self, path, tmp_path, f_open_options, f_write_options):
-        self._prepare_io_options([(f_open_options, "mode", "w")])
+    def _write_plain(self, path, tmp_path, f_open, f_write):
+        self._prepare_io_options([(f_open, "mode", "w")])
 
-        output = self.to_string(f_write_options.pop("delimiter", "\n"))
-        header = f_write_options.pop("header", "")
-        footer = f_write_options.pop("footer", "")
+        output = self.to_string(f_write.pop("delimiter", "\n"))
+        header = f_write.pop("header", "")
+        footer = f_write.pop("footer", "")
         if header or footer:
             output = f"{header}{output}{footer}"
 
-        with self._atomic_write(path, tmp_path, f_open_options) as f:  # noqa
+        with self._atomic_write(path, tmp_path, f_open) as f:  # noqa
             f.writelines(output)
 
     # ### helpers ###
@@ -262,12 +256,12 @@ class FileStream(BaseStream):
             options.setdefault(key, value)
 
     @contextmanager
-    def _atomic_write(self, path, tmp_path, f_open_options):
+    def _atomic_write(self, path, tmp_path, f_open):
         try:
-            if f_open_options["mode"] == "a":
+            if f_open["mode"] == "a":
                 tmp_path = shutil.copyfile(path, tmp_path)
 
-            with open(tmp_path, **f_open_options) as f:
+            with open(tmp_path, **f_open) as f:
                 yield f
             shutil.move(tmp_path, path)
         except (IOError, Exception) as e:

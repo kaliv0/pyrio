@@ -23,13 +23,6 @@ class ItertoolsMixin:
         return wrapper
 
     def _integrate(self, it_function, **kwargs):
-        import inspect
-
-        try:
-            signature = inspect.signature(it_function).parameters
-        except ValueError:
-            signature = {}
-
         match it_function.__name__:
             # handle functions that take no kwargs
             case "islice" | "repeat" | "tee" | "chain":
@@ -39,14 +32,21 @@ class ItertoolsMixin:
             # mixed
             case "product" | "zip_longest":
                 self.iterable = it_function(*self.iterable, **kwargs)
-            # only iterable as arg
             case _:
-                if len(signature) == 1 and "iterable" in signature:
+                import inspect
+
+                try:
+                    parameters = inspect.signature(it_function).parameters
+                except ValueError:
+                    parameters = {}
+
+                # only iterable as arg
+                if len(parameters) == 1 and "iterable" in parameters:
                     self.iterable = it_function(self.iterable)
                 # all kwargs
                 else:
                     if sequence := next(
-                        (name for name in {"iterable", "data"} if name in signature), None
+                        (name for name in {"iterable", "data"} if name in parameters), None
                     ):
                         kwargs[sequence] = self.iterable
                     self.iterable = it_function(**kwargs)

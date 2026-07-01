@@ -22,34 +22,34 @@ class ItertoolsMixin:
 
         return wrapper
 
-    def _integrate(self, it_function, **kwargs):
-        match it_function.__name__:
+    def _integrate(self, it_func, **kwargs):
+        match it_func.__name__:
             # handle functions that take no kwargs
             case "islice" | "repeat" | "tee" | "chain":
-                self.iterable = it_function(self.iterable, *kwargs.values())
+                self.iterable = it_func(self.iterable, *kwargs.values())
             case "dropwhile" | "filterfalse" | "starmap" | "takewhile" | "islice" | "repeat":
-                self.iterable = it_function(*kwargs.values(), self.iterable)
+                self.iterable = it_func(*kwargs.values(), self.iterable)
             # mixed
             case "product" | "zip_longest":
-                self.iterable = it_function(*self.iterable, **kwargs)
+                self.iterable = it_func(*self.iterable, **kwargs)
             case _:
                 import inspect
 
                 try:
-                    parameters = inspect.signature(it_function).parameters
+                    parameters = inspect.signature(it_func).parameters
                 except ValueError:
                     parameters = {}
 
                 # only iterable as arg
                 if len(parameters) == 1 and "iterable" in parameters:
-                    self.iterable = it_function(self.iterable)
+                    self.iterable = it_func(self.iterable)
                 # all kwargs
                 else:
                     if sequence := next(
                         (name for name in {"iterable", "data"} if name in parameters), None
                     ):
                         kwargs[sequence] = self.iterable
-                    self.iterable = it_function(**kwargs)
+                    self.iterable = it_func(**kwargs)
 
         return self
 

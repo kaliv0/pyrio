@@ -216,6 +216,15 @@ def test_consume_negative_start():
     assert str(e.value) == "Consume boundary cannot be negative"
 
 
+def test_consume_after_intermediate_ops():
+    assert Stream([1, 2, 3, 4]).map(lambda x: x).consume(2).to_list() == [3, 4]
+    assert Stream([5, 1, 4, 2, 3]).sort().consume(2).to_list() == [3, 4, 5]
+
+
+def test_consume_infinite_stream():
+    assert Stream.iterate(0, lambda x: x + 1).consume(3).limit(2).to_list() == [3, 4]
+
+
 def test_take_nth():
     stream = Stream.of(2, 3, 4)
     assert stream.take_nth(1).get() == 3
@@ -232,6 +241,15 @@ def test_take_nth_negative_index():
 
 def test_take_nth_not_found():
     assert Stream.empty().take_nth(2).is_empty()
+
+
+def test_take_nth_negative_after_intermediate_ops():
+    assert Stream([1, 2, 3]).map(lambda x: x).take_nth(-1).get() == 3
+    assert Stream([5, 1, 4, 2, 3]).sort().take_nth(-1).get() == 5
+
+
+def test_take_nth_negative_from_range():
+    assert Stream.from_range(0, 5).take_nth(-2).get() == 3
 
 
 def test_all_equal():
@@ -291,6 +309,23 @@ def test_view_negative_step():
     with pytest.raises(ValueError) as e:
         Stream([1, 2, 3, 4, 5, 6, 7, 8, 9]).view(step=-1).to_list()
     assert str(e.value) == "Step must be a positive integer or None"
+
+
+def test_view_stop_zero():
+    assert Stream([1, 2, 3, 4, 5]).view(stop=0).to_list() == []
+
+
+def test_view_negative_after_intermediate_ops():
+    assert Stream([5, 1, 4, 2, 3]).sort().view(1, 3).to_list() == [2, 3]
+    assert Stream([5, 1, 4, 2, 3]).sort().view(stop=-1).to_list() == [1, 2, 3, 4]
+
+    assert Stream([1, 2, 3, 4, 5]).map(lambda x: x).view(-2).to_list() == [4, 5]
+    assert Stream([1, 2, 3, 4, 5]).map(lambda x: x).view(1, -1).to_list() == [2, 3, 4]
+
+
+def test_view_negative_from_range():
+    assert Stream.from_range(0, 5).view(-1).to_list() == [4]
+    assert Stream.from_range(0, 5).view(stop=-2).to_list() == [0, 1, 2]
 
 
 # ### sliding window ###

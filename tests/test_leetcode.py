@@ -26,6 +26,9 @@ def test_count_vowels_and_consonants():
         ("xyyx", True),
         ("aba", True),
         ("z", True),
+        ("", True),
+        (".,", True),
+        ("0P", False),
     ],
 )
 def test_is_palindrome(string, expected):
@@ -35,25 +38,38 @@ def test_is_palindrome(string, expected):
 
 # 347. Top K Frequent Elements (order among equal frequencies is unspecified)
 @pytest.mark.parametrize(
-    "nums, k, expected",
+    "nums, k",
     [
-        ([1, 1, 1, 2, 2, 3], 2, [1, 2]),
-        ([1], 1, [1]),
-        ([4, 4, 4, 5, 5, 6], 1, [4]),
-        ([1, 1, 2, 2, 3, 3], 2, [1, 2]),
+        ([1, 1, 1, 2, 2, 3], 2),
+        ([1], 1),
+        ([4, 4, 4, 5, 5, 6], 1),
+        ([1, 1, 2, 2, 3, 3], 2),  # any 2 of {1,2,3} are valid
     ],
 )
-def test_top_k_frequent(nums, k, expected):
+def test_top_k_frequent(nums, k):
     counts = Stream(nums).group_by(collector=lambda key, group: (key, len(group)))
-    assert Stream(counts).sort(attrgetter("value"), reverse=True).limit(k).map(
-        attrgetter("key")
-    ).to_set() == set(expected)
+    result = (
+        Stream(counts)
+        .sort(attrgetter("value"), reverse=True)
+        .limit(k)
+        .map(attrgetter("key"))
+        .to_set()
+    )
+    assert len(result) == k
+    threshold = sorted(counts.values(), reverse=True)[k - 1]
+    assert all(counts[key] >= threshold for key in result)
 
 
 # 387. First Unique Character in a String
 @pytest.mark.parametrize(
     "string, expected",
-    [("leetcode", 0), ("loveleetcode", 2), ("aabb", None)],
+    [
+        ("leetcode", 0),
+        ("loveleetcode", 2),
+        ("aabb", None),
+        ("a", 0),
+        ("aabbc", 4),
+    ],
 )
 def test_first_unique_character(string, expected):
     counts = Stream(string).group_by(collector=lambda key, group: (key, len(group)))
@@ -70,7 +86,12 @@ def test_first_unique_character(string, expected):
 # 1480. Running Sum of 1d Array
 @pytest.mark.parametrize(
     "nums, expected",
-    [([1, 2, 3, 4], [1, 3, 6, 10]), ([1, 1, 1, 1, 1], [1, 2, 3, 4, 5]), ([3], [3])],
+    [
+        ([1, 2, 3, 4], [1, 3, 6, 10]),
+        ([1, 1, 1, 1, 1], [1, 2, 3, 4, 5]),
+        ([3], [3]),
+        ([-1, 2, -3, 4], [-1, 1, -2, 2]),
+    ],
 )
 def test_running_sum(nums, expected):
     assert Stream(nums).accumulate().to_list() == expected
@@ -86,6 +107,10 @@ def test_running_sum(nums, expected):
         ([0, 0, 0], 0),
         ([1, 1, 1], 3),
         ([], 0),
+        ([1, 1, 0, 0], 2),
+        ([0, 0, 1, 1], 2),
+        ([1], 1),
+        ([0], 0),
     ],
 )
 def test_max_consecutive_ones(nums, expected):
@@ -107,6 +132,8 @@ def test_max_consecutive_ones(nums, expected):
         ([1, 2, 2, 1], [2, 2], [2]),
         ([4, 9, 5], [9, 4, 9, 8, 4], [4, 9]),
         ([1, 2, 3], [4, 5, 6], []),
+        ([], [1, 2], []),
+        ([1, 2], [], []),
     ],
 )
 def test_intersection_of_two_arrays(nums1, nums2, expected):
@@ -166,6 +193,7 @@ def test_fizz_buzz(n, expected):
         ("a", "a", True),
         ("ab", "abb", False),
         ("", "a", False),
+        ("aaaa", "aaaa", True),
     ],
 )
 def test_valid_anagram(left, right, expected):
@@ -175,7 +203,7 @@ def test_valid_anagram(left, right, expected):
 # 136. Single Number
 @pytest.mark.parametrize(
     "nums, expected",
-    [([2, 2, 1], 1), ([4, 1, 2, 1, 2], 4), ([1], 1)],
+    [([2, 2, 1], 1), ([4, 1, 2, 1, 2], 4), ([1], 1), ([-1, -1, -2], -2)],
 )
 def test_single_number(nums, expected):
     assert Stream(nums).reduce(xor).get() == expected
@@ -199,7 +227,12 @@ def test_fibonacci(n, expected):
 # 217. Contains Duplicate
 @pytest.mark.parametrize(
     "nums, expected",
-    [([1, 2, 3, 1], True), ([1, 2, 3, 4], False), ([1, 1, 1, 3, 3, 4, 3, 2, 4, 2], True)],
+    [
+        ([1, 2, 3, 1], True),
+        ([1, 2, 3, 4], False),
+        ([1, 1, 1, 3, 3, 4, 3, 2, 4, 2], True),
+        ([1], False),
+    ],
 )
 def test_contains_duplicate(nums, expected):
     assert (len(nums) != Stream(nums).distinct().len()) is expected
@@ -218,7 +251,12 @@ def test_jewels_and_stones(jewels, stones, expected):
 # 905. Sort Array By Parity
 @pytest.mark.parametrize(
     "nums, expected",
-    [([3, 1, 2, 4], [2, 4, 3, 1]), ([0], [0]), ([2, 4, 6], [2, 4, 6])],
+    [
+        ([3, 1, 2, 4], [2, 4, 3, 1]),
+        ([0], [0]),
+        ([2, 4, 6], [2, 4, 6]),
+        ([1, 3, 5], [1, 3, 5]),
+    ],
 )
 def test_sort_array_by_parity(nums, expected):
     assert Stream(nums).partition(lambda x: x % 2 == 0).flatten().to_list() == expected
@@ -234,6 +272,10 @@ def test_sort_array_by_parity(nums, expected):
         ([1], True),
         ([2, 2, 2], True),
         ([], True),
+        ([1, 2], True),
+        ([2, 1], True),
+        ([1, 2, 3, 4], True),
+        ([4, 3, 2, 1], True),
     ],
 )
 def test_is_monotonic(nums, expected):
@@ -245,7 +287,7 @@ def test_is_monotonic(nums, expected):
 # 1876. Substrings of Size Three with Distinct Characters
 @pytest.mark.parametrize(
     "string, expected",
-    [("xyzzaz", 1), ("aababcabc", 4), ("aaaa", 0)],
+    [("xyzzaz", 1), ("aababcabc", 4), ("aaaa", 0), ("ab", 0), ("abc", 1)],
 )
 def test_substrings_of_size_three_with_distinct_chars(string, expected):
     assert (
@@ -256,7 +298,7 @@ def test_substrings_of_size_three_with_distinct_chars(string, expected):
 # 1313. Decompress Run-Length Encoded List
 @pytest.mark.parametrize(
     "nums, expected",
-    [([1, 2, 3, 4], [2, 4, 4, 4]), ([1, 1, 2, 3], [1, 3, 3])],
+    [([1, 2, 3, 4], [2, 4, 4, 4]), ([1, 1, 2, 3], [1, 3, 3]), ([5, 1], [1, 1, 1, 1, 1])],
 )
 def test_decompress_rle_list(nums, expected):
     assert Stream(nums).grouper(2).flat_map(lambda pair: [pair[1]] * pair[0]).to_list() == expected
@@ -265,7 +307,14 @@ def test_decompress_rle_list(nums, expected):
 # 414. Third Maximum Number
 @pytest.mark.parametrize(
     "nums, expected",
-    [([3, 2, 1], 1), ([1, 2], 2), ([2, 2, 3, 1], 1)],
+    [
+        ([3, 2, 1], 1),
+        ([1, 2], 2),
+        ([2, 2, 3, 1], 1),
+        ([2, 2, 2], 2),
+        ([1, 2, 2, 5, 3, 5], 2),
+        ([-1, -2, -3, -4], -3),
+    ],
 )
 def test_third_maximum_number(nums, expected):
     ranked = Stream(nums).distinct().reverse().to_list()
@@ -283,6 +332,7 @@ def test_third_maximum_number(nums, expected):
         ("leetcode", False),
         ("abcdefghijklmnopqrstuvwxyz", True),
         ("The Quick Brown Fox Jumps Over The Lazy Dog!", True),
+        ("abcdefghijklmnopqrstuvwxy", False),
     ],
 )
 def test_check_if_pangram(sentence, expected):
@@ -293,10 +343,15 @@ def test_check_if_pangram(sentence, expected):
 # LC constraint: salary.length >= 3
 @pytest.mark.parametrize(
     "salary, expected",
-    [([4000, 3000, 1000, 2000], 2500.0), ([1000, 2000, 3000], 2000.0)],
+    [
+        ([4000, 3000, 1000, 2000], 2500.0),
+        ([1000, 2000, 3000], 2000.0),
+        ([1000, 1000, 2000, 3000], 1500.0),
+        ([5, 5, 5], 5.0),
+    ],
 )
 def test_average_salary_excluding_minmax(salary, expected):
-    assert Stream(salary).sort().skip(1).limit(len(salary) - 2).average() == expected
+    assert Stream(salary).sort().view(1, -1).average() == expected
 
 
 # 1431. Kids With the Greatest Number of Candies
@@ -305,6 +360,8 @@ def test_average_salary_excluding_minmax(salary, expected):
     [
         ([2, 3, 5, 1, 3], 3, [True, True, True, False, True]),
         ([4, 2, 1, 1, 2], 1, [True, False, False, False, False]),
+        ([12, 1, 12], 10, [True, False, True]),
+        ([2, 3, 5, 1, 3], 0, [False, False, True, False, False]),
     ],
 )
 def test_kids_with_greatest_candies(candies, extra, expected):
@@ -315,7 +372,14 @@ def test_kids_with_greatest_candies(candies, extra, expected):
 # 268. Missing Number
 @pytest.mark.parametrize(
     "nums, expected",
-    [([3, 0, 1], 2), ([0, 1], 2), ([9, 6, 4, 2, 3, 5, 7, 0, 1], 8)],
+    [
+        ([3, 0, 1], 2),
+        ([0, 1], 2),
+        ([1, 2], 0),
+        ([0], 1),
+        ([1], 0),
+        ([9, 6, 4, 2, 3, 5, 7, 0, 1], 8),
+    ],
 )
 def test_missing_number(nums, expected):
     n = len(nums)
@@ -330,6 +394,8 @@ def test_missing_number(nums, expected):
         ("abc", ["a", "b", "c", "ab", "ac", "bc", "abc"], 7),
         ("abc", ["", "a", "d"], 2),
         ("", ["", "a"], 1),
+        ("a", ["b", "c", "bc"], 0),
+        ("a", ["a", "aa", "b"], 2),
     ],
 )
 def test_count_consistent_strings(allowed, words, expected):
@@ -344,6 +410,8 @@ def test_count_consistent_strings(allowed, words, expected):
         (1, 22, [1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 15, 22]),
         (47, 85, [48, 55, 66, 77]),
         (10, 12, [11, 12]),  # 10 has a zero digit and is excluded
+        (1, 9, [1, 2, 3, 4, 5, 6, 7, 8, 9]),
+        (20, 22, [22]),  # 20 has a zero digit and is excluded
     ],
 )
 def test_self_dividing_numbers(left, right, expected):
@@ -375,6 +443,8 @@ def test_duplicate_zeros(arr, expected):
         ([1, 1, 2], [1, 2]),
         ([0, 0, 1, 1, 1, 2, 2, 3, 3, 4], [0, 1, 2, 3, 4]),
         ([1, 2, 2, 1], [1, 2, 1]),
+        ([1, 1, 1], [1]),
+        ([1, 2, 3], [1, 2, 3]),
     ],
 )
 def test_remove_consecutive_duplicates(nums, expected):
@@ -382,7 +452,7 @@ def test_remove_consecutive_duplicates(nums, expected):
 
 
 # 70. Climbing Stairs (same recurrence as Fibonacci)
-@pytest.mark.parametrize("n, expected", [(1, 1), (2, 2), (3, 3), (5, 8)])
+@pytest.mark.parametrize("n, expected", [(1, 1), (2, 2), (3, 3), (5, 8), (10, 89)])
 def test_climbing_stairs(n, expected):
     assert (
         Stream.iterate((1, 1), lambda pair: (pair[1], pair[0] + pair[1]))
@@ -394,7 +464,10 @@ def test_climbing_stairs(n, expected):
 
 
 # 1137. N-th Tribonacci Number
-@pytest.mark.parametrize("n, expected", [(4, 4), (25, 1389537), (0, 0), (1, 1)])
+@pytest.mark.parametrize(
+    "n, expected",
+    [(0, 0), (1, 1), (2, 1), (3, 2), (4, 4), (25, 1389537)],
+)
 def test_tribonacci(n, expected):
     assert (
         Stream.iterate((0, 1, 1), lambda triple: (triple[1], triple[2], sum(triple)))
@@ -408,7 +481,14 @@ def test_tribonacci(n, expected):
 # 198. House Robber (LC: nums.length >= 1)
 @pytest.mark.parametrize(
     "nums, expected",
-    [([1, 2, 3, 1], 4), ([2, 7, 9, 3, 1], 12), ([2, 1, 1, 2], 4), ([1], 1)],
+    [
+        ([1, 2, 3, 1], 4),
+        ([2, 7, 9, 3, 1], 12),
+        ([2, 1, 1, 2], 4),
+        ([1], 1),
+        ([2, 1], 2),
+        ([2, 2], 2),
+    ],
 )
 def test_house_robber(nums, expected):
     def step(state, value):
@@ -421,7 +501,7 @@ def test_house_robber(nums, expected):
 # 746. Min Cost Climbing Stairs
 @pytest.mark.parametrize(
     "cost, expected",
-    [([10, 15, 20], 15), ([1, 100, 1, 1, 1, 100, 1, 1, 100, 1], 6)],
+    [([10, 15], 10), ([10, 15, 20], 15), ([1, 100, 1, 1, 1, 100, 1, 1, 100, 1], 6)],
 )
 def test_min_cost_climbing_stairs(cost, expected):
     def step(state, value):
@@ -438,6 +518,7 @@ def test_min_cost_climbing_stairs(cost, expected):
         ([1], 1),
         ([5, 4, -1, 7, 8], 23),
         ([-2, -1], -1),
+        ([-1], -1),
     ],
 )
 def test_maximum_subarray(nums, expected):
@@ -455,7 +536,14 @@ def test_maximum_subarray(nums, expected):
 # 121. Best Time to Buy and Sell Stock (LC: prices.length >= 1)
 @pytest.mark.parametrize(
     "prices, expected",
-    [([7, 1, 5, 3, 6, 4], 5), ([7, 6, 4, 3, 1], 0), ([2, 4, 1], 2), ([1], 0)],
+    [
+        ([7, 1, 5, 3, 6, 4], 5),
+        ([7, 6, 4, 3, 1], 0),
+        ([2, 4, 1], 2),
+        ([1], 0),
+        ([1, 2], 1),
+        ([2, 1], 0),
+    ],
 )
 def test_best_time_to_buy_and_sell_stock(prices, expected):
     def step(state, price):
@@ -474,6 +562,7 @@ def test_best_time_to_buy_and_sell_stock(prices, expected):
     [
         (5, [[1], [1, 1], [1, 2, 1], [1, 3, 3, 1], [1, 4, 6, 4, 1]]),
         (1, [[1]]),
+        (2, [[1], [1, 1]]),
     ],
 )
 def test_pascals_triangle(num_rows, expected):
@@ -485,7 +574,7 @@ def test_pascals_triangle(num_rows, expected):
 
 
 # 62. Unique Paths
-@pytest.mark.parametrize("m, n, expected", [(3, 7, 28), (3, 2, 3), (1, 1, 1)])
+@pytest.mark.parametrize("m, n, expected", [(3, 7, 28), (3, 2, 3), (1, 1, 1), (1, 3, 1), (3, 1, 1)])
 def test_unique_paths(m, n, expected):
     assert (
         Stream.iterate([1] * n, lambda row: Stream(row).accumulate().to_list())
@@ -499,7 +588,7 @@ def test_unique_paths(m, n, expected):
 # 338. Counting Bits
 @pytest.mark.parametrize(
     "n, expected",
-    [(2, [0, 1, 1]), (5, [0, 1, 1, 2, 1, 2])],
+    [(0, [0]), (2, [0, 1, 1]), (5, [0, 1, 1, 2, 1, 2])],
 )
 def test_counting_bits(n, expected):
     assert Stream.from_range(0, n + 1).map(int.bit_count).to_list() == expected

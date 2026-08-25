@@ -7,9 +7,6 @@ class Optional:
     def __init__(self, element):
         self._element = element
 
-    def __str__(self):
-        return f"Optional[{self._element}]"
-
     @staticmethod
     def empty():
         """Creates empty Optional"""
@@ -73,6 +70,13 @@ class Optional:
         """
         return self._element if self.is_present() else supplier()
 
+    def or_else_optional(self, supplier):
+        """
+        Returns this Optional if a value is present,
+        otherwise returns an Optional produced by the supplier
+        """
+        return self if self.is_present() else supplier()
+
     def or_else_raise(self, supplier=None):
         """
         Returns the value if present,
@@ -86,6 +90,15 @@ class Optional:
 
         return self._element if self.is_present() else supplier()
 
+    def filter(self, predicate):
+        """
+        If a value is present and matches the predicate, returns this Optional.
+        Otherwise returns an empty Optional.
+        """
+        if self.is_empty() or not predicate(self.get()):
+            return Optional.empty()
+        return self
+
     def map(self, mapper):
         """
         If a value is present, applies the mapper and returns an Optional of the result.
@@ -94,3 +107,38 @@ class Optional:
         if self.is_empty():
             return Optional.empty()
         return Optional.of_nullable(mapper(self.get()))
+
+    def flat_map(self, mapper):
+        """
+        If a value is present, applies the mapper and returns the resulting Optional.
+        Returns an empty Optional if this Optional is empty.
+        """
+        if self.is_empty():
+            return Optional.empty()
+        return mapper(self.get())
+
+    def to_stream(self):
+        """
+        Returns a Stream with the value if present, otherwise an empty Stream.
+        """
+        from pyrio.streams.stream import Stream
+
+        if self.is_empty():
+            return Stream.empty()
+        return Stream.of(self.get())
+
+    def __repr__(self):
+        return f"Optional[{self._element}]"
+
+    def __eq__(self, other):
+        if not isinstance(other, Optional):
+            raise TypeError(f"{other} is not an Optional")
+        return self._element == other._element
+
+    def __hash__(self):
+        try:
+            return hash(self._element)
+        except TypeError as e:
+            raise TypeError(
+                f"unhashable type: 'Optional' (value of type '{type(self._element).__name__}' is unhashable)"
+            ) from e

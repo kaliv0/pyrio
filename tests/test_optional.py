@@ -64,6 +64,7 @@ def test_or_else():
 
 def test_or_else_get(Foo):
     foo = Foo(name="Foo", num=43)
+    assert Optional.of(3).or_else_get(supplier=lambda: foo) == 3
     assert Optional.empty().or_else_get(supplier=lambda: foo) is foo
 
 
@@ -77,23 +78,27 @@ def test_or_else_optional_empty():
     assert Optional.empty().or_else_optional(supplier=Optional.empty).is_empty()
 
 
-def test_or_else_raise(Foo):
+def test_or_else_optional_raises_for_non_optional():
+    with pytest.raises(TypeError) as e:
+        Optional.empty().or_else_optional(supplier=lambda: 99)
+    assert str(e.value) == "99 is not an Optional"
+
+
+def test_or_else_raise():
+    assert Optional.of(3).or_else_raise() == 3
     with pytest.raises(NoSuchElementError) as e:
         Optional.empty().or_else_raise()
     assert str(e.value) == "Optional is empty"
 
 
-def test_or_else_raise_custom_supplier(Foo):
+def test_or_else_raise_custom_supplier():
     err_msg = "Yo Mr. White...!"
 
     class DamnItError(Exception):
         pass
 
-    def damn_it_supplier():
-        raise DamnItError(err_msg)
-
     with pytest.raises(DamnItError) as e:
-        Optional.empty().or_else_raise(damn_it_supplier)
+        Optional.empty().or_else_raise(lambda: DamnItError(err_msg))
     assert str(e.value) == err_msg
 
 
@@ -134,6 +139,12 @@ def test_flat_map_returns_empty():
     assert Optional.of(3).flat_map(lambda x: Optional.empty()).is_empty()
 
 
+def test_flat_map_raises_for_non_optional():
+    with pytest.raises(TypeError) as e:
+        Optional.of(3).flat_map(lambda x: x * 2)
+    assert str(e.value) == "6 is not an Optional"
+
+
 def test_to_stream():
     records = [
         {"city": "Paris", "temps": [12, 15, 14]},
@@ -146,7 +157,7 @@ def test_to_stream():
         .to_stream()
         .flat_map(lambda r: Stream(r["temps"]))
         .filter(lambda celsius: celsius >= 20)
-        .map(lambda celsius: celsius * 9 / 5 + 32)  # to Farenheit
+        .map(lambda celsius: celsius * 9 / 5 + 32)  # to Fahrenheit
         .to_list()
         == [69.8]
     )
@@ -158,9 +169,11 @@ def test_to_stream_empty():
 
 def test_repr_optional():
     assert repr(Optional.of(2)) == "Optional[2]"
-    assert repr(Optional.of_nullable(None)) == "Optional[None]"
+    assert repr(Optional.empty()) == "Optional.empty"
+    assert repr(Optional.of_nullable(None)) == "Optional.empty"
 
     assert str(Optional.of(2)) == "Optional[2]"
+    assert str(Optional.empty()) == "Optional.empty"
 
 
 def test_eq():

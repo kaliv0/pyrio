@@ -75,7 +75,12 @@ class Optional:
         Returns this Optional if a value is present,
         otherwise returns an Optional produced by the supplier
         """
-        return self if self.is_present() else supplier()
+        if self.is_present():
+            return self
+        result = supplier()
+        if not isinstance(result, Optional):
+            raise TypeError(f"{result} is not an Optional")
+        return result
 
     def or_else_raise(self, supplier=None):
         """
@@ -83,12 +88,11 @@ class Optional:
         otherwise throws an exception produced by the exception supplying function
         (if such is provided by the user) or NoSuchElementError
         """
+        if self.is_present():
+            return self._element
         if supplier is None:
-
-            def supplier():
-                raise NoSuchElementError("Optional is empty")
-
-        return self._element if self.is_present() else supplier()
+            raise NoSuchElementError("Optional is empty")
+        raise supplier()
 
     def filter(self, predicate):
         """
@@ -115,20 +119,23 @@ class Optional:
         """
         if self.is_empty():
             return Optional.empty()
-        return mapper(self.get())
+        result = mapper(self.get())
+        if not isinstance(result, Optional):
+            raise TypeError(f"{result} is not an Optional")
+        return result
 
     def to_stream(self):
         """
         Returns a Stream with the value if present, otherwise an empty Stream.
         """
-        from pyrio.streams.stream import Stream
+        from pyrio.streams import Stream
 
         if self.is_empty():
             return Stream.empty()
         return Stream.of(self.get())
 
     def __repr__(self):
-        return f"Optional[{self._element}]"
+        return "Optional.empty" if self.is_empty() else f"Optional[{self._element}]"
 
     def __eq__(self, other):
         if not isinstance(other, Optional):

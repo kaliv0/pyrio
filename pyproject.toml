@@ -47,7 +47,3 @@ fix = true
 
 [tool.pytest.ini_options]
 tmp_path_retention_policy = "none"
-
-# TODO: remove before merge
-[tool.basedpyright]
-typeCheckingMode = "standard"

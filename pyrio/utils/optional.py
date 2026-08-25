@@ -1,4 +1,4 @@
-from pyrio.exceptions import NoSuchElementError, NoneTypeError
+from pyrio.exceptions import NoneTypeError, NoSuchElementError
 
 
 class Optional:
@@ -50,7 +50,8 @@ class Optional:
             action(self.get())
 
     def if_present_or_else(self, action, empty_action):
-        """Performs given action with the value if the Optional is not empty,
+        """
+        Performs given action with the value if the Optional is not empty,
         otherwise calls fallback 'empty_action'
         """
         if self.is_present():
@@ -84,3 +85,12 @@ class Optional:
                 raise NoSuchElementError("Optional is empty")
 
         return self._element if self.is_present() else supplier()
+
+    def map(self, mapper):
+        """
+        If a value is present, applies the mapper and returns an Optional of the result.
+        Returns an empty Optional if this Optional is empty or the mapper returns None.
+        """
+        if self.is_empty():
+            return Optional.empty()
+        return Optional.of_nullable(mapper(self.get()))

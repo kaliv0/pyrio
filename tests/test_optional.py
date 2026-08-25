@@ -4,7 +4,7 @@ from contextlib import redirect_stdout
 import pytest
 
 from pyrio import Optional
-from pyrio.exceptions import NoSuchElementError, NoneTypeError
+from pyrio.exceptions import NoneTypeError, NoSuchElementError
 
 
 def test_optional_get_raises():
@@ -90,3 +90,15 @@ def test_or_else_raise_custom_supplier(Foo):
     with pytest.raises(DamnItError) as e:
         Optional.empty().or_else_raise(damn_it_supplier)
     assert str(e.value) == err_msg
+
+
+def test_map():
+    assert Optional.of(3).map(lambda x: x * 2).get() == 6
+
+
+def test_map_empty():
+    assert Optional.empty().map(lambda x: x * 2).is_empty()
+
+
+def test_map_returns_none():
+    assert Optional.of(3).map(lambda x: None).is_empty()

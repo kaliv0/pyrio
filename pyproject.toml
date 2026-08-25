@@ -1,6 +1,6 @@
 [project]
 name = "pyrio"
-version = "1.7.2"
+version = "1.8.0"
 requires-python = ">=3.12"
 authors = [
     { name = "kaliv0", email = "kaliv.zero@gmail.com" },
@@ -47,3 +47,7 @@ fix = true
 
 [tool.pytest.ini_options]
 tmp_path_retention_policy = "none"
+
+# TODO: remove before merge
+[tool.basedpyright]
+typeCheckingMode = "standard"

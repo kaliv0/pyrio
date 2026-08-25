@@ -94,6 +94,7 @@ class ItertoolsMixin:
 
     def view(self, start=0, stop=None, step=None):
         """Provides access to a selected part of the stream"""
+        # TODO: fix - not working with generators
         if start < 0:
             start = len(self.iterable) + start
 

@@ -1,9 +1,9 @@
 from collections.abc import Mapping
 
-from pyrio.iterators import StreamGenerator
 from pyrio.decorators import handle_consumed, pre_call
+from pyrio.exceptions import IllegalStateError, NoneTypeError, UnsupportedTypeError
+from pyrio.iterators import StreamGenerator
 from pyrio.utils import DictItem, Optional
-from pyrio.exceptions import IllegalStateError, UnsupportedTypeError, NoneTypeError
 
 
 @pre_call(handle_consumed)
@@ -232,9 +232,18 @@ class BaseStream:
 
     def compare_with(self, other, comparator=None):
         """Compares current stream with another one based on a given comparator"""
-        return not any(
-            (comparator and not comparator(i, j)) or i != j for i, j in zip(self.iterable, other)
-        )
+        comparator = comparator or (lambda a, b: a == b)
+        left, right = iter(self.iterable), iter(other)
+        sentinel = object()
+        while True:
+            a = next(left, sentinel)
+            b = next(right, sentinel)
+            if a is sentinel and b is sentinel:
+                return True
+            if a is sentinel or b is sentinel:
+                return False
+            if not comparator(a, b):
+                return False
 
     # ### collectors ###
     def collect(self, collection_type, dict_collector=None, dict_merger=None, str_delimiter=", "):
@@ -322,49 +331,16 @@ class BaseStream:
         Returns the results in a dict built using collector function
         (optionally provided by the user or via a default one)
         """
-        if collector is None:
-            return {key: list(group) for key, group in self._group_by(classifier)}
-
-        result = {}
-        for key, group in self._group_by(classifier):
-            key, group = collector(key, list(group))
-            if hasattr(group, "__iter__"):
-                if key not in result:
-                    result[key] = []
-                result[key] += group
-            else:
-                result[key] = group
-        return result
-
-    def _group_by(self, classifier=None):
-        # https://docs.python.org/3/library/itertools.html#itertools.groupby
         classifier = (lambda x: x) if classifier is None else classifier
-        iterator = iter(self.iterable)
-        exhausted = False
+        buckets = {}
+        for item in self.iterable:
+            key = classifier(item)
+            buckets.setdefault(key, []).append(item)
 
-        def _grouper(target_key):  # noqa
-            nonlocal curr_value, curr_key, exhausted
-            yield curr_value
-            for curr_value in iterator:
-                curr_key = classifier(curr_value)
-                if curr_key != target_key:
-                    return
-                yield curr_value
-            exhausted = True
+        if collector is None:
+            return buckets
 
-        try:
-            curr_value = next(iterator)
-        except StopIteration:
-            return
-        curr_key = classifier(curr_value)
-
-        while not exhausted:
-            target_key = curr_key
-            curr_group = _grouper(target_key)
-            yield curr_key, curr_group
-            if curr_key == target_key:
-                for _ in curr_group:
-                    pass
+        return dict(collector(k, v) for k, v in buckets.items())
 
     def quantify(self, predicate=bool):
         """Count how many of the elements are Truthy or evaluate to True based on a given predicate"""

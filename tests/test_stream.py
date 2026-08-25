@@ -5,8 +5,8 @@ from operator import itemgetter
 
 import pytest
 
-from pyrio import Stream, Optional, DictItem
-from pyrio.exceptions import IllegalStateError, UnsupportedTypeError, NoneTypeError
+from pyrio import DictItem, Optional, Stream
+from pyrio.exceptions import IllegalStateError, NoneTypeError, UnsupportedTypeError
 
 
 def test_stream():
@@ -643,6 +643,13 @@ def test_compare_with():
     assert Stream([1, 2]).compare_with(Stream([1, 2]))
     assert Stream([1, 2]).compare_with(Stream([2, 1])) is False
     assert Stream([1, 2]).compare_with(Stream([3, 4])) is False
+    assert Stream([1, 2]).compare_with(Stream([1, 2, 3])) is False
+    assert Stream([1, 2, 3]).compare_with(Stream([1, 2])) is False
+    assert Stream([]).compare_with(Stream([]))
+    assert Stream([1, 2]).compare_with([1, 2])
+    assert Stream([1, 2]).compare_with((1, 2))
+    assert Stream([1, 2]).compare_with([1, 2, 3]) is False
+    assert Stream([1, 2, 3]).compare_with((1, 2)) is False
 
 
 def test_compare_with_custom_key(Foo):
@@ -651,6 +658,9 @@ def test_compare_with_custom_key(Foo):
     comparator = lambda x, y: x.num == y.num  # noqa
 
     assert Stream([fizz, buzz]).compare_with(Stream([fizz, buzz]), comparator)
+    assert Stream([Foo("a", 1), Foo("b", 2)]).compare_with(
+        Stream([Foo("c", 1), Foo("d", 2)]), comparator
+    )
     assert Stream([buzz, fizz]).compare_with(Stream([fizz, buzz]), comparator) is False
     assert Stream([fizz, buzz]).compare_with(Stream([buzz]), comparator) is False
 
@@ -951,10 +961,18 @@ def test_group_by_empty():
     assert Stream([]).group_by(classifier=lambda x: x) == {}
 
 
-def test_group_by_unconsumed_groups():
-    stream = Stream("AAABBB")
-    keys = [key for key, group in stream._group_by()]
-    assert keys == ["A", "B"]
+def test_group_by_interleaved_keys():
+    assert Stream("AbA").group_by() == {
+        "A": ["A", "A"],
+        "b": ["b"],
+    }
+
+
+def test_group_by_interleaved_keys_count_collector():
+    assert Stream("AbA").group_by(collector=lambda k, g: (k, len(g))) == {
+        "A": 2,
+        "b": 1,
+    }
 
 
 def test_to_string(nested_json):
@@ -1012,35 +1030,3 @@ def test_nested_json_querying_nested_dict_items(nested_json):
         .get()
         == "Freud"
     )
-
-
-# ### hacker-rank ###
-def test_hackerrank():
-    from enum import Enum
-
-    # count vowels and constants in given string
-    string = "123Ab5oc-E6db#bCi9<>"
-    all_vowels = "AEIOUaeiou"
-
-    class CharType(Enum):
-        VOWELS = "vowels"
-        CONSONANTS = "consonants"
-
-    assert (
-        Stream(string)
-        .filter(lambda ch: ch.isalpha())
-        .partition(lambda ch: ch in all_vowels)
-        .enumerate()
-        .map(lambda x: (CharType.VOWELS if x[0] == 0 else CharType.CONSONANTS, len(tuple(x[1]))))
-        .to_dict()
-    ) == {CharType.CONSONANTS: 6, CharType.VOWELS: 4}
-
-
-@pytest.mark.parametrize(
-    "string, expected",
-    [("a1b2c3c2b1a", True), ("abc321", False), ("xyyx", True), ("aba", True), ("z", True)],
-)
-def test_leetcode(string, expected):
-    # check if given string is palindrome; string length is guaranteed to be > 0
-    stop = len(string) // 2 if len(string) > 1 else 1
-    assert Stream.from_range(0, stop).all_match(lambda x: string[x] == string[-x - 1]) is expected

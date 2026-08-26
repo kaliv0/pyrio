@@ -685,7 +685,9 @@ FileStream("path/to/file.json").concat(in_memory_dict).save(
 )
 ```
 
-# ...in the end - how hideous can it get?
+---
+
+...in the end - how hideous can it get?
 
 <p align="center">
   <img src="https://github.com/kaliv0/pyrio/blob/main/assets/Chubby.jpg?raw=true" width="400" alt="Chubby">

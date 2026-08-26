@@ -1,4 +1,4 @@
-# Can we tackle leetcode?
+## Can we tackle leetcode?
 
 <p align="center">
   <img src="https://github.com/kaliv0/pyrio/blob/main/assets/Leet.png?raw=true" width="260" alt="Leet">

@@ -768,7 +768,9 @@ def substrings_of_size_three_with_distinct_chars(string: str) -> int:
 More by category:
 <br>[`leet_dp.py`](examples/leet_dp.py) · [`leet_bits.py`](examples/leet_bits.py) · [`leet_hash.py`](examples/leet_hash.py) · [`leet_window.py`](examples/leet_window.py) · [`leet_array.py`](examples/leet_array.py) · [`leet_sort.py`](examples/leet_sort.py) · [`leet_math.py`](examples/leet_math.py)
 
-# ...in the end - how hideous can it get?
+---
+
+...in the end - how hideous can it get?
 
 <p align="center">
   <img src="https://github.com/kaliv0/pyrio/blob/main/assets/Chubby.jpg?raw=true" width="400" alt="Chubby">

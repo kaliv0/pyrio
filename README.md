@@ -704,48 +704,72 @@ FileStream("path/to/file.json").concat(in_memory_dict).save(
 )
 ```
 
-- ...some leetcode maybe?
+### Can we tackle leetcode?
+
+<p align="center">
+  <img src="https://github.com/kaliv0/pyrio/blob/add-leetcode-examples/assets/Leet.png?raw=true" width="300" alt="Leet">
+</p>
+
+Stream solutions for selected LeetCode problems live under [`examples/`](examples/).
+
+[70. Climbing Stairs](examples/leet_dp.py):
 
 ```python
-#  check if given string is palindrome; string length is guaranteed to be > 0
-def validate_str(string):
-    stop = len(string) // 2 if len(string) > 1 else 1
-    return Stream.from_range(0, stop).all_match(lambda x: string[x] == string[-x - 1])
+from pyrio import Stream
 
-validate_str("a1b2c3c2b1a")
-validate_str("abc321")
-validate_str("xyyx")
-validate_str("aba")
-validate_str("z")
 
-# True
-# False
-# True
-# True
-# True
-```
-
-- ...and another one?
-
-```python
-# count vowels and consonants in given string
-def find_counts(string):
-    ALL_VOWELS = "AEIOUaeiou"
+def climbing_stairs(n: int) -> int:
     return (
-        Stream(string)
-        .filter(str.isalpha)
-        .group_by(
-            classifier=lambda ch: "Vowels" if ch in ALL_VOWELS else "Consonants",
-            collector=lambda k, g: (k, len(g)),
-        )
+        Stream.iterate((1, 1), lambda pair: (pair[1], pair[0] + pair[1]))
+        .map(lambda pair: pair[0])
+        .take_nth(n)
+        .get()
     )
 
-find_counts("123Ab5oc-E6db#bCi9<>")
 
-# {'Vowels': 4, 'Consonants': 6}
+# climbing_stairs(10) => 89
 ```
 
-How hideous can it get?
+[347. Top K Frequent Elements](examples/leet_hash.py):
+
+```python
+from operator import attrgetter
+
+from pyrio import Stream
+
+
+def top_k_frequent(nums: list[int], k: int) -> set[int]:
+    counts = Stream(nums).group_by(collector=lambda key, group: (key, len(group)))
+    return (
+        Stream(counts)
+        .sort(attrgetter("value"), reverse=True)
+        .limit(k)
+        .map(attrgetter("key"))
+        .to_set()
+    )
+
+
+# top_k_frequent([1, 1, 1, 2, 2, 3], 2) => {1, 2}
+```
+
+[1876. Substrings of Size Three with Distinct Characters](examples/leet_window.py):
+
+```python
+from pyrio import Stream
+
+
+def substrings_of_size_three_with_distinct_chars(string: str) -> int:
+    return Stream(string).sliding_window(3).quantify(lambda window: len(set(window)) == 3)
+
+
+# substrings_of_size_three_with_distinct_chars("aababcabc") => 4
+```
+
+More by category:
+<br>[`leet_dp.py`](examples/leet_dp.py) · [`leet_bits.py`](examples/leet_bits.py) · [`leet_hash.py`](examples/leet_hash.py) · [`leet_window.py`](examples/leet_window.py) · [`leet_array.py`](examples/leet_array.py) · [`leet_sort.py`](examples/leet_sort.py) · [`leet_math.py`](examples/leet_math.py)
+
+# ...in the end - how hideous can it get?
+
 <p align="center">
   <img src="https://github.com/kaliv0/pyrio/blob/main/assets/Chubby.jpg?raw=true" width="400" alt="Chubby">
 </p>

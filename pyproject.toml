@@ -38,7 +38,7 @@ requires = ["pdm-backend"]
 build-backend = "pdm.backend"
 
 [tool.pdm.build]
-excludes = ["tests/"]
+excludes = ["tests/", "examples/"]
 
 [tool.ruff]
 line-length = 100

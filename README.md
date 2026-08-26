@@ -707,7 +707,7 @@ FileStream("path/to/file.json").concat(in_memory_dict).save(
 ### Can we tackle leetcode?
 
 <p align="center">
-  <img src="https://github.com/kaliv0/pyrio/blob/add-leetcode-examples/assets/Leet.png?raw=true" width="300" alt="Leet">
+  <img src="https://github.com/kaliv0/pyrio/blob/main/assets/Leet.png?raw=true" width="260" alt="Leet">
 </p>
 
 Stream solutions for selected LeetCode problems live under [`examples/`](examples/).

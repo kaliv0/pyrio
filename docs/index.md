@@ -6,5 +6,6 @@
 :hidden:
 
 quickstart.md
+leet.md
 autoapi/index
 ```

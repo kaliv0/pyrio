@@ -79,31 +79,43 @@ class ItertoolsMixin:
             return self
         if n < 0:
             raise ValueError("Consume boundary cannot be negative")
-        self.iterable = it.islice(self.iterable, n, len(self.iterable))
+        self.iterable = it.islice(self.iterable, n, None)
         return self
-
-    def take_nth(self, idx, default=None):
-        """Returns Optional with the nth element of the stream or a default value"""
-        if idx < 0:
-            idx = len(self.iterable) + idx
-        return Optional.of_nullable(next(it.islice(self.iterable, idx, None), default))
 
     def all_equal(self, key=None):
         """Returns True if all elements of the stream are equal to each other"""
         return len(list(it.islice(it.groupby(self.iterable, key), 2))) <= 1
 
+    def take_nth(self, idx, default=None):
+        """Returns Optional with the nth element of the stream or a default value"""
+        if idx < 0:
+            self._ensure_sized()
+            idx = len(self.iterable) + idx
+        return Optional.of_nullable(next(it.islice(self.iterable, idx, None), default))
+
     def view(self, start=0, stop=None, step=None):
         """Provides access to a selected part of the stream"""
-        if start < 0:
-            start = len(self.iterable) + start
-
-        if stop and stop < 0:
-            stop = len(self.iterable) + stop
-
-        if step and step < 0:
+        if step is not None and step < 0:
             raise ValueError("Step must be a positive integer or None")
 
+        negative_start = start < 0
+        negative_stop = stop is not None and stop < 0
+        if negative_start or negative_stop:
+            self._ensure_sized()
+            length = len(self.iterable)
+            if negative_start:
+                start = length + start
+            if negative_stop:
+                stop = length + stop
+
         self.iterable = it.islice(self.iterable, start, stop, step)
+        return self
+
+    def _ensure_sized(self):
+        try:
+            len(self.iterable)
+        except TypeError:
+            self.iterable = list(self.iterable)
         return self
 
     # ### unique ###

@@ -1,4 +1,4 @@
-from pyrio.exceptions import NoSuchElementError, NoneTypeError
+from pyrio.exceptions import NoneTypeError, NoSuchElementError
 
 
 class Optional:
@@ -6,9 +6,6 @@ class Optional:
 
     def __init__(self, element):
         self._element = element
-
-    def __str__(self):
-        return f"Optional[{self._element}]"
 
     @staticmethod
     def empty():
@@ -50,7 +47,8 @@ class Optional:
             action(self.get())
 
     def if_present_or_else(self, action, empty_action):
-        """Performs given action with the value if the Optional is not empty,
+        """
+        Performs given action with the value if the Optional is not empty,
         otherwise calls fallback 'empty_action'
         """
         if self.is_present():
@@ -72,15 +70,82 @@ class Optional:
         """
         return self._element if self.is_present() else supplier()
 
+    def or_else_optional(self, supplier):
+        """
+        Returns this Optional if a value is present,
+        otherwise returns an Optional produced by the supplier
+        """
+        if self.is_present():
+            return self
+        result = supplier()
+        if not isinstance(result, Optional):
+            raise TypeError(f"{result} is not an Optional")
+        return result
+
     def or_else_raise(self, supplier=None):
         """
         Returns the value if present,
         otherwise throws an exception produced by the exception supplying function
         (if such is provided by the user) or NoSuchElementError
         """
+        if self.is_present():
+            return self._element
         if supplier is None:
+            raise NoSuchElementError("Optional is empty")
+        raise supplier()
 
-            def supplier():
-                raise NoSuchElementError("Optional is empty")
+    def filter(self, predicate):
+        """
+        If a value is present and matches the predicate, returns this Optional.
+        Otherwise returns an empty Optional.
+        """
+        if self.is_empty() or not predicate(self.get()):
+            return Optional.empty()
+        return self
 
-        return self._element if self.is_present() else supplier()
+    def map(self, mapper):
+        """
+        If a value is present, applies the mapper and returns an Optional of the result.
+        Returns an empty Optional if this Optional is empty or the mapper returns None.
+        """
+        if self.is_empty():
+            return Optional.empty()
+        return Optional.of_nullable(mapper(self.get()))
+
+    def flat_map(self, mapper):
+        """
+        If a value is present, applies the mapper and returns the resulting Optional.
+        Returns an empty Optional if this Optional is empty.
+        """
+        if self.is_empty():
+            return Optional.empty()
+        result = mapper(self.get())
+        if not isinstance(result, Optional):
+            raise TypeError(f"{result} is not an Optional")
+        return result
+
+    def to_stream(self):
+        """
+        Returns a Stream with the value if present, otherwise an empty Stream.
+        """
+        from pyrio.streams import Stream
+
+        if self.is_empty():
+            return Stream.empty()
+        return Stream.of(self.get())
+
+    def __repr__(self):
+        return "Optional.empty" if self.is_empty() else f"Optional[{self._element}]"
+
+    def __eq__(self, other):
+        if not isinstance(other, Optional):
+            raise TypeError(f"{other} is not an Optional")
+        return self._element == other._element
+
+    def __hash__(self):
+        try:
+            return hash(self._element)
+        except TypeError as e:
+            raise TypeError(
+                f"unhashable type: 'Optional' (value of type '{type(self._element).__name__}' is unhashable)"
+            ) from e

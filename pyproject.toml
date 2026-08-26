@@ -1,6 +1,6 @@
 [project]
 name = "pyrio"
-version = "1.7.2"
+version = "1.8.0"
 requires-python = ">=3.12"
 authors = [
     { name = "kaliv0", email = "kaliv.zero@gmail.com" },
@@ -27,7 +27,6 @@ dev = [
     "sphinx-rtd-theme>=3.0.2",
     "myst-nb>=1.1.2",
     "sphinx-autoapi>=3.3.3",
-    "pre-commit>=4.2.0",
 ]
 
 [project.urls]
@@ -39,7 +38,7 @@ requires = ["pdm-backend"]
 build-backend = "pdm.backend"
 
 [tool.pdm.build]
-excludes = ["tests/"]
+excludes = ["tests/", "examples/"]
 
 [tool.ruff]
 line-length = 100

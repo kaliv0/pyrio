@@ -710,9 +710,9 @@ FileStream("path/to/file.json").concat(in_memory_dict).save(
   <img src="https://github.com/kaliv0/pyrio/blob/main/assets/Leet.png?raw=true" width="260" alt="Leet">
 </p>
 
-Stream solutions for selected LeetCode problems live under [`examples/`](examples/).
+Stream solutions for selected LeetCode problems live under [`examples/`](https://github.com/kaliv0/pyrio/tree/main/examples).
 
-[70. Climbing Stairs](examples/leet_dp.py):
+[70. Climbing Stairs](https://github.com/kaliv0/pyrio/tree/main/examples/leet_dp.py):
 
 ```python
 def climbing_stairs(n: int) -> int:
@@ -726,7 +726,7 @@ def climbing_stairs(n: int) -> int:
 # climbing_stairs(10) => 89
 ```
 
-[347. Top K Frequent Elements](examples/leet_hash.py):
+[347. Top K Frequent Elements](https://github.com/kaliv0/pyrio/tree/main/examples/leet_hash.py):
 
 ```python
 from operator import attrgetter
@@ -744,7 +744,7 @@ def top_k_frequent(nums: list[int], k: int) -> set[int]:
 # top_k_frequent([1, 1, 1, 2, 2, 3], 2) => {1, 2}
 ```
 
-[1876. Substrings of Size Three with Distinct Characters](examples/leet_window.py):
+[1876. Substrings of Size Three with Distinct Characters](https://github.com/kaliv0/pyrio/tree/main/examples/leet_window.py):
 
 ```python
 def substrings_of_size_three_with_distinct_chars(string: str) -> int:
@@ -754,7 +754,7 @@ def substrings_of_size_three_with_distinct_chars(string: str) -> int:
 ```
 
 More by category:
-<br>[`leet_dp.py`](examples/leet_dp.py) · [`leet_bits.py`](examples/leet_bits.py) · [`leet_hash.py`](examples/leet_hash.py) · [`leet_window.py`](examples/leet_window.py) · [`leet_array.py`](examples/leet_array.py) · [`leet_sort.py`](examples/leet_sort.py) · [`leet_math.py`](examples/leet_math.py)
+<br>[`leet_dp.py`](https://github.com/kaliv0/pyrio/tree/main/examples/leet_dp.py) · [`leet_bits.py`](https://github.com/kaliv0/pyrio/tree/main/examples/leet_bits.py) · [`leet_hash.py`](https://github.com/kaliv0/pyrio/tree/main/examples/leet_hash.py) · [`leet_window.py`](https://github.com/kaliv0/pyrio/tree/main/examples/leet_window.py) · [`leet_array.py`](https://github.com/kaliv0/pyrio/tree/main/examples/leet_array.py) · [`leet_sort.py`](https://github.com/kaliv0/pyrio/tree/main/examples/leet_sort.py) · [`leet_math.py`](https://github.com/kaliv0/pyrio/tree/main/examples/leet_math.py)
 
 ---
 

@@ -5,7 +5,6 @@
 </p>
 
 Stream solutions for selected LeetCode problems live under [`examples/`](https://github.com/kaliv0/pyrio/tree/main/examples).
-Bodies below are included from those files so the docs stay in sync with the source of truth.
 
 ### Dynamic Programming
 

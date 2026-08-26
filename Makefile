@@ -16,4 +16,7 @@ lint:
 test:
 	uv run pytest -v --cov=./pyrio --cov-fail-under=90 --cov-report=xml
 
+build:
+	uv build
+
 all: sync lint test

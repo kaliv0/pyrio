@@ -715,9 +715,6 @@ Stream solutions for selected LeetCode problems live under [`examples/`](example
 [70. Climbing Stairs](examples/leet_dp.py):
 
 ```python
-from pyrio import Stream
-
-
 def climbing_stairs(n: int) -> int:
     return (
         Stream.iterate((1, 1), lambda pair: (pair[1], pair[0] + pair[1]))
@@ -726,7 +723,6 @@ def climbing_stairs(n: int) -> int:
         .get()
     )
 
-
 # climbing_stairs(10) => 89
 ```
 
@@ -734,9 +730,6 @@ def climbing_stairs(n: int) -> int:
 
 ```python
 from operator import attrgetter
-
-from pyrio import Stream
-
 
 def top_k_frequent(nums: list[int], k: int) -> set[int]:
     counts = Stream(nums).group_by(collector=lambda key, group: (key, len(group)))
@@ -748,19 +741,14 @@ def top_k_frequent(nums: list[int], k: int) -> set[int]:
         .to_set()
     )
 
-
 # top_k_frequent([1, 1, 1, 2, 2, 3], 2) => {1, 2}
 ```
 
 [1876. Substrings of Size Three with Distinct Characters](examples/leet_window.py):
 
 ```python
-from pyrio import Stream
-
-
 def substrings_of_size_three_with_distinct_chars(string: str) -> int:
     return Stream(string).sliding_window(3).quantify(lambda window: len(set(window)) == 3)
-
 
 # substrings_of_size_three_with_distinct_chars("aababcabc") => 4
 ```

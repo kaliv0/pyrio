@@ -639,6 +639,27 @@ def test_stream_on_close_callback_using_pointer_to_enclosing_scope():
     assert flag is True
 
 
+def test_no_op_if_stream_alerady_closed():
+    i = 0
+
+    def increment():
+        nonlocal i
+        i += 1
+
+    stream = Stream([1, 2, 3, 4])
+    result = stream.on_close(increment).map(lambda x: x * 2).to_list()
+    stream.close()
+    assert result == [2, 4, 6, 8]
+    assert i == 1
+
+
+def test_cleanup_callback_on_close():
+    stream = Stream([1, 2, 3, 4])
+    stream.on_close(lambda: print("foo bar")).map(lambda x: x * 2).to_list()
+    assert stream._is_consumed is True
+    assert stream._on_close_handler is None
+
+
 def test_compare_with():
     assert Stream([1, 2]).compare_with(Stream([1, 2]))
     assert Stream([1, 2]).compare_with(Stream([2, 1])) is False

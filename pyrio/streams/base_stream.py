@@ -348,9 +348,13 @@ class BaseStream:
 
     def close(self):
         """Closes the stream, causing the provided close handler to be called"""
+        if self._is_consumed:
+            return
+
         if self._on_close_handler:
             self._on_close_handler()
         self._is_consumed = True
+        self._on_close_handler = None
 
     def on_close(self, handler):
         """Returns an equivalent stream with an additional close handler"""

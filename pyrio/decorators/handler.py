@@ -22,8 +22,8 @@ def pre_call(function_decorator):
             # skip privates & dunders
             if name.startswith("_") or name == "close":
                 continue
+            # apply only on instance methods
             if isinstance(obj, FunctionType):
-                # apply only on instance methods
                 setattr(cls, name, function_decorator(obj))
         return cls
 

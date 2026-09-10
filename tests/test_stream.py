@@ -717,20 +717,6 @@ def test_find_first_in_empty_stream():
     assert result.is_empty()
 
 
-def test_find_any():
-    assert Stream.of(1, 2, 3, 4).filter(lambda x: x % 2 == 0).find_any().get() in (2, 4)
-
-
-def test_find_any_with_predicate():
-    assert Stream.of(1, 2, 3, 4).find_any(lambda x: x % 2 == 0).get() in (2, 4)
-
-
-def test_find_any_in_empty_stream():
-    result = Stream.empty().find_any()
-    assert isinstance(result, Optional)
-    assert result.is_empty()
-
-
 # ### match ###
 def test_any_match():
     assert Stream.of(1, 2, 3, 4).any_match(lambda x: x > 2)

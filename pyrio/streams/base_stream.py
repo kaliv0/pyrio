@@ -173,20 +173,6 @@ class BaseStream:
         """
         return Optional.of_nullable(next(filter(predicate, self.iterable), None))
 
-    def find_any(self, predicate=None):
-        """
-        Searches for an element of the stream that satisfies a predicate.
-        Returns an Optional with some of the found values, if any, or None
-        """
-        import random
-
-        if predicate:
-            self.filter(predicate)
-        try:
-            return Optional.of(random.choice(list(self.iterable)))
-        except IndexError:
-            return Optional.of_nullable(None)
-
     def any_match(self, predicate):
         """Returns whether any elements of the stream match the given predicate"""
         return any(predicate(i) for i in self.iterable)

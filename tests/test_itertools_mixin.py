@@ -4,7 +4,7 @@ import operator
 import pytest
 
 from pyrio import Stream
-from pyrio.exceptions import MethodNotFoundError
+from pyrio.exceptions import IllegalStateError, MethodNotFoundError
 
 
 def test_accumulate():
@@ -256,6 +256,23 @@ def test_all_equal():
     stream = Stream([2, 2, 2])
     assert stream.all_equal(key=int)
     assert stream._is_consumed
+
+
+def test_itertools_ops_blocked_when_consumed():
+    stream = Stream.of(1, 2, 3)
+    stream.to_list()
+
+    with pytest.raises(IllegalStateError):
+        stream.filterfalse(predicate=lambda x: False)
+
+    with pytest.raises(IllegalStateError):
+        stream.unique()
+
+    with pytest.raises(IllegalStateError):
+        stream.view(0, 1)
+
+    with pytest.raises(IllegalStateError):
+        stream.take_nth(0)
 
 
 def test_all_equal_false():

@@ -599,6 +599,14 @@ def test_reusing_stream():
     assert str(e.value) == "Stream object already consumed"
 
 
+def test_len_marks_stream_consumed():
+    stream = Stream((x for x in [1, 2, 3]))
+    assert stream.len() == 3
+    assert stream._is_consumed
+    with pytest.raises(IllegalStateError):
+        stream.to_list()
+
+
 def test_stream_close():
     stream = Stream.of(1, 2, 3)
     assert stream._is_consumed is False

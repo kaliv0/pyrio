@@ -161,6 +161,16 @@ def test_reusing_stream():
     assert str(e.value) == "Stream object already consumed"
 
 
+def test_save_marks_stream_consumed(tmp_file_dir):
+    stream = FileStream("./tests/resources/foo.json")
+    stream.save(tmp_file_dir / "out.json")
+    assert stream._is_consumed
+    assert stream._file_handler.closed
+    with pytest.raises(IllegalStateError) as e:
+        stream.to_list()
+    assert str(e.value) == "Stream object already consumed"
+
+
 def test_concat():
     assert (
         FileStream("./tests/resources/long.json")

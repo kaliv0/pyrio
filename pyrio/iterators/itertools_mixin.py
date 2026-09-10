@@ -2,16 +2,21 @@ import itertools as it
 import operator
 from functools import wraps
 
-from pyrio.exceptions import MethodNotFoundError
+from pyrio.decorators import handle_consumed, pre_call, terminal
+from pyrio.exceptions import IllegalStateError, MethodNotFoundError
 from pyrio.utils import Optional
 
 
+@pre_call(handle_consumed)
 class ItertoolsMixin:
     """Provides integration with itertools methods. Pass corresponding parameters as kwargs"""
 
     iterable = None
 
     def __getattr__(self, item):
+        if self.__dict__.get("_is_consumed"):
+            raise IllegalStateError("Stream object already consumed")
+
         func = getattr(it, item, None)
         if func is None:
             raise MethodNotFoundError(f"'{item}' not found")
@@ -82,10 +87,12 @@ class ItertoolsMixin:
         self.iterable = it.islice(self.iterable, n, None)
         return self
 
+    @terminal
     def all_equal(self, key=None):
         """Returns True if all elements of the stream are equal to each other"""
         return len(list(it.islice(it.groupby(self.iterable, key), 2))) <= 1
 
+    @terminal
     def take_nth(self, idx, default=None):
         """Returns Optional with the nth element of the stream or a default value"""
         if idx < 0:

@@ -8,6 +8,7 @@ from aldict import AliasDict
 from pyrio.utils import DictItem
 from pyrio.streams import BaseStream, Stream
 from pyrio.exceptions import NoneTypeError
+from pyrio.decorators import handle_consumed, pre_call, terminal
 
 TEMP_PATH = "{file_path}.tmp"
 
@@ -78,6 +79,7 @@ MAPPING_WRITE_CONFIG = AliasDict(
 )
 
 
+@pre_call(handle_consumed)
 class FileStream(BaseStream):
     """Derived Stream class for querying files; maps file content to im-memory dict structures and vice versa"""
 
@@ -159,6 +161,7 @@ class FileStream(BaseStream):
         return file_handler, (line for line in file_handler)
 
     # ### writing to file ###
+    @terminal
     def save(
         self,
         file_path=None,

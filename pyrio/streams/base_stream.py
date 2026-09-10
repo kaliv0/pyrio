@@ -173,6 +173,7 @@ class BaseStream:
         """
         return Optional.of_nullable(next(filter(predicate, self.iterable), None))
 
+    @terminal
     def any_match(self, predicate):
         """Returns whether any elements of the stream match the given predicate"""
         return any(predicate(i) for i in self.iterable)

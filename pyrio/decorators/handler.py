@@ -19,8 +19,11 @@ def pre_call(function_decorator):
 
     def decorator(cls):
         for name, obj in vars(cls).items():
-            # skip privates / dunders / class / static
-            if not name.startswith("_") and isinstance(obj, FunctionType):
+            # skip privates & dunders
+            if name.startswith("_") or name == "close":
+                continue
+            if isinstance(obj, FunctionType):
+                # apply only on instance methods
                 setattr(cls, name, function_decorator(obj))
         return cls
 
@@ -31,21 +34,23 @@ def handle_consumed(func):
     """Block ops on consumed streams, auto-close after @terminal methods."""
 
     @wraps(func)
-    def wrapper(self, *args, **kw):
+    def wrapper(self, *args, **kwargs):
         from pyrio.streams.base_stream import BaseStream
 
         if not isinstance(self, BaseStream):
-            return func(self, *args, **kw)  # pragma: no cover
+            return func(self, *args, **kwargs)  # pragma: no cover
 
         # __dict__ avoids __getattr__ (no recursion if flag missing mid-init)
-        consumed = self.__dict__.get("_is_consumed", False)
-        if consumed and func.__name__ != "close":
+        if self.__dict__.get("_is_consumed", False):
             raise IllegalStateError("Stream object already consumed")
 
-        result = func(self, *args, **kw)
-        if not consumed and getattr(func, "_terminal", False):
-            self.close()
-        return result
+        if not is_terminal(func):
+            return func(self, *args, **kwargs)
 
-    wrapper._terminal = getattr(func, "_terminal", False)
+        try:
+            return func(self, *args, **kwargs)
+        finally:
+            self.close()
+
+    wrapper._terminal = is_terminal(func)
     return wrapper

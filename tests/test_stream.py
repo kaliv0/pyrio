@@ -664,8 +664,28 @@ def test_no_op_if_stream_alerady_closed():
 def test_cleanup_callback_on_close():
     stream = Stream([1, 2, 3, 4])
     stream.on_close(lambda: print("foo bar")).map(lambda x: x * 2).to_list()
-    assert stream._is_consumed is True
+    assert stream._is_consumed
     assert stream._on_close_handler is None
+
+
+def test_terminal_closes_even_on_error():
+    flag = False
+
+    def flip():
+        nonlocal flag
+        flag = True
+
+    def boom(_):
+        raise ValueError("boom")
+
+    stream = Stream.of(1, 2, 3).on_close(flip)
+    with pytest.raises(ValueError, match="boom"):
+        stream.for_each(boom)
+
+    assert flag
+    assert stream._is_consumed
+    with pytest.raises(IllegalStateError):
+        stream.to_list()
 
 
 def test_compare_with():

@@ -171,6 +171,20 @@ def test_save_marks_stream_consumed(tmp_file_dir):
     assert str(e.value) == "Stream object already consumed"
 
 
+def test_terminal_closes_even_on_error():
+    def boom(_):
+        raise ValueError("boom")
+
+    stream = FileStream("./tests/resources/foo.json")
+    with pytest.raises(ValueError, match="boom"):
+        stream.for_each(boom)
+
+    assert stream._is_consumed
+    assert stream._file_handler.closed
+    with pytest.raises(IllegalStateError):
+        stream.to_list()
+
+
 def test_concat():
     assert (
         FileStream("./tests/resources/long.json")

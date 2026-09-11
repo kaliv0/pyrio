@@ -1,9 +1,7 @@
-from pyrio.decorators import pre_call, handle_consumed
+from pyrio.iterators import ItertoolsMixin, StreamGenerator
 from pyrio.streams import BaseStream
-from pyrio.iterators import StreamGenerator, ItertoolsMixin
 
 
-@pre_call(handle_consumed)
 class Stream(BaseStream, ItertoolsMixin):
     """Abstraction over a sequence of elements supporting sequential aggregate operations"""
 
@@ -43,12 +41,3 @@ class Stream(BaseStream, ItertoolsMixin):
     def from_range(cls, start, stop, step=1):
         """Creates Stream from start (inclusive) to stop (exclusive) by an incremental step"""
         return cls(StreamGenerator.range(start, stop, step))
-
-    # NB: handle_consumed decorator needs access to toggle flag
-    def take_nth(self, idx, default=None):
-        """Returns Optional with the nth element of the stream or a default value"""
-        return super().take_nth(idx, default)
-
-    def all_equal(self, key=None):
-        """Returns True if all elements of the stream are equal to each other"""
-        return super().all_equal(key)

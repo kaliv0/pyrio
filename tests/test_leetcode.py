@@ -1,8 +1,7 @@
 import pytest
 
-from pyrio import Stream
-
 from examples import leet_array, leet_bits, leet_dp, leet_hash, leet_math, leet_sort, leet_window
+from pyrio import Stream
 
 
 def test_count_vowels_and_consonants():
@@ -47,7 +46,7 @@ def test_is_palindrome(string, expected):
 )
 def test_top_k_frequent(nums, k):
     result = leet_hash.top_k_frequent(nums, k)
-    counts = Stream(nums).group_by(collector=lambda key, group: (key, len(group)))
+    counts = Stream(nums).grouped_by(collector=lambda key, group: (key, len(group)))
     assert len(result) == k
     threshold = sorted(counts.values(), reverse=True)[k - 1]
     assert all(counts[key] >= threshold for key in result)

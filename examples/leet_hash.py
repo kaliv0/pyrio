@@ -4,8 +4,8 @@ from pyrio import Stream
 
 
 # 387. First Unique Character in a String
-def first_unique_character(string: str) -> int | None:
-    counts = Stream(string).group_by(collector=lambda key, group: (key, len(group)))
+def first_unique_character(string):
+    counts = Stream(string).grouped_by(collector=lambda key, group: (key, len(group)))
     return (
         Stream(string)
         .enumerate()
@@ -19,7 +19,7 @@ def first_unique_character(string: str) -> int | None:
 
 
 # 349. Intersection of Two Arrays
-def intersection_of_two_arrays(nums1: list[int], nums2: list[int]) -> set[int]:
+def intersection_of_two_arrays(nums1, nums2):
     seen = set(nums2)
     return Stream(nums1).filter(lambda x: x in seen).distinct().to_set()
 
@@ -28,7 +28,7 @@ def intersection_of_two_arrays(nums1: list[int], nums2: list[int]) -> set[int]:
 
 
 # 242. Valid Anagram
-def valid_anagram(left: str, right: str) -> bool:
+def valid_anagram(left, right):
     return Stream(left).sort().compare_with(Stream(right).sort())
 
 
@@ -36,7 +36,7 @@ def valid_anagram(left: str, right: str) -> bool:
 
 
 # 217. Contains Duplicate
-def contains_duplicate(nums: list[int]) -> bool:
+def contains_duplicate(nums):
     return len(nums) != Stream(nums).distinct().len()
 
 
@@ -44,7 +44,7 @@ def contains_duplicate(nums: list[int]) -> bool:
 
 
 # 771. Jewels and Stones
-def jewels_and_stones(jewels: str, stones: str) -> int:
+def jewels_and_stones(jewels, stones):
     jewel_set = set(jewels)
     return Stream(stones).quantify(lambda ch: ch in jewel_set)
 
@@ -53,7 +53,7 @@ def jewels_and_stones(jewels: str, stones: str) -> int:
 
 
 # 1832. Check if the Sentence Is Pangram
-def check_if_pangram(sentence: str) -> bool:
+def check_if_pangram(sentence):
     return Stream(sentence).filter(str.isalpha).map(str.lower).distinct().len() == 26
 
 
@@ -61,7 +61,7 @@ def check_if_pangram(sentence: str) -> bool:
 
 
 # 1684. Count the Number of Consistent Strings
-def count_consistent_strings(allowed: str, words: list[str]) -> int:
+def count_consistent_strings(allowed, words):
     allowed = set(allowed)
     return Stream(words).filter(lambda word: set(word) <= allowed).len()
 
@@ -70,8 +70,8 @@ def count_consistent_strings(allowed: str, words: list[str]) -> int:
 
 
 # 347. Top K Frequent Elements
-def top_k_frequent(nums: list[int], k: int) -> set[int]:
-    counts = Stream(nums).group_by(collector=lambda key, group: (key, len(group)))
+def top_k_frequent(nums, k):
+    counts = Stream(nums).grouped_by(collector=lambda key, group: (key, len(group)))
     return (
         Stream(counts)
         .sort(attrgetter("value"), reverse=True)

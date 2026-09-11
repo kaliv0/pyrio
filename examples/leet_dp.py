@@ -2,7 +2,7 @@ from pyrio import Stream
 
 
 # 70. Climbing Stairs
-def climbing_stairs(n: int) -> int:
+def climbing_stairs(n):
     return (
         Stream.iterate((1, 1), lambda pair: (pair[1], pair[0] + pair[1]))
         .map(lambda pair: pair[0])
@@ -15,7 +15,7 @@ def climbing_stairs(n: int) -> int:
 
 
 # 1137. N-th Tribonacci Number
-def tribonacci(n: int) -> int:
+def tribonacci(n):
     return (
         Stream.iterate((0, 1, 1), lambda triple: (triple[1], triple[2], sum(triple)))
         .map(lambda triple: triple[0])
@@ -28,7 +28,7 @@ def tribonacci(n: int) -> int:
 
 
 # 198. House Robber
-def house_robber(nums: list[int]) -> int:
+def house_robber(nums):
     def step(state, value):
         prev, curr = state
         return curr, max(curr, prev + value)
@@ -40,7 +40,7 @@ def house_robber(nums: list[int]) -> int:
 
 
 # 746. Min Cost Climbing Stairs
-def min_cost_climbing_stairs(cost: list[int]) -> int:
+def min_cost_climbing_stairs(cost):
     def step(state, value):
         return state[1], value + min(state[0], state[1])
 
@@ -51,7 +51,7 @@ def min_cost_climbing_stairs(cost: list[int]) -> int:
 
 
 # 53. Maximum Subarray
-def maximum_subarray(nums: list[int]) -> int:
+def maximum_subarray(nums):
     def step(state, value):
         best_ending, best_so_far = state
         best_ending = max(value, best_ending + value)
@@ -66,7 +66,7 @@ def maximum_subarray(nums: list[int]) -> int:
 
 
 # 121. Best Time to Buy and Sell Stock
-def best_time_to_buy_and_sell_stock(prices: list[int]) -> int:
+def best_time_to_buy_and_sell_stock(prices):
     def step(state, price):
         lowest, best = state
         return min(lowest, price), max(best, price - lowest)
@@ -78,7 +78,7 @@ def best_time_to_buy_and_sell_stock(prices: list[int]) -> int:
 
 
 # 118. Pascal's Triangle
-def pascals_triangle(num_rows: int) -> list[list[int]]:
+def pascals_triangle(num_rows):
     def next_row(row):
         middles = Stream(row).pairwise().map(lambda pair: pair[0] + pair[1]).to_list()
         return [1, *middles, 1]
@@ -90,7 +90,7 @@ def pascals_triangle(num_rows: int) -> list[list[int]]:
 
 
 # 62. Unique Paths
-def unique_paths(m: int, n: int) -> int:
+def unique_paths(m, n):
     return (
         Stream.iterate([1] * n, lambda row: Stream(row).accumulate().to_list())
         .take_nth(m - 1)

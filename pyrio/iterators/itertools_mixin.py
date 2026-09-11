@@ -2,16 +2,21 @@ import itertools as it
 import operator
 from functools import wraps
 
+from pyrio.decorators import handle_consumed, pre_call, raise_if_consumed, terminal
 from pyrio.exceptions import MethodNotFoundError
 from pyrio.utils import Optional
 
 
+@pre_call(handle_consumed)
 class ItertoolsMixin:
     """Provides integration with itertools methods. Pass corresponding parameters as kwargs"""
 
     iterable = None
 
     def __getattr__(self, item):
+        # NB: pre_call skips __gettattr__ -> whitout this check consumed stream can still try to call dynamic itertools
+        raise_if_consumed(self)
+
         func = getattr(it, item, None)
         if func is None:
             raise MethodNotFoundError(f"'{item}' not found")
@@ -23,6 +28,7 @@ class ItertoolsMixin:
         return wrapper
 
     def _integrate(self, it_func, **kwargs):
+        # itetools API's are a complete mess - let's try to tackle it here
         match it_func.__name__:
             # handle functions that take no kwargs
             case "islice" | "repeat" | "tee" | "chain":
@@ -70,22 +76,24 @@ class ItertoolsMixin:
         self.iterable = it.chain.from_iterable(it.repeat(tuple(self.iterable), count))
         return self
 
-    def consume(self, n=None):
-        """Advances the iterator n-steps ahead. If n is None, consumes stream entirely"""
+    def advance(self, n=None):
+        """Advances the iterator n-steps ahead. If n is None, drains stream entirely without closing it"""
         import collections
 
         if n is None:
             self.iterable = collections.deque(self.iterable, maxlen=0)
             return self
         if n < 0:
-            raise ValueError("Consume boundary cannot be negative")
+            raise ValueError("Advance boundary cannot be negative")
         self.iterable = it.islice(self.iterable, n, None)
         return self
 
+    @terminal
     def all_equal(self, key=None):
         """Returns True if all elements of the stream are equal to each other"""
         return len(list(it.islice(it.groupby(self.iterable, key), 2))) <= 1
 
+    @terminal
     def take_nth(self, idx, default=None):
         """Returns Optional with the nth element of the stream or a default value"""
         if idx < 0:

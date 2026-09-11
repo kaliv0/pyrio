@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 
-from pyrio.decorators import handle_consumed, pre_call
+from pyrio.decorators import handle_consumed, pre_call, terminal
 from pyrio.exceptions import IllegalStateError, NoneTypeError, UnsupportedTypeError
 from pyrio.iterators import StreamGenerator
 from pyrio.utils import DictItem, Optional
@@ -75,6 +75,7 @@ class BaseStream:
         self.iterable = StreamGenerator.distinct(self.iterable)
         return self
 
+    @terminal
     def len(self):
         """Returns the count of elements in the stream"""
         return len(tuple(self.iterable))
@@ -85,11 +86,13 @@ class BaseStream:
             raise ValueError(f"Cannot apply {op} on non-number elements")
         return [x for x in data if x is not None]
 
+    @terminal
     def sum(self):
         """Sums the elements of the stream"""
         valid_data = self._validate_numeric_data(self.sum.__name__)
         return sum(valid_data) if valid_data else 0
 
+    @terminal
     def average(self):
         """Returns the average value of elements in the stream"""
         valid_data = self._validate_numeric_data(self.average.__name__)
@@ -133,10 +136,12 @@ class BaseStream:
         self.iterable = StreamGenerator.drop_while(self.iterable, predicate)
         return self
 
+    @terminal
     def take_first(self, default=None):
         """Returns Optional with the first element of the stream or a default value"""
         return Optional.of_nullable(next(iter(self.iterable), default))
 
+    @terminal
     def take_last(self, default=None):
         """Returns Optional with the last element of the stream or a default value"""
         from collections import deque
@@ -160,6 +165,7 @@ class BaseStream:
         self.iterable = StreamGenerator.sort(self.iterable, comparator, reverse=True)
         return self
 
+    @terminal
     def find_first(self, predicate=None):
         """
         Searches for an element of the stream that satisfies a predicate.
@@ -167,40 +173,32 @@ class BaseStream:
         """
         return Optional.of_nullable(next(filter(predicate, self.iterable), None))
 
-    def find_any(self, predicate=None):
-        """
-        Searches for an element of the stream that satisfies a predicate.
-        Returns an Optional with some of the found values, if any, or None
-        """
-        import random
-
-        if predicate:
-            self.filter(predicate)
-        try:
-            return Optional.of(random.choice(list(self.iterable)))
-        except IndexError:
-            return Optional.of_nullable(None)
-
+    @terminal
     def any_match(self, predicate):
         """Returns whether any elements of the stream match the given predicate"""
         return any(predicate(i) for i in self.iterable)
 
+    @terminal
     def all_match(self, predicate):
         """Returns whether all elements of the stream match the given predicate"""
         return all(predicate(i) for i in self.iterable)
 
+    @terminal
     def none_match(self, predicate):
         """Returns whether no elements of the stream match the given predicate"""
         return not any(predicate(i) for i in self.iterable)
 
+    @terminal
     def min(self, comparator=None, default=None):
         """Returns the minimum element of the stream according to the given comparator"""
         return Optional.of_nullable(min(self.iterable, key=comparator, default=default))
 
+    @terminal
     def max(self, comparator=None, default=None):
         """Returns the maximum element of the stream according to the given comparator"""
         return Optional.of_nullable(max(self.iterable, key=comparator, default=default))
 
+    @terminal
     def for_each(self, operation):
         """Performs an action for each element of this stream"""
         for i in self.iterable:
@@ -214,6 +212,7 @@ class BaseStream:
         self.iterable = StreamGenerator.enumerate(self.iterable, start)
         return self
 
+    @terminal
     def reduce(self, accumulator, identity=None):
         """
         Reduces the elements to a single one, by repeatedly applying a reducing operation.
@@ -230,6 +229,7 @@ class BaseStream:
             identity = accumulator(identity, i)
         return Optional.of_nullable(identity)
 
+    @terminal
     def compare_with(self, other, comparator=None):
         """Compares current stream with another one based on a given comparator"""
         comparator = comparator or (lambda a, b: a == b)
@@ -246,6 +246,7 @@ class BaseStream:
                 return False
 
     # ### collectors ###
+    @terminal
     def collect(self, collection_type, dict_collector=None, dict_merger=None, str_delimiter=", "):
         """
         Returns a collection from the stream.
@@ -276,18 +277,22 @@ class BaseStream:
             case _:
                 raise ValueError("Invalid collection type")
 
+    @terminal
     def to_list(self):
         """Returns a list of the elements of the current stream"""
         return list(self.iterable)
 
+    @terminal
     def to_tuple(self):
         """Returns a tuple of the elements of the current stream"""
         return tuple(self.iterable)
 
+    @terminal
     def to_set(self):
         """Returns a set of the elements of the current stream"""
         return set(self.iterable)
 
+    @terminal
     def to_dict(self, collector=None, merger=None):
         """
         Returns a dict of the elements of the current stream.
@@ -321,11 +326,13 @@ class BaseStream:
                     f"Cannot create dict items from '{item.__class__.__name__}' type"
                 )
 
+    @terminal
     def to_string(self, delimiter=", "):
         """Concatenates the elements of the Stream, separated by the specified delimiter"""
         return self._join(delimiter)
 
-    def group_by(self, classifier=None, collector=None):
+    @terminal
+    def grouped_by(self, classifier=None, collector=None):
         """
         Performs a "group by" operation on the elements of the stream according to a classification function.
         Returns the results in a dict built using collector function
@@ -342,6 +349,7 @@ class BaseStream:
 
         return dict(collector(k, v) for k, v in buckets.items())
 
+    @terminal
     def quantify(self, predicate=bool):
         """Count how many of the elements are Truthy or evaluate to True based on a given predicate"""
         return sum(self.map(predicate))

@@ -1,43 +1,19 @@
 from functools import wraps
+from types import FunctionType
 
 from pyrio.exceptions import IllegalStateError
 
-TERMINAL_FUNCTIONS = [
-    "for_each",
-    "reduce",
-    "count",
-    "min",
-    "max",
-    "sum",
-    "average",
-    "find_first",
-    "find_any",
-    "take_first",
-    "take_last",
-    "take_nth",
-    "any_match",
-    "all_match",
-    "none_match",
-    "compare_with",
-    "all_equal",
-    "quantify",
-    "group_by",
-    "collect",
-    "to_list",
-    "to_tuple",
-    "to_set",
-    "to_dict",
-    "to_string",
-    "save",
-]
-
 
 def pre_call(function_decorator):
-    """Applies a function decorator to all callable methods"""
+    """Wrap public instance methods."""
 
     def decorator(cls):
         for name, obj in vars(cls).items():
-            if callable(obj):
+            # skip privates & dunders
+            if name.startswith("_") or name == "close":
+                continue
+            # apply only on instance methods
+            if isinstance(obj, FunctionType):
                 setattr(cls, name, function_decorator(obj))
         return cls
 
@@ -45,23 +21,39 @@ def pre_call(function_decorator):
 
 
 def handle_consumed(func):
-    """Prevents operations on consumed streams and auto-closes after terminal operations"""
+    """Block ops on consumed streams, auto-close after @terminal methods."""
 
     @wraps(func)
-    def wrapper(*args, **kw):
+    def wrapper(self, *args, **kwargs):
         from pyrio.streams.base_stream import BaseStream
 
-        stream = args[0] if args else None
-        if not (stream and isinstance(stream, BaseStream)):
-            return func(*args, **kw)  # pragma: no cover
+        if not isinstance(self, BaseStream):
+            return func(self, *args, **kwargs)  # pragma: no cover
 
-        is_consumed = getattr(stream, "_is_consumed", None)
-        if is_consumed and func.__name__ != "close":
-            raise IllegalStateError("Stream object already consumed")
+        raise_if_consumed(self)
+        if not is_terminal(func):
+            return func(self, *args, **kwargs)
 
-        result = func(*args, **kw)
-        if not is_consumed and func.__name__ in TERMINAL_FUNCTIONS:
-            stream.close()
-        return result
+        try:
+            return func(self, *args, **kwargs)
+        finally:
+            self.close()
 
+    wrapper._terminal = is_terminal(func)
     return wrapper
+
+
+def terminal(func):
+    """Marks a stream method as terminal."""
+    func._terminal = True
+    return func
+
+
+def is_terminal(func):
+    return getattr(func, "_terminal", False)
+
+
+def raise_if_consumed(obj):
+    # __dict__ avoids __getattr__ (no recursion if flag missing mid-init)
+    if obj.__dict__.get("_is_consumed", False):
+        raise IllegalStateError("Stream object already consumed")

@@ -599,6 +599,14 @@ def test_reusing_stream():
     assert str(e.value) == "Stream object already consumed"
 
 
+def test_len_marks_stream_consumed():
+    stream = Stream((x for x in [1, 2, 3]))
+    assert stream.len() == 3
+    assert stream._is_consumed
+    with pytest.raises(IllegalStateError):
+        stream.to_list()
+
+
 def test_stream_close():
     stream = Stream.of(1, 2, 3)
     assert stream._is_consumed is False
@@ -656,8 +664,28 @@ def test_no_op_if_stream_alerady_closed():
 def test_cleanup_callback_on_close():
     stream = Stream([1, 2, 3, 4])
     stream.on_close(lambda: print("foo bar")).map(lambda x: x * 2).to_list()
-    assert stream._is_consumed is True
+    assert stream._is_consumed
     assert stream._on_close_handler is None
+
+
+def test_terminal_closes_even_on_error():
+    flag = False
+
+    def flip():
+        nonlocal flag
+        flag = True
+
+    def boom(_):
+        raise ValueError("boom")
+
+    stream = Stream.of(1, 2, 3).on_close(flip)
+    with pytest.raises(ValueError, match="boom"):
+        stream.for_each(boom)
+
+    assert flag
+    assert stream._is_consumed
+    with pytest.raises(IllegalStateError):
+        stream.to_list()
 
 
 def test_compare_with():
@@ -705,20 +733,6 @@ def test_find_first_with_predicate():
 
 def test_find_first_in_empty_stream():
     result = Stream.empty().find_first()
-    assert isinstance(result, Optional)
-    assert result.is_empty()
-
-
-def test_find_any():
-    assert Stream.of(1, 2, 3, 4).filter(lambda x: x % 2 == 0).find_any().get() in (2, 4)
-
-
-def test_find_any_with_predicate():
-    assert Stream.of(1, 2, 3, 4).find_any(lambda x: x % 2 == 0).get() in (2, 4)
-
-
-def test_find_any_in_empty_stream():
-    result = Stream.empty().find_any()
     assert isinstance(result, Optional)
     assert result.is_empty()
 
@@ -940,7 +954,7 @@ def test_collect_invalid_type(Foo):
 
 
 def test_group_by():
-    assert Stream("AAAABBBCCD").group_by() == {
+    assert Stream("AAAABBBCCD").grouped_by() == {
         "A": ["A", "A", "A", "A"],
         "B": ["B", "B", "B"],
         "C": ["C", "C"],
@@ -949,7 +963,7 @@ def test_group_by():
 
 
 def test_group_by_custom_collector():
-    assert Stream("AAAABBBCCD").group_by(collector=lambda k, g: (k, len(g))) == {
+    assert Stream("AAAABBBCCD").grouped_by(collector=lambda k, g: (k, len(g))) == {
         "A": 4,
         "B": 3,
         "C": 2,
@@ -968,7 +982,7 @@ def test_group_by_objects(Foo):
         Foo("buzz", 5),
     ]
 
-    assert Stream(coll).group_by(
+    assert Stream(coll).grouped_by(
         classifier=lambda obj: obj.name,
         collector=lambda k, g: (k, [(obj.name, obj.num) for obj in list(g)]),
     ) == {
@@ -978,19 +992,19 @@ def test_group_by_objects(Foo):
 
 
 def test_group_by_empty():
-    assert Stream.empty().group_by() == {}
-    assert Stream([]).group_by(classifier=lambda x: x) == {}
+    assert Stream.empty().grouped_by() == {}
+    assert Stream([]).grouped_by(classifier=lambda x: x) == {}
 
 
 def test_group_by_interleaved_keys():
-    assert Stream("AbA").group_by() == {
+    assert Stream("AbA").grouped_by() == {
         "A": ["A", "A"],
         "b": ["b"],
     }
 
 
 def test_group_by_interleaved_keys_count_collector():
-    assert Stream("AbA").group_by(collector=lambda k, g: (k, len(g))) == {
+    assert Stream("AbA").grouped_by(collector=lambda k, g: (k, len(g))) == {
         "A": 2,
         "b": 1,
     }

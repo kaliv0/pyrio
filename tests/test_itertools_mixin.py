@@ -4,7 +4,7 @@ import operator
 import pytest
 
 from pyrio import Stream
-from pyrio.exceptions import MethodNotFoundError
+from pyrio.exceptions import IllegalStateError, MethodNotFoundError
 
 
 def test_accumulate():
@@ -202,27 +202,27 @@ def test_ncycles_negative_times():
     assert Stream({1, 2, 3}).ncycles(count=-2).to_list() == []
 
 
-def test_consume():
-    assert Stream.of(2, 3, 4, 5).consume(n=2).to_list() == [4, 5]
+def test_advance():
+    assert Stream.of(2, 3, 4, 5).advance(n=2).to_list() == [4, 5]
 
 
-def test_consume_default_start():
-    assert Stream.of(2, 3, 4, 5).consume().to_list() == []
+def test_advance_default_start():
+    assert Stream.of(2, 3, 4, 5).advance().to_list() == []
 
 
-def test_consume_negative_start():
+def test_advance_negative_start():
     with pytest.raises(ValueError) as e:
-        Stream.of(2, 3, 4, 5).consume(n=-2).to_list()
-    assert str(e.value) == "Consume boundary cannot be negative"
+        Stream.of(2, 3, 4, 5).advance(n=-2).to_list()
+    assert str(e.value) == "Advance boundary cannot be negative"
 
 
-def test_consume_after_intermediate_ops():
-    assert Stream([1, 2, 3, 4]).map(lambda x: x).consume(2).to_list() == [3, 4]
-    assert Stream([5, 1, 4, 2, 3]).sort().consume(2).to_list() == [3, 4, 5]
+def test_advance_after_intermediate_ops():
+    assert Stream([1, 2, 3, 4]).map(lambda x: x).advance(2).to_list() == [3, 4]
+    assert Stream([5, 1, 4, 2, 3]).sort().advance(2).to_list() == [3, 4, 5]
 
 
-def test_consume_infinite_stream():
-    assert Stream.iterate(0, lambda x: x + 1).consume(3).limit(2).to_list() == [3, 4]
+def test_advance_infinite_stream():
+    assert Stream.iterate(0, lambda x: x + 1).advance(3).limit(2).to_list() == [3, 4]
 
 
 def test_take_nth():
@@ -256,6 +256,23 @@ def test_all_equal():
     stream = Stream([2, 2, 2])
     assert stream.all_equal(key=int)
     assert stream._is_consumed
+
+
+def test_itertools_ops_blocked_when_consumed():
+    stream = Stream.of(1, 2, 3)
+    stream.to_list()
+
+    with pytest.raises(IllegalStateError):
+        stream.filterfalse(predicate=lambda x: False)
+
+    with pytest.raises(IllegalStateError):
+        stream.unique()
+
+    with pytest.raises(IllegalStateError):
+        stream.view(0, 1)
+
+    with pytest.raises(IllegalStateError):
+        stream.take_nth(0)
 
 
 def test_all_equal_false():

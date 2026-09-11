@@ -954,7 +954,7 @@ def test_collect_invalid_type(Foo):
 
 
 def test_group_by():
-    assert Stream("AAAABBBCCD").group_by() == {
+    assert Stream("AAAABBBCCD").grouped_by() == {
         "A": ["A", "A", "A", "A"],
         "B": ["B", "B", "B"],
         "C": ["C", "C"],
@@ -963,7 +963,7 @@ def test_group_by():
 
 
 def test_group_by_custom_collector():
-    assert Stream("AAAABBBCCD").group_by(collector=lambda k, g: (k, len(g))) == {
+    assert Stream("AAAABBBCCD").grouped_by(collector=lambda k, g: (k, len(g))) == {
         "A": 4,
         "B": 3,
         "C": 2,
@@ -982,7 +982,7 @@ def test_group_by_objects(Foo):
         Foo("buzz", 5),
     ]
 
-    assert Stream(coll).group_by(
+    assert Stream(coll).grouped_by(
         classifier=lambda obj: obj.name,
         collector=lambda k, g: (k, [(obj.name, obj.num) for obj in list(g)]),
     ) == {
@@ -992,19 +992,19 @@ def test_group_by_objects(Foo):
 
 
 def test_group_by_empty():
-    assert Stream.empty().group_by() == {}
-    assert Stream([]).group_by(classifier=lambda x: x) == {}
+    assert Stream.empty().grouped_by() == {}
+    assert Stream([]).grouped_by(classifier=lambda x: x) == {}
 
 
 def test_group_by_interleaved_keys():
-    assert Stream("AbA").group_by() == {
+    assert Stream("AbA").grouped_by() == {
         "A": ["A", "A"],
         "b": ["b"],
     }
 
 
 def test_group_by_interleaved_keys_count_collector():
-    assert Stream("AbA").group_by(collector=lambda k, g: (k, len(g))) == {
+    assert Stream("AbA").grouped_by(collector=lambda k, g: (k, len(g))) == {
         "A": 2,
         "b": 1,
     }

@@ -332,7 +332,7 @@ class BaseStream:
         return self._join(delimiter)
 
     @terminal
-    def group_by(self, classifier=None, collector=None):
+    def grouped_by(self, classifier=None, collector=None):
         """
         Performs a "group by" operation on the elements of the stream according to a classification function.
         Returns the results in a dict built using collector function

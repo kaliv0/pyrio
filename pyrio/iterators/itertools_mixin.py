@@ -76,15 +76,15 @@ class ItertoolsMixin:
         self.iterable = it.chain.from_iterable(it.repeat(tuple(self.iterable), count))
         return self
 
-    def consume(self, n=None):
-        """Advances the iterator n-steps ahead. If n is None, consumes stream entirely"""
+    def advance(self, n=None):
+        """Advances the iterator n-steps ahead. If n is None, drains stream entirely without closing it"""
         import collections
 
         if n is None:
             self.iterable = collections.deque(self.iterable, maxlen=0)
             return self
         if n < 0:
-            raise ValueError("Consume boundary cannot be negative")
+            raise ValueError("Advance boundary cannot be negative")
         self.iterable = it.islice(self.iterable, n, None)
         return self
 

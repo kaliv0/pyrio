@@ -5,7 +5,7 @@ from pyrio import Stream
 
 # 387. First Unique Character in a String
 def first_unique_character(string: str) -> int | None:
-    counts = Stream(string).group_by(collector=lambda key, group: (key, len(group)))
+    counts = Stream(string).grouped_by(collector=lambda key, group: (key, len(group)))
     return (
         Stream(string)
         .enumerate()
@@ -71,7 +71,7 @@ def count_consistent_strings(allowed: str, words: list[str]) -> int:
 
 # 347. Top K Frequent Elements
 def top_k_frequent(nums: list[int], k: int) -> set[int]:
-    counts = Stream(nums).group_by(collector=lambda key, group: (key, len(group)))
+    counts = Stream(nums).grouped_by(collector=lambda key, group: (key, len(group)))
     return (
         Stream(counts)
         .sort(attrgetter("value"), reverse=True)

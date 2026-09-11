@@ -2,7 +2,7 @@ from pyrio import Stream
 
 
 # 412. Fizz Buzz
-def fizz_buzz(n: int) -> list[str]:
+def fizz_buzz(n):
     def label(num):
         match (num % 3 == 0, num % 5 == 0):
             case (True, True):
@@ -21,7 +21,7 @@ def fizz_buzz(n: int) -> list[str]:
 
 
 # 728. Self Dividing Numbers
-def self_dividing_numbers(left: int, right: int) -> list[int]:
+def self_dividing_numbers(left, right):
     def is_self_dividing(num):
         return Stream(str(num)).map(int).all_match(lambda digit: digit != 0 and num % digit == 0)
 
@@ -32,7 +32,7 @@ def self_dividing_numbers(left: int, right: int) -> list[int]:
 
 
 # 509. Fibonacci Number
-def fibonacci(n: int) -> list[int]:
+def fibonacci(n):
     return (
         Stream.iterate((0, 1), lambda pair: (pair[1], pair[0] + pair[1]))
         .map(lambda pair: pair[0])
@@ -45,7 +45,7 @@ def fibonacci(n: int) -> list[int]:
 
 
 # 1431. Kids With the Greatest Number of Candies
-def kids_with_greatest_candies(candies: list[int], extra: int) -> list[bool]:
+def kids_with_greatest_candies(candies, extra):
     greatest = max(candies)
     return Stream(candies).map(lambda count: count + extra >= greatest).to_list()
 

@@ -4,7 +4,7 @@ from pyrio import Stream
 
 
 # 485. Max Consecutive Ones
-def max_consecutive_ones(nums: list[int]) -> int:
+def max_consecutive_ones(nums):
     return (
         Stream(nums)
         .groupby()
@@ -19,7 +19,7 @@ def max_consecutive_ones(nums: list[int]) -> int:
 
 
 # 1876. Substrings of Size Three with Distinct Characters
-def substrings_of_size_three_with_distinct_chars(string: str) -> int:
+def substrings_of_size_three_with_distinct_chars(string):
     return Stream(string).sliding_window(3).quantify(lambda window: len(set(window)) == 3)
 
 
@@ -27,7 +27,7 @@ def substrings_of_size_three_with_distinct_chars(string: str) -> int:
 
 
 # 1480. Running Sum of 1d Array
-def running_sum(nums: list[int]) -> list[int]:
+def running_sum(nums):
     return Stream(nums).accumulate().to_list()
 
 

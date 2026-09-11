@@ -2,7 +2,7 @@ from pyrio import Stream
 
 
 # 414. Third Maximum Number
-def third_maximum_number(nums: list[int]) -> int:
+def third_maximum_number(nums):
     ranked = Stream(nums).distinct().reverse().to_list()
     return Stream(ranked).take_nth(2, default=ranked[0]).get()
 
@@ -11,7 +11,7 @@ def third_maximum_number(nums: list[int]) -> int:
 
 
 # 1491. Average Salary Excluding the Minimum and Maximum Salary
-def average_salary_excluding_minmax(salary: list[int]) -> float:
+def average_salary_excluding_minmax(salary):
     return Stream(salary).sort().view(1, -1).average()
 
 

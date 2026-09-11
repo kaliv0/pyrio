@@ -4,7 +4,7 @@ from pyrio import Stream
 
 
 # 136. Single Number
-def single_number(nums: list[int]) -> int:
+def single_number(nums):
     return Stream(nums).reduce(xor).get()
 
 
@@ -12,7 +12,7 @@ def single_number(nums: list[int]) -> int:
 
 
 # 268. Missing Number
-def missing_number(nums: list[int]) -> int:
+def missing_number(nums):
     n = len(nums)
     return Stream.from_range(0, n + 1).concat(nums).reduce(xor).get()
 
@@ -21,7 +21,7 @@ def missing_number(nums: list[int]) -> int:
 
 
 # 338. Counting Bits
-def counting_bits(n: int) -> list[int]:
+def counting_bits(n):
     return Stream.from_range(0, n + 1).map(int.bit_count).to_list()
 
 

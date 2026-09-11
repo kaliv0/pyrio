@@ -2,8 +2,8 @@ import itertools as it
 import operator
 from functools import wraps
 
-from pyrio.decorators import handle_consumed, pre_call, terminal
-from pyrio.exceptions import IllegalStateError, MethodNotFoundError
+from pyrio.decorators import handle_consumed, pre_call, raise_if_consumed, terminal
+from pyrio.exceptions import MethodNotFoundError
 from pyrio.utils import Optional
 
 
@@ -14,8 +14,8 @@ class ItertoolsMixin:
     iterable = None
 
     def __getattr__(self, item):
-        if self.__dict__.get("_is_consumed"):
-            raise IllegalStateError("Stream object already consumed")
+        # NB: pre_call skips __gettattr__ -> whitout this check consumed stream can still try to call dynamic itertools
+        raise_if_consumed(self)
 
         func = getattr(it, item, None)
         if func is None:
@@ -28,6 +28,7 @@ class ItertoolsMixin:
         return wrapper
 
     def _integrate(self, it_func, **kwargs):
+        # itetools API's are a complete mess - let's try to tackle it here
         match it_func.__name__:
             # handle functions that take no kwargs
             case "islice" | "repeat" | "tee" | "chain":

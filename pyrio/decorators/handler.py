@@ -4,16 +4,6 @@ from types import FunctionType
 from pyrio.exceptions import IllegalStateError
 
 
-def terminal(func):
-    """Marks a stream method as terminal (consumes and closes the stream)."""
-    func._terminal = True
-    return func
-
-
-def is_terminal(func):
-    return getattr(func, "_terminal", False)
-
-
 def pre_call(function_decorator):
     """Wrap public instance methods."""
 
@@ -40,10 +30,7 @@ def handle_consumed(func):
         if not isinstance(self, BaseStream):
             return func(self, *args, **kwargs)  # pragma: no cover
 
-        # __dict__ avoids __getattr__ (no recursion if flag missing mid-init)
-        if self.__dict__.get("_is_consumed", False):
-            raise IllegalStateError("Stream object already consumed")
-
+        raise_if_consumed(self)
         if not is_terminal(func):
             return func(self, *args, **kwargs)
 
@@ -54,3 +41,19 @@ def handle_consumed(func):
 
     wrapper._terminal = is_terminal(func)
     return wrapper
+
+
+def terminal(func):
+    """Marks a stream method as terminal."""
+    func._terminal = True
+    return func
+
+
+def is_terminal(func):
+    return getattr(func, "_terminal", False)
+
+
+def raise_if_consumed(obj):
+    # __dict__ avoids __getattr__ (no recursion if flag missing mid-init)
+    if obj.__dict__.get("_is_consumed", False):
+        raise IllegalStateError("Stream object already consumed")

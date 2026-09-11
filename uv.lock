@@ -791,6 +791,7 @@ fs = [
 dev = [
     { name = "myst-nb" },
     { name = "pytest" },
+    { name = "pytest-check" },
     { name = "pytest-cov" },
     { name = "ruff" },
     { name = "sphinx" },
@@ -811,6 +812,7 @@ provides-extras = ["fs"]
 dev = [
     { name = "myst-nb", specifier = ">=1.1.2" },
     { name = "pytest", specifier = ">=8.3.2" },
+    { name = "pytest-check", specifier = ">=2.9.1" },
     { name = "pytest-cov", specifier = ">=5.0.0" },
     { name = "ruff", specifier = ">=0.6.3" },
     { name = "sphinx", specifier = ">=8.1.3" },
@@ -832,6 +834,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/08/ba/45911d754e8eba3d5a841a5ce61a65a685ff1798421ac054f85aa8747dfb/pytest-8.4.1.tar.gz", hash = "sha256:7c67fd69174877359ed9371ec3af8a3d2b04741818c51e5e99cc1742251fa93c", size = 1517714, upload-time = "2025-06-18T05:48:06.109Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/29/16/c8a903f4c4dffe7a12843191437d7cd8e32751d5de349d45d3fe69544e87/pytest-8.4.1-py3-none-any.whl", hash = "sha256:539c70ba6fcead8e78eebbf1115e8b589e7565830d7d006a8723f19ac8a0afb7", size = 365474, upload-time = "2025-06-18T05:48:03.955Z" },
+]
+
+[[package]]
+name = "pytest-check"
+version = "2.9.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "packaging" },
+    { name = "pytest" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5c/48/78fb4d9f95e383e81d2a74db1a56fd2f90947cd08e0d585356830e8e2fe8/pytest_check-2.9.1.tar.gz", hash = "sha256:2d8c9f1fe5cceb0b41c480e1454e95e9ed6a3a534bf2c7e3e0f39167b11cf88b", size = 41394, upload-time = "2026-08-01T06:28:06.417Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6b/c5/6c9809d27ecc279d2d4591f1317eb099b52fa9a93998fdcb78bc8f614a4f/pytest_check-2.9.1-py3-none-any.whl", hash = "sha256:9c745f50532c2f650f3d0afab78810aa9e0ca25b8ac60986e1590d8819c04562", size = 21350, upload-time = "2026-08-01T06:28:05.191Z" },
 ]
 
 [[package]]

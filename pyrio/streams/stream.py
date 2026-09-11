@@ -1,5 +1,5 @@
+from pyrio.iterators import ItertoolsMixin, StreamGenerator
 from pyrio.streams import BaseStream
-from pyrio.iterators import StreamGenerator, ItertoolsMixin
 
 
 class Stream(BaseStream, ItertoolsMixin):

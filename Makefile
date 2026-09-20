@@ -1,4 +1,4 @@
-.PHONY: help sync lint test all
+.PHONY: help sync lint test build publish all
 
 help:
 	@echo "Targets:"
@@ -18,5 +18,8 @@ test:
 
 build:
 	uv build
+
+publish: build
+	uvx uv-publish
 
 all: sync lint test

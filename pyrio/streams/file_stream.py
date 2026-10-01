@@ -5,10 +5,10 @@ from pathlib import Path
 
 from aldict import AliasDict
 
-from pyrio.utils import DictItem
-from pyrio.streams import BaseStream, Stream
-from pyrio.exceptions import NoneTypeError
 from pyrio.decorators import handle_consumed, pre_call, terminal
+from pyrio.exceptions import NoneTypeError
+from pyrio.streams import BaseStream, Stream
+from pyrio.utils import DictItem
 
 TEMP_PATH = "{file_path}.tmp"
 
@@ -35,17 +35,23 @@ MAPPING_READ_CONFIG = AliasDict(
             "read_mode": "r",
         },
         ".yaml": {
-            "import_mod": "yaml",
-            "callable": "safe_load",
+            "import_mod": "pyrio.io.yaml_handler",
+            "callable": "load",
             "read_mode": "r",
         },
         ".xml": {
-            "import_mod": "xmltodict",
-            "callable": "parse",
+            "import_mod": "pyrio.io.xml_handler",
+            "callable": "load",
             "read_mode": "rb",
+            "extra_keys": ("include_root",),
+        },
+        ".ini": {
+            "import_mod": "pyrio.io.ini_handler",
+            "callable": "load",
+            "read_mode": "r",
         },
     },
-    aliases={".yaml": ".yml"},
+    aliases={".yaml": ".yml", ".ini": ".cfg"},
 )
 
 MAPPING_WRITE_CONFIG = AliasDict(
@@ -69,13 +75,20 @@ MAPPING_WRITE_CONFIG = AliasDict(
             "default_null_handler": None,
         },
         ".xml": {
-            "import_mod": "xmltodict",
-            "callable": "unparse",
+            "import_mod": "pyrio.io.xml_handler",
+            "callable": "dump",
+            "write_mode": "w",
+            "default_null_handler": None,
+            "extra_keys": ("xml_root",),
+        },
+        ".ini": {
+            "import_mod": "pyrio.io.ini_handler",
+            "callable": "dump",
             "write_mode": "w",
             "default_null_handler": None,
         },
     },
-    aliases={".yaml": ".yml"},
+    aliases={".yaml": ".yml", ".ini": ".cfg"},
 )
 
 
@@ -146,14 +159,9 @@ class FileStream(BaseStream):
         load = getattr(importlib.import_module(config["import_mod"]), config["callable"])
         FileStream._prepare_io_options([(f_open, "mode", config["read_mode"])])
 
+        extra = {k: kwargs[k] for k in config.get("extra_keys", ()) if k in kwargs}
         file_handler = open(path, **f_open)
-        content = load(file_handler, **f_read)
-        if path.suffix == ".xml":
-            if kwargs.get("include_root"):
-                return file_handler, content
-            # NB: return dict (instead of dict_view) to re-map it later as DictItem records
-            return file_handler, next(iter(content.values()))
-        return file_handler, content
+        return file_handler, load(file_handler, **f_read, **extra)
 
     @staticmethod
     def _read_plain(path, f_open):
@@ -209,17 +217,12 @@ class FileStream(BaseStream):
             self.map(existing_null_handler)  # noqa
 
         output = self.to_dict()
-
-        io_opts_setting = [(f_open, "mode", config["write_mode"])]
-        if path.suffix == ".xml":
-            root = kwargs.get("xml_root", "root")
-            output = {root: output}
-            io_opts_setting.append((f_write, "pretty", True))
-        self._prepare_io_options(io_opts_setting)
+        extra = {k: kwargs[k] for k in config.get("extra_keys", ()) if k in kwargs}
+        FileStream._prepare_io_options([(f_open, "mode", config["write_mode"])])
 
         dump = getattr(importlib.import_module(config["import_mod"]), config["callable"])
         with self._atomic_write(path, tmp_path, f_open) as f:  # noqa
-            dump(output, f, **f_write)
+            dump(output, f, **f_write, **extra)
 
     def _write_plain(self, path, tmp_path, f_open, f_write):
         self._prepare_io_options([(f_open, "mode", "w")])

@@ -1,6 +1,7 @@
-def load(stream, **kwargs):
-    import yaml
+import yaml
 
+
+def load(stream, **kwargs):
     if (parse_float := kwargs.pop("parse_float", None)) is None:
         return yaml.safe_load(stream, **kwargs)
 

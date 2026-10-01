@@ -66,9 +66,7 @@ def test_dict_item_eq(json_dict, nested_json):
     assert DictItem(key="foo", value=json.loads(nested_json)) != DictItem(
         key="data", value=json.loads(nested_json)
     )
-    assert DictItem(key="data", value=json_dict) != DictItem(
-        key="data", value=json.loads(nested_json)
-    )
+    assert DictItem(key="data", value=json_dict) != DictItem(key="data", value=json.loads(nested_json))
 
 
 def test_dict_item_eq_raises(json_dict):
@@ -98,7 +96,4 @@ def test_dict_item_hash_consistency(value):
 def test_dict_item_hash_unhashable_value_raises(value, expected_type):
     with pytest.raises(TypeError) as e:
         hash(DictItem(key="k", value=value))
-    assert (
-        str(e.value)
-        == f"unhashable type: 'DictItem' (value of type '{expected_type}' is unhashable)"
-    )
+    assert str(e.value) == f"unhashable type: 'DictItem' (value of type '{expected_type}' is unhashable)"

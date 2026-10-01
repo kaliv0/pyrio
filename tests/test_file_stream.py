@@ -4,7 +4,7 @@ from operator import attrgetter
 
 import pytest
 
-from pyrio import FileStream, Stream, DictItem
+from pyrio import DictItem, FileStream, Stream
 from pyrio.exceptions import IllegalStateError, NoneTypeError
 
 
@@ -31,11 +31,13 @@ def test_path_is_dir_error():
 @pytest.mark.parametrize(
     "file_path",
     [
-        "./tests/resources/foo.json",
-        "./tests/resources/foo.toml",
-        "./tests/resources/foo.yaml",
-        "./tests/resources/foo.yml",
-        "./tests/resources/foo.xml",
+        "./tests/resources/input/flat/foo.json",
+        "./tests/resources/input/flat/foo.toml",
+        "./tests/resources/input/flat/foo.yaml",
+        "./tests/resources/input/flat/foo.yml",
+        "./tests/resources/input/flat/foo.xml",
+        # "./tests/resources/input/flat/foo.ini",
+        # "./tests/resources/input/flat/foo.cfg",
     ],
 )
 def test_read_files(file_path):
@@ -46,7 +48,7 @@ def test_read_files(file_path):
 
 
 def test_read_xml_custom_root():
-    assert FileStream("./tests/resources/custom_root.xml").map(
+    assert FileStream("./tests/resources/input/options/custom_root.xml").map(
         lambda x: f"{x.key}=>{x.value}"
     ).to_tuple() == (
         "abc=>xyz",
@@ -55,7 +57,7 @@ def test_read_xml_custom_root():
 
 
 def test_read_xml_include_root():
-    assert FileStream.process("./tests/resources/custom_root.xml", include_root=True).map(
+    assert FileStream.process("./tests/resources/input/options/custom_root.xml", include_root=True).map(
         lambda x: f"root={x.key}: inner_records={str(Stream(x.value).to_dict())}"
     ).to_list() == ["root=my-root: inner_records={'abc': 'xyz', 'qwerty': '42'}"]
 
@@ -63,21 +65,19 @@ def test_read_xml_include_root():
 @pytest.mark.parametrize(
     "file_path",
     [
-        "./tests/resources/bar.csv",
-        "./tests/resources/bar.tsv",
+        "./tests/resources/input/dsv/bar.csv",
+        "./tests/resources/input/dsv/bar.tsv",
     ],
 )
 def test_dsv(file_path):
-    assert FileStream(file_path).map(
-        lambda x: f"fizz: {x['fizz']}, buzz: {x['buzz']}"
-    ).to_tuple() == (
+    assert FileStream(file_path).map(lambda x: f"fizz: {x['fizz']}, buzz: {x['buzz']}").to_tuple() == (
         "fizz: 42, buzz: 45",
         "fizz: aaa, buzz: bbb",
     )
 
 
 def test_read_plain_text():
-    lorem = FileStream("./tests/resources/plain.txt")
+    lorem = FileStream("./tests/resources/input/plain/plain.txt")
     assert lorem.map(lambda x: x.strip()).to_string("||") == (
         "Lorem ipsum dolor sit amet, consectetur adipisicing elit,"
         "||sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
@@ -91,7 +91,7 @@ def test_read_plain_text():
 
 
 def test_read_plain_and_query():
-    assert FileStream("./tests/resources/plain.txt").map(lambda x: x.strip()).enumerate().filter(
+    assert FileStream("./tests/resources/input/plain/plain.txt").map(lambda x: x.strip()).enumerate().filter(
         lambda line: "id" in line[1]
     ).to_dict() == {
         1: "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
@@ -100,22 +100,33 @@ def test_read_plain_and_query():
     }
 
 
-def test_nested_json():
-    assert FileStream("./tests/resources/nested.json").map(lambda x: x.value).flat_map(
-        lambda x: (
-            Stream(x).filter(lambda y: y.key == "second").flat_map(lambda z: z.value).to_tuple()
-        )
-    ).to_list() == [
-        1,
-        2,
-        3,
-        4,
-    ]
+@pytest.mark.parametrize(
+    "file_path",
+    [
+        "./tests/resources/input/nested/nested.json",
+        "./tests/resources/input/nested/nested.yaml",
+        "./tests/resources/input/nested/nested.yml",
+        "./tests/resources/input/nested/nested.xml",
+    ],
+)
+def test_nested(file_path):
+    assert FileStream(file_path).map(lambda x: x.value).flat_map(
+        lambda x: Stream(x).filter(lambda y: y.key == "second").flat_map(lambda z: z.value).to_tuple()
+    ).to_list() == ["x", "y", "z"]
 
 
-def test_nested_dict():
+@pytest.mark.parametrize(
+    "file_path",
+    [
+        "./tests/resources/input/nested/nested_dicts.json",
+        "./tests/resources/input/nested/nested_dicts.yaml",
+        "./tests/resources/input/nested/nested_dicts.yml",
+        "./tests/resources/input/nested/nested_dicts.xml",
+    ],
+)
+def test_nested_dict(file_path):
     assert (
-        FileStream("./tests/resources/nested_dicts.json")
+        FileStream(file_path)
         .filter(lambda outer: "user" not in outer.key)
         .map(
             lambda outer: (
@@ -139,7 +150,7 @@ def test_nested_dict():
 
 def test_complex_pipeline():
     assert (
-        FileStream("./tests/resources/long.json")
+        FileStream("./tests/resources/input/nested/long.json")
         .filter(lambda x: "a" in x.key)
         .map(lambda x: DictItem(x.key, sum(x.value) * 10))
         .sort(attrgetter("value"), reverse=True)
@@ -148,7 +159,7 @@ def test_complex_pipeline():
 
 
 def test_reusing_stream():
-    stream = FileStream("./tests/resources/foo.json")
+    stream = FileStream("./tests/resources/input/flat/foo.json")
     assert stream._is_consumed is False
 
     result = stream.map(lambda x: f"{x.key}=>{x.value}").tail(1).to_tuple()
@@ -162,7 +173,7 @@ def test_reusing_stream():
 
 
 def test_save_marks_stream_consumed(tmp_file_dir):
-    stream = FileStream("./tests/resources/foo.json")
+    stream = FileStream("./tests/resources/input/flat/foo.json")
     stream.save(tmp_file_dir / "out.json")
     assert stream._is_consumed
     assert stream._file_handler.closed
@@ -175,7 +186,7 @@ def test_terminal_closes_even_on_error():
     def boom(_):
         raise ValueError("boom")
 
-    stream = FileStream("./tests/resources/foo.json")
+    stream = FileStream("./tests/resources/input/flat/foo.json")
     with pytest.raises(ValueError, match="boom"):
         stream.for_each(boom)
 
@@ -187,8 +198,8 @@ def test_terminal_closes_even_on_error():
 
 def test_concat():
     assert (
-        FileStream("./tests/resources/long.json")
-        .concat(FileStream("./tests/resources/foo.json"))
+        FileStream("./tests/resources/input/nested/long.json")
+        .concat(FileStream("./tests/resources/input/flat/foo.json"))
         .map(lambda x: f"{x.key}: {x.value}")
     ).to_tuple() == (
         "a: [1, 2]",
@@ -207,7 +218,7 @@ def test_concat():
 def test_prepend(json_dict):
     in_memory_dict = Stream(json_dict).to_tuple()
     assert (
-        FileStream("./tests/resources/long.json")
+        FileStream("./tests/resources/input/nested/long.json")
         .prepend(in_memory_dict)
         .map(lambda x: f"key={x.key}, value={x.value}")
     ).to_tuple() == (
@@ -230,7 +241,7 @@ def test_prepend(json_dict):
 
 @pytest.mark.parametrize(
     "file_path",
-    ["./tests/resources/parse_float.toml", "./tests/resources/parse_float.json"],
+    ["./tests/resources/input/options/parse_float.toml", "./tests/resources/input/options/parse_float.json"],
 )
 def test_process(file_path):
     def check_type(x):
@@ -251,20 +262,20 @@ def test_process(file_path):
 def test_save_toml(tmp_file_dir, json_dict):
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
     tmp_file_path = tmp_file_dir / "test.toml"
-    FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
+    FileStream("./tests/resources/input/nested/nested.json").prepend(in_memory_dict).save(
         tmp_file_path,
         null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
     )
-    assert tmp_file_path.read_text() == open("./tests/resources/save_output/test.toml").read()
+    assert tmp_file_path.read_text() == open("./tests/resources/expected/save/test.toml").read()
 
 
 def test_save_toml_default_null_handler(tmp_file_dir, json_dict):
     in_memory_dict = Stream(json_dict).to_tuple()
     tmp_file_path = tmp_file_dir / "test_default_null_handler.toml"
-    FileStream("./tests/resources/foo.toml").concat(in_memory_dict).save(tmp_file_path)
+    FileStream("./tests/resources/input/flat/foo.toml").concat(in_memory_dict).save(tmp_file_path)
     assert (
         tmp_file_path.read_text()
-        == open("./tests/resources/save_output/test_default_null_handler.toml").read()
+        == open("./tests/resources/expected/null/test_default_null_handler.toml").read()
     )
 
 
@@ -275,12 +286,12 @@ def test_save_toml_default_null_handler(tmp_file_dir, json_dict):
 def test_save(tmp_file_dir, file_path, indent, json_dict):
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
     tmp_file_path = tmp_file_dir / file_path
-    FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
+    FileStream("./tests/resources/input/nested/nested.json").prepend(in_memory_dict).save(
         tmp_file_path,
         f_open={"encoding": "utf-8"},
         f_write={"indent": indent},
     )
-    assert tmp_file_path.read_text() == open(f"./tests/resources/save_output/{file_path}").read()
+    assert tmp_file_path.read_text() == open(f"./tests/resources/expected/save/{file_path}").read()
 
 
 @pytest.mark.parametrize(
@@ -295,13 +306,13 @@ def test_save(tmp_file_dir, file_path, indent, json_dict):
 def test_save_handle_null(tmp_file_dir, file_path, indent, json_dict):
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
     tmp_file_path = tmp_file_dir / file_path
-    FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
+    FileStream("./tests/resources/input/nested/nested.json").prepend(in_memory_dict).save(
         tmp_file_path,
         f_open={"encoding": "utf-8"},
         f_write={"indent": indent},
         null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
     )
-    assert tmp_file_path.read_text() == open(f"./tests/resources/save_output/{file_path}").read()
+    assert tmp_file_path.read_text() == open(f"./tests/resources/expected/null/{file_path}").read()
 
 
 def test_save_custom_xml_root(tmp_file_dir, json_dict):
@@ -310,19 +321,19 @@ def test_save_custom_xml_root(tmp_file_dir, json_dict):
     indent = 4
 
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
-    FileStream("./tests/resources/nested.json").prepend(in_memory_dict).save(
+    FileStream("./tests/resources/input/nested/nested.json").prepend(in_memory_dict).save(
         tmp_file_path,
         f_write={"indent": indent},
         null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
         xml_root="my-root",
     )
-    assert tmp_file_path.read_text() == open(f"./tests/resources/save_output/{file_path}").read()
+    assert tmp_file_path.read_text() == open(f"./tests/resources/expected/save/{file_path}").read()
 
 
 def test_save_plain(tmp_file_dir):
     file_path = "lorem.txt"
     tmp_file_path = tmp_file_dir / "lorem.txt"
-    fs = FileStream("./tests/resources/plain.txt")
+    fs = FileStream("./tests/resources/input/plain/plain.txt")
     (
         fs.map(lambda line: line.strip())
         .enumerate()
@@ -330,20 +341,20 @@ def test_save_plain(tmp_file_dir):
         .map(lambda line: f"line_num:{line[0]}, text='{line[1]}'")
         .save(tmp_file_path)
     )
-    assert tmp_file_path.read_text() == open(f"./tests/resources/save_output/{file_path}").read()
+    assert tmp_file_path.read_text() == open(f"./tests/resources/expected/plain/{file_path}").read()
     assert fs._file_handler.closed
 
 
 def test_save_raises():
     with pytest.raises(UnicodeDecodeError) as e:
-        FileStream("./tests/resources/awake.mp3").save("./tests/resources/woke.json")
+        FileStream("./tests/resources/input/options/awake.mp3").save("./tests/resources/woke.json")
     assert str(e.value) == "'utf-8' codec can't decode byte 0xff in position 45: invalid start byte"
 
 
 def test_update_plain(tmp_file_dir, json_dict):
     file_path = "lorem.txt"
     tmp_file_path = tmp_file_dir / file_path
-    shutil.copyfile("./tests/resources/plain.txt", tmp_file_path)
+    shutil.copyfile("./tests/resources/input/plain/plain.txt", tmp_file_path)
     (
         FileStream(tmp_file_path)
         .map(lambda line: line.strip())
@@ -352,36 +363,34 @@ def test_update_plain(tmp_file_dir, json_dict):
         .map(lambda line: f"line_num:{line[0]}, text='{line[1]}'")
         .save()
     )
-    assert tmp_file_path.read_text() == open(f"./tests/resources/save_output/{file_path}").read()
+    assert tmp_file_path.read_text() == open(f"./tests/resources/expected/plain/{file_path}").read()
 
 
 def test_update_file(tmp_file_dir, json_dict):
     tmp_file_path = tmp_file_dir / "updated.json"
-    shutil.copyfile("./tests/resources/long.json", tmp_file_path)
+    shutil.copyfile("./tests/resources/input/nested/long.json", tmp_file_path)
     (
         FileStream(tmp_file_path)
-        .map(
-            lambda x: DictItem(x.key, ", ".join((str(y) for y in x.value)) if x.value else x.value)
-        )
+        .map(lambda x: DictItem(x.key, ", ".join((str(y) for y in x.value)) if x.value else x.value))
         .save(
             f_write={"indent": 2},
             null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
         )
     )
-    assert tmp_file_path.read_text() == open("./tests/resources/save_output/updated.json").read()
+    assert tmp_file_path.read_text() == open("./tests/resources/expected/update/updated.json").read()
 
 
 def test_filter_update_file(tmp_file_dir, json_dict):
     file_path = "filtered.toml"
     tmp_file_path = tmp_file_dir / file_path
-    shutil.copyfile("./tests/resources/test.toml", tmp_file_path)
+    shutil.copyfile("./tests/resources/input/nested/test.toml", tmp_file_path)
     (
         FileStream(tmp_file_path)
         .filter(lambda x: isinstance(x.value, str))
         .reverse(comparator=lambda x: x.key)
         .save()
     )
-    assert tmp_file_path.read_text() == open(f"./tests/resources/save_output/{file_path}").read()
+    assert tmp_file_path.read_text() == open(f"./tests/resources/expected/update/{file_path}").read()
 
 
 @pytest.mark.parametrize(
@@ -390,14 +399,14 @@ def test_filter_update_file(tmp_file_dir, json_dict):
 )
 def test_save_csv(tmp_file_dir, file_path):
     tmp_file_path = tmp_file_dir / file_path
-    FileStream("./tests/resources/bar.csv").save(tmp_file_path)
-    assert tmp_file_path.read_text() == open(f"./tests/resources/save_output/{file_path}").read()
+    FileStream("./tests/resources/input/dsv/bar.csv").save(tmp_file_path)
+    assert tmp_file_path.read_text() == open(f"./tests/resources/expected/save/{file_path}").read()
 
 
 def test_save_convert_to_csv(tmp_file_dir):
     tmp_file_path = tmp_file_dir / "converted.csv"
     (
-        FileStream("./tests/resources/convertable.json")
+        FileStream("./tests/resources/input/options/convertable.json")
         .filter(
             lambda x: (
                 (
@@ -411,7 +420,7 @@ def test_save_convert_to_csv(tmp_file_dir):
         .map(lambda x: x.value)
         .save(tmp_file_path)
     )
-    assert tmp_file_path.read_text() == open("./tests/resources/save_output/converted.csv").read()
+    assert tmp_file_path.read_text() == open("./tests/resources/expected/convert/converted.csv").read()
 
 
 def test_save_to_csv_with_null_handler(tmp_file_dir):
@@ -420,7 +429,7 @@ def test_save_to_csv_with_null_handler(tmp_file_dir):
 
     tmp_file_path = tmp_file_dir / "converted_null.csv"
     (
-        FileStream("./tests/resources/convertable.json")
+        FileStream("./tests/resources/input/options/convertable.json")
         .filter(
             lambda x: (
                 Stream(x.value)
@@ -431,29 +440,27 @@ def test_save_to_csv_with_null_handler(tmp_file_dir):
         .map(lambda x: x.value)
         .save(tmp_file_path, null_handler=_null_handler)
     )
-    assert (
-        tmp_file_path.read_text() == open("./tests/resources/save_output/converted_null.csv").read()
-    )
+    assert tmp_file_path.read_text() == open("./tests/resources/expected/convert/converted_null.csv").read()
 
 
 def test_save_empty_csv(tmp_file_dir):
     tmp_file_path = tmp_file_dir / "dead.csv"
-    shutil.copyfile("./tests/resources/bar.csv", tmp_file_path)
+    shutil.copyfile("./tests/resources/input/dsv/bar.csv", tmp_file_path)
     stream = FileStream(tmp_file_path)
     stream._iterable = tuple()
     stream.save()
-    assert tmp_file_path.read_text() == open("./tests/resources/save_output/empty.csv").read()
+    assert tmp_file_path.read_text() == open("./tests/resources/expected/update/empty.csv").read()
 
 
 def test_update_csv(tmp_file_dir):
     tmp_file_path = tmp_file_dir / "updated.csv"
-    shutil.copyfile("./tests/resources/editable.csv", tmp_file_path)
+    shutil.copyfile("./tests/resources/input/dsv/editable.csv", tmp_file_path)
     (
         FileStream(tmp_file_path)
         .map(lambda x: Stream(x).to_dict(lambda y: DictItem(y.key, y.value or "Unknown")))
         .save(tmp_file_path)
     )
-    assert tmp_file_path.read_text() == open("./tests/resources/save_output/updated.csv").read()
+    assert tmp_file_path.read_text() == open("./tests/resources/expected/update/updated.csv").read()
 
 
 def test_update_fails(tmp_file_dir):
@@ -463,19 +470,19 @@ def test_update_fails(tmp_file_dir):
         raise IOError(err_msg)
 
     tmp_file_path = tmp_file_dir / "fail.csv"
-    shutil.copyfile("./tests/resources/editable.csv", tmp_file_path)
+    shutil.copyfile("./tests/resources/input/dsv/editable.csv", tmp_file_path)
     with pytest.raises(IOError, match=err_msg):
         FileStream(tmp_file_path).save(tmp_file_path, null_handler=_err_raiser)
-    assert tmp_file_path.read_text() == open("./tests/resources/editable.csv").read()
+    assert tmp_file_path.read_text() == open("./tests/resources/input/dsv/editable.csv").read()
 
 
 def test_combine_files_into_csv(tmp_file_dir):
     tmp_file_path = tmp_file_dir / "merged.csv"
-    shutil.copyfile("./tests/resources/combine.csv", tmp_file_path)
+    shutil.copyfile("./tests/resources/input/dsv/combine.csv", tmp_file_path)
     (
         FileStream(tmp_file_path)
         .concat(
-            FileStream("./tests/resources/convertable.json")
+            FileStream("./tests/resources/input/options/convertable.json")
             .filter(
                 lambda x: (
                     (
@@ -491,25 +498,25 @@ def test_combine_files_into_csv(tmp_file_dir):
         .map(lambda x: Stream(x).to_dict(lambda y: DictItem(y.key, y.value or "N/A")))
         .save(tmp_file_path)
     )
-    assert tmp_file_path.read_text() == open("./tests/resources/save_output/merged.csv").read()
+    assert tmp_file_path.read_text() == open("./tests/resources/expected/convert/merged.csv").read()
 
 
 def test_save_mapping_to_plain(tmp_file_dir, json_dict):
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
     file_path = "dict_2_plain.txt"
     tmp_file_path = tmp_file_dir / file_path
-    FileStream("./tests/resources/nested.json").prepend(in_memory_dict).map(
+    FileStream("./tests/resources/input/nested/nested.json").prepend(in_memory_dict).map(
         lambda x: f"{x._key}: {x._value}"
     ).save(
         tmp_file_path,
     )
-    assert tmp_file_path.read_text() == open(f"./tests/resources/save_output/{file_path}").read()
+    assert tmp_file_path.read_text() == open(f"./tests/resources/expected/plain/{file_path}").read()
 
 
 def test_append_to_plain(tmp_file_dir, json_dict):
     file_path = "append_map.txt"
     tmp_file_path = tmp_file_dir / file_path
-    shutil.copyfile("./tests/resources/plain_dict.txt", tmp_file_path)
+    shutil.copyfile("./tests/resources/input/plain/plain_dict.txt", tmp_file_path)
     (
         FileStream(tmp_file_path)
         .map(lambda line: line.strip())
@@ -518,13 +525,13 @@ def test_append_to_plain(tmp_file_dir, json_dict):
         .map(lambda line: f"line_num:{line[0]}, text='{line[1]}'")
         .save(f_open={"mode": "a"})
     )
-    assert tmp_file_path.read_text() == open(f"./tests/resources/save_output/{file_path}").read()
+    assert tmp_file_path.read_text() == open(f"./tests/resources/expected/plain/{file_path}").read()
 
 
 def test_plain_text_header_footer(tmp_file_dir):
     file_path = "foo.txt"
     tmp_file_path = tmp_file_dir / file_path
-    shutil.copyfile("./tests/resources/plain.txt", tmp_file_path)
+    shutil.copyfile("./tests/resources/input/plain/plain.txt", tmp_file_path)
     (
         FileStream(tmp_file_path)
         .map(lambda line: line.strip())
@@ -536,12 +543,13 @@ def test_plain_text_header_footer(tmp_file_dir):
             f_write={"header": "\nHeader\n", "footer": "\nFooter\n"},
         )
     )
-    assert tmp_file_path.read_text() == open(f"./tests/resources/save_output/{file_path}").read()
+    assert tmp_file_path.read_text() == open(f"./tests/resources/expected/plain/{file_path}").read()
 
 
 def test_file_handler_closed_on_exception(monkeypatch):
-    from pyrio.streams import BaseStream
     import builtins
+
+    from pyrio.streams import BaseStream
 
     # Track if close was called
     close_called = []
@@ -568,7 +576,7 @@ def test_file_handler_closed_on_exception(monkeypatch):
     monkeypatch.setattr(builtins, "open", tracking_open)
 
     with pytest.raises(RuntimeError, match="Simulated initialization error"):
-        FileStream("./tests/resources/foo.json")
+        FileStream("./tests/resources/input/flat/foo.json")
 
     assert len(close_called) > 0, "File handler was not closed after exception"
 
@@ -577,7 +585,7 @@ def test_save_with_cleaning_up_tmp_file(tmp_file_dir):
     from pathlib import Path
 
     source_path = tmp_file_dir / "stale_tmp_source.json"
-    shutil.copyfile("./tests/resources/foo.json", source_path)
+    shutil.copyfile("./tests/resources/input/flat/foo.json", source_path)
 
     tmp_path = Path(f"{source_path}.tmp")
     tmp_path.write_text("stale tmp content")
@@ -594,7 +602,7 @@ def test_atomic_write_cleanup_on_serialization_error(tmp_file_dir):
         pass
 
     source_path = tmp_file_dir / "serialize_fail.json"
-    shutil.copyfile("./tests/resources/foo.json", source_path)
+    shutil.copyfile("./tests/resources/input/flat/foo.json", source_path)
 
     fs = FileStream(source_path)
     fs._iterable = (DictItem("key", NotSerializable()),)
@@ -607,4 +615,4 @@ def test_atomic_write_cleanup_on_serialization_error(tmp_file_dir):
     assert not tmp_path.exists()
 
     # Source file should be unchanged
-    assert source_path.read_text() == open("./tests/resources/foo.json").read()
+    assert source_path.read_text() == open("./tests/resources/input/flat/foo.json").read()

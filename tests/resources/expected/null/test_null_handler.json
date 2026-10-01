@@ -4,13 +4,12 @@
   "Email": {
     "primary": "jen123@gmail.com"
   },
-  "Job": null,
+  "Job": "Unknown",
   "first": {
     "second": [
-      1,
-      2,
-      3,
-      4
+      "x",
+      "y",
+      "z"
     ],
     "still-second": {
       "third": 42

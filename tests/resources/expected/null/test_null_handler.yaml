@@ -5,9 +5,8 @@ Name: Jennifer Smith
 Phone: 555-123-4568
 first:
   second:
-  - 1
-  - 2
-  - 3
-  - 4
+  - x
+  - y
+  - z
   still-second:
     third: 42

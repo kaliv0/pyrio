@@ -29,9 +29,7 @@ def test_chain():
 
 
 def test_combinations():
-    assert Stream.of(1, 2, 3, 4).combinations(r=3).to_list() == list(
-        it.combinations([1, 2, 3, 4], r=3)
-    )
+    assert Stream.of(1, 2, 3, 4).combinations(r=3).to_list() == list(it.combinations([1, 2, 3, 4], r=3))
 
 
 def test_combinations_with_replacement():
@@ -43,9 +41,7 @@ def test_combinations_with_replacement():
 def test_compress():
     data = "ABCDEF"
     selectors = [1, 0, 1, 0, 1, 1]
-    assert Stream(data).compress(selectors=selectors).to_list() == list(
-        it.compress(data, selectors)
-    )
+    assert Stream(data).compress(selectors=selectors).to_list() == list(it.compress(data, selectors))
 
 
 def test_count():
@@ -73,17 +69,13 @@ def test_cycle():
 def test_itertools_dropwhile():
     coll = [1, 4, 6, 3, 8]
     predicate = lambda x: x < 5  # noqa
-    assert Stream(coll).dropwhile(predicate=predicate).to_list() == list(
-        it.dropwhile(predicate, coll)
-    )
+    assert Stream(coll).dropwhile(predicate=predicate).to_list() == list(it.dropwhile(predicate, coll))
 
 
 def test_itertools_filterfalse():
     coll = [1, 4, 6, 3, 8]
     predicate = lambda x: x < 5  # noqa
-    assert Stream(coll).filterfalse(predicate=predicate).to_list() == list(
-        it.filterfalse(predicate, coll)
-    )
+    assert Stream(coll).filterfalse(predicate=predicate).to_list() == list(it.filterfalse(predicate, coll))
 
 
 def test_itertools_groupby():
@@ -115,18 +107,16 @@ def test_permutations():
 
 def test_product():
     assert Stream.of("ABCD", "xy").product().to_list() == list(it.product("ABCD", "xy"))
-    assert Stream.of([1, 2, 3, 4], [5, 6]).product().to_list() == list(
-        it.product([1, 2, 3, 4], [5, 6])
-    )
+    assert Stream.of([1, 2, 3, 4], [5, 6]).product().to_list() == list(it.product([1, 2, 3, 4], [5, 6]))
     assert Stream.of(range(3)).product(repeat=2).to_list() == list(it.product(range(3), repeat=2))
 
-    assert Stream.of(range(3)).concat(Stream.of([100, 200, 300])).product(
-        repeat=2
-    ).to_list() == list(it.product(range(3), [100, 200, 300], repeat=2))
+    assert Stream.of(range(3)).concat(Stream.of([100, 200, 300])).product(repeat=2).to_list() == list(
+        it.product(range(3), [100, 200, 300], repeat=2)
+    )
 
-    assert Stream.of([1, 2, 3]).concat(Stream.of(range(100, 400, 100))).product(
-        repeat=2
-    ).to_list() == list(it.product([1, 2, 3], range(100, 400, 100), repeat=2))
+    assert Stream.of([1, 2, 3]).concat(Stream.of(range(100, 400, 100))).product(repeat=2).to_list() == list(
+        it.product([1, 2, 3], range(100, 400, 100), repeat=2)
+    )
 
 
 def test_repeat():
@@ -143,9 +133,7 @@ def test_starmap():
 def test_itertools_takewhile():
     coll = [1, 4, 6, 3, 8]
     predicate = lambda x: x < 5  # noqa
-    assert Stream(coll).takewhile(predicate=predicate).to_list() == list(
-        it.takewhile(predicate, coll)
-    )
+    assert Stream(coll).takewhile(predicate=predicate).to_list() == list(it.takewhile(predicate, coll))
 
 
 def test_tee():
@@ -157,16 +145,14 @@ def test_zip_longest():
     assert Stream.of("ABCD", "xy").zip_longest(fillvalue="-").to_list() == list(
         it.zip_longest("ABCD", "xy", fillvalue="-")
     )
-    assert Stream.of(range(3), range(2)).zip_longest().to_list() == list(
-        it.zip_longest(range(3), range(2))
-    )
+    assert Stream.of(range(3), range(2)).zip_longest().to_list() == list(it.zip_longest(range(3), range(2)))
 
     assert Stream.of([1, 2, 3, 4]).concat(Stream.of([5, 6, 7])).zip_longest().to_list() == list(
         it.zip_longest([1, 2, 3, 4], [5, 6, 7])
     )
-    assert Stream.of(range(1, 7, 2)).concat(
-        Stream.of([50, 60, 70])
-    ).zip_longest().to_list() == list(it.zip_longest(range(1, 7, 2), [50, 60, 70]))
+    assert Stream.of(range(1, 7, 2)).concat(Stream.of([50, 60, 70])).zip_longest().to_list() == list(
+        it.zip_longest(range(1, 7, 2), [50, 60, 70])
+    )
 
 
 def test_non_existing_function_called():

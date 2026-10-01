@@ -103,9 +103,7 @@ def test_filter_map():
 
 
 def test_filter_map_discard_falsy():
-    assert Stream.of(None, "foo", "", "bar", 0, []).filter_map(
-        str.upper, discard_falsy=True
-    ).to_list() == [
+    assert Stream.of(None, "foo", "", "bar", 0, []).filter_map(str.upper, discard_falsy=True).to_list() == [
         "FOO",
         "BAR",
     ]
@@ -536,9 +534,7 @@ def test_sort_comparator_function():
 
 
 def test_sort_multiple_keys():
-    assert Stream.of((3, 30), (2, 30), (2, 20), (1, 20), (1, 10)).sort(
-        lambda x: (x[0], x[1])
-    ).to_list() == [
+    assert Stream.of((3, 30), (2, 30), (2, 20), (1, 20), (1, 10)).sort(lambda x: (x[0], x[1])).to_list() == [
         (1, 10),
         (1, 20),
         (2, 20),
@@ -569,9 +565,7 @@ def test_reverse():
 
 
 def test_reverse_with_custom_comparator():
-    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).reverse(
-        itemgetter(1)
-    ).to_list() == [
+    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).reverse(itemgetter(1)).to_list() == [
         ("5", 50),
         ("3", 30),
         ("2", 20),
@@ -581,9 +575,9 @@ def test_reverse_with_custom_comparator():
 
 # ### ###
 def test_complex_pipeline():
-    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sort(
-        itemgetter(1), reverse=True
-    ).to_dict(lambda x: (x[0], x[1])) == {"5": 50, "3": 30, "2": 20, "1": 10}
+    assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sort(itemgetter(1), reverse=True).to_dict(
+        lambda x: (x[0], x[1])
+    ) == {"5": 50, "3": 30, "2": 20, "1": 10}
 
 
 def test_reusing_stream():
@@ -707,9 +701,7 @@ def test_compare_with_custom_key(Foo):
     comparator = lambda x, y: x.num == y.num  # noqa
 
     assert Stream([fizz, buzz]).compare_with(Stream([fizz, buzz]), comparator)
-    assert Stream([Foo("a", 1), Foo("b", 2)]).compare_with(
-        Stream([Foo("c", 1), Foo("d", 2)]), comparator
-    )
+    assert Stream([Foo("a", 1), Foo("b", 2)]).compare_with(Stream([Foo("c", 1), Foo("d", 2)]), comparator)
     assert Stream([buzz, fizz]).compare_with(Stream([fizz, buzz]), comparator) is False
     assert Stream([fizz, buzz]).compare_with(Stream([buzz]), comparator) is False
 
@@ -883,9 +875,7 @@ def test_to_dict_via_dict_items(Foo):
 
 def test_to_dict_merger(Foo):
     coll = [Foo("fizz", 1), Foo("fizz", 2), Foo("buzz", 2)]
-    assert Stream(coll).to_dict(
-        collector=lambda x: (x.name, x.num), merger=lambda old, new: old
-    ) == {
+    assert Stream(coll).to_dict(collector=lambda x: (x.name, x.num), merger=lambda old, new: old) == {
         "fizz": 1,
         "buzz": 2,
     }
@@ -1017,9 +1007,7 @@ def test_to_string(nested_json):
         == "{'a': 1} | {'b': [2, 3]}"
     )
     assert Stream(["x", "y", "z"]).to_string(delimiter="") == "xyz"
-    assert (
-        Stream(json.loads(nested_json)).collect(str) == Stream(json.loads(nested_json)).to_string()
-    )
+    assert Stream(json.loads(nested_json)).collect(str) == Stream(json.loads(nested_json)).to_string()
 
 
 def test_repr(nested_json):

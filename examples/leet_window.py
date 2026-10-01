@@ -5,14 +5,7 @@ from pyrio import Stream
 
 # 485. Max Consecutive Ones
 def max_consecutive_ones(nums):
-    return (
-        Stream(nums)
-        .groupby()
-        .filter(itemgetter(0))
-        .map(lambda kv: len(tuple(kv[1])))
-        .max(default=0)
-        .get()
-    )
+    return Stream(nums).groupby().filter(itemgetter(0)).map(lambda kv: len(tuple(kv[1]))).max(default=0).get()
 
 
 # max_consecutive_ones([1, 1, 0, 1, 1, 1]) => 3

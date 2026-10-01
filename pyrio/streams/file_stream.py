@@ -1,14 +1,15 @@
 import importlib
 import shutil
+from collections.abc import Mapping
 from contextlib import contextmanager
 from pathlib import Path
 
 from aldict import AliasDict
 
-from pyrio.utils import DictItem
-from pyrio.streams import BaseStream, Stream
-from pyrio.exceptions import NoneTypeError
 from pyrio.decorators import handle_consumed, pre_call, terminal
+from pyrio.exceptions import NoneTypeError
+from pyrio.streams import BaseStream, Stream
+from pyrio.utils import DictItem
 
 TEMP_PATH = "{file_path}.tmp"
 
@@ -33,19 +34,33 @@ MAPPING_READ_CONFIG = AliasDict(
             "import_mod": "json",
             "callable": "load",
             "read_mode": "r",
+            "wrap_scalars": True,
         },
         ".yaml": {
-            "import_mod": "yaml",
-            "callable": "safe_load",
+            "import_mod": "pyrio.io.yaml_handler",
+            "callable": "load",
             "read_mode": "r",
+            "wrap_scalars": True,
         },
         ".xml": {
-            "import_mod": "xmltodict",
-            "callable": "parse",
+            "import_mod": "pyrio.io.xml_handler",
+            "callable": "load",
             "read_mode": "rb",
+            "extra_keys": ("include_root",),
+        },
+        ".ini": {
+            "import_mod": "pyrio.io.ini_handler",
+            "callable": "load",
+            "read_mode": "r",
+        },
+        ".pickle": {
+            "import_mod": "pickle",
+            "callable": "load",
+            "read_mode": "rb",
+            "wrap_scalars": True,
         },
     },
-    aliases={".yaml": ".yml"},
+    aliases={".yaml": ".yml", ".ini": ".cfg", ".pickle": ".pkl"},
 )
 
 MAPPING_WRITE_CONFIG = AliasDict(
@@ -60,22 +75,30 @@ MAPPING_WRITE_CONFIG = AliasDict(
             "import_mod": "json",
             "callable": "dump",
             "write_mode": "w",
-            "default_null_handler": None,
         },
         ".yaml": {
             "import_mod": "yaml",
             "callable": "dump",
             "write_mode": "w",
-            "default_null_handler": None,
         },
         ".xml": {
-            "import_mod": "xmltodict",
-            "callable": "unparse",
+            "import_mod": "pyrio.io.xml_handler",
+            "callable": "dump",
             "write_mode": "w",
-            "default_null_handler": None,
+            "extra_keys": ("xml_root",),
+        },
+        ".ini": {
+            "import_mod": "pyrio.io.ini_handler",
+            "callable": "dump",
+            "write_mode": "w",
+        },
+        ".pickle": {
+            "import_mod": "pickle",
+            "callable": "dump",
+            "write_mode": "wb",
         },
     },
-    aliases={".yaml": ".yml"},
+    aliases={".yaml": ".yml", ".ini": ".cfg", ".pickle": ".pkl"},
 )
 
 
@@ -127,11 +150,11 @@ class FileStream(BaseStream):
         else:
             return cls._read_plain(path, f_open)
 
-    @staticmethod
-    def _read_dsv(path, f_open, f_read):
+    @classmethod
+    def _read_dsv(cls, path, f_open, f_read):
         import csv
 
-        FileStream._prepare_io_options(
+        cls._prepare_io_options(
             [
                 (f_open, "newline", ""),
                 (f_read, "delimiter", DSV_CONFIG[path.suffix]["delimiter"]),
@@ -140,20 +163,21 @@ class FileStream(BaseStream):
         file_handler = open(path, **f_open)
         return file_handler, tuple(csv.DictReader(file_handler, **f_read))
 
-    @staticmethod
-    def _read_mapping(path, f_open, f_read, **kwargs):
+    @classmethod
+    def _read_mapping(cls, path, f_open, f_read, **kwargs):
         config = MAPPING_READ_CONFIG[path.suffix]
         load = getattr(importlib.import_module(config["import_mod"]), config["callable"])
-        FileStream._prepare_io_options([(f_open, "mode", config["read_mode"])])
+
+        cls._prepare_io_options([(f_open, "mode", config["read_mode"])])
+        extra = {k: kwargs[k] for k in config.get("extra_keys", ()) if k in kwargs}
 
         file_handler = open(path, **f_open)
-        content = load(file_handler, **f_read)
-        if path.suffix == ".xml":
-            if kwargs.get("include_root"):
-                return file_handler, content
-            # NB: return dict (instead of dict_view) to re-map it later as DictItem records
-            return file_handler, next(iter(content.values()))
-        return file_handler, content
+        data = load(file_handler, **f_read, **extra)
+
+        if config.get("wrap_scalars") and not isinstance(data, (Mapping, list, tuple)):
+            # make plain values iterable
+            data = (data,)
+        return file_handler, data
 
     @staticmethod
     def _read_plain(path, f_open):
@@ -169,9 +193,15 @@ class FileStream(BaseStream):
         f_open=None,
         f_write=None,
         null_handler=None,
+        materialize="dict",
         **kwargs,
     ):
-        """Writes Stream to a new file (or updates an existing one) with advanced 'writing' options passed by the user"""
+        """Writes Stream to a new file (or updates an existing one) with advanced 'writing' options passed by the user.
+
+        'materialize' controls how the stream becomes the object passed to mapping dumpers (json/yaml/toml/xml/ini/pickle).
+        One of: 'dict' (default), 'list', 'tuple', 'raw' (exactly one element),
+        or a callable receiving this stream and returning the payload.
+        """
         path, tmp_path = self._prepare_file_paths(file_path)
 
         f_open = f_open or {}
@@ -180,7 +210,9 @@ class FileStream(BaseStream):
         if (suffix := path.suffix) in DSV_CONFIG:
             self._write_dsv(path, tmp_path, f_open, f_write, null_handler)
         elif suffix in MAPPING_WRITE_CONFIG:
-            self._write_mapping(path, tmp_path, f_open, f_write, null_handler, **kwargs)
+            self._write_mapping(
+                path, tmp_path, f_open, f_write, null_handler, materialize=materialize, **kwargs
+            )
         else:
             self._write_plain(path, tmp_path, f_open, f_write)
 
@@ -203,23 +235,36 @@ class FileStream(BaseStream):
             writer.writeheader()
             writer.writerows(output)
 
-    def _write_mapping(self, path, tmp_path, f_open, f_write, null_handler=None, **kwargs):
+    def _write_mapping(
+        self, path, tmp_path, f_open, f_write, null_handler=None, materialize="dict", **kwargs
+    ):
         config = MAPPING_WRITE_CONFIG[path.suffix]
-        if existing_null_handler := null_handler or config["default_null_handler"]:
+        if existing_null_handler := null_handler or config.get("default_null_handler"):
             self.map(existing_null_handler)  # noqa
 
-        output = self.to_dict()
-
-        io_opts_setting = [(f_open, "mode", config["write_mode"])]
-        if path.suffix == ".xml":
-            root = kwargs.get("xml_root", "root")
-            output = {root: output}
-            io_opts_setting.append((f_write, "pretty", True))
-        self._prepare_io_options(io_opts_setting)
+        output = self._materialize(materialize)
+        extra = {k: kwargs[k] for k in config.get("extra_keys", ()) if k in kwargs}
+        self._prepare_io_options([(f_open, "mode", config["write_mode"])])
 
         dump = getattr(importlib.import_module(config["import_mod"]), config["callable"])
         with self._atomic_write(path, tmp_path, f_open) as f:  # noqa
-            dump(output, f, **f_write)
+            dump(output, f, **f_write, **extra)
+
+    def _materialize(self, materialize):
+        if callable(materialize):
+            return materialize(self)
+
+        if materialize in {"dict", "list", "tuple"}:
+            return getattr(self, f"to_{materialize}")()
+
+        if materialize == "raw":
+            if len(items := self.to_list()) != 1:
+                raise ValueError(f"materialize='raw' requires exactly 1 element, got {len(items)}")
+            return items[0]
+
+        raise ValueError(
+            f"Unsupported materialize={materialize!r}; expected 'dict', 'list', 'tuple', 'raw', or callable"
+        )
 
     def _write_plain(self, path, tmp_path, f_open, f_write):
         self._prepare_io_options([(f_open, "mode", "w")])

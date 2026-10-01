@@ -1,0 +1,13 @@
+Name = "Jennifer Smith"
+Phone = "555-123-4568"
+Email = "jen123@gmail.com"
+
+[first]
+second = [
+    "x",
+    "y",
+    "z",
+]
+
+[first.still-second]
+third = 42

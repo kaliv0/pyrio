@@ -1,0 +1,18 @@
+{
+  "Name": "Jennifer Smith",
+  "Phone": "555-123-4568",
+  "Email": {
+    "primary": "jen123@gmail.com"
+  },
+  "Job": null,
+  "first": {
+    "second": [
+      "x",
+      "y",
+      "z"
+    ],
+    "still-second": {
+      "third": 42
+    }
+  }
+}

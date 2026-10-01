@@ -1,0 +1,12 @@
+{
+  "first": {
+    "second": [
+      "x",
+      "y",
+      "z"
+    ],
+    "still-second": {
+      "third": 42
+    }
+  }
+}

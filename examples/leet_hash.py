@@ -72,13 +72,7 @@ def count_consistent_strings(allowed, words):
 # 347. Top K Frequent Elements
 def top_k_frequent(nums, k):
     counts = Stream(nums).grouped_by(collector=lambda key, group: (key, len(group)))
-    return (
-        Stream(counts)
-        .sort(attrgetter("value"), reverse=True)
-        .limit(k)
-        .map(attrgetter("key"))
-        .to_set()
-    )
+    return Stream(counts).sort(attrgetter("value"), reverse=True).limit(k).map(attrgetter("key")).to_set()
 
 
 # top_k_frequent([1, 1, 1, 2, 2, 3], 2) => {1, 2}

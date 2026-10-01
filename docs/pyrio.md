@@ -13,6 +13,6 @@
 
 <br><b>Functional-style Streams API library</b><br>
 <br>Facilitates processing of collections and iterables using fluent APIs.
-<br>Gives access to files of various types (<i>json</i>, <i>toml</i>, <i>yaml</i>, <i>xml</i>, <i>csv</i>, <i>tsv</i>, <i>plain text</i>) for reading and executing complex queries.
+<br>Gives access to files of various types (<i>json</i>, <i>toml</i>, <i>yaml</i>, <i>xml</i>, <i>ini</i>, <i>pickle</i>, <i>csv</i>, <i>tsv</i>, <i>plain text</i>) for reading and executing complex queries.
 <br>Provides easy integration with <i>itertools</i>.
 <br>(NB: Commonly used <i>itertools 'recipes'</i> are included as part of the main APIs.)

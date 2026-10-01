@@ -15,12 +15,18 @@ author = "kaliv0"
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    "myst_nb",
+    "myst_parser",
     "autoapi.extension",
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
 ]
 autoapi_dirs = ["../pyrio"]
+
+# Configuration for myst_parser to ensure standard Markdown features work perfectly
+myst_enable_extensions = [
+    "colon_fence",  # Allows using colons for directives in markdown
+    "deflist",  # Definition lists
+]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.

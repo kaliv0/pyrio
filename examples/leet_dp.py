@@ -57,9 +57,7 @@ def maximum_subarray(nums):
         best_ending = max(value, best_ending + value)
         return best_ending, max(best_so_far, best_ending)
 
-    return (
-        Stream(nums[1:]).reduce(step, identity=(nums[0], nums[0])).map(lambda state: state[1]).get()
-    )
+    return Stream(nums[1:]).reduce(step, identity=(nums[0], nums[0])).map(lambda state: state[1]).get()
 
 
 # maximum_subarray([-2, 1, -3, 4, -1, 2, 1, -5, 4]) => 6

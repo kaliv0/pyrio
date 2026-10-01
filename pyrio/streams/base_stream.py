@@ -322,9 +322,7 @@ class BaseStream:
                 # let's not make unnecessary calls to property getters
                 return item._key, item._value  # noqa
             case _:
-                raise UnsupportedTypeError(
-                    f"Cannot create dict items from '{item.__class__.__name__}' type"
-                )
+                raise UnsupportedTypeError(f"Cannot create dict items from '{item.__class__.__name__}' type")
 
     @terminal
     def to_string(self, delimiter=", "):

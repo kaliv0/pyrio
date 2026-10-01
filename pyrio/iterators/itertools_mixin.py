@@ -51,9 +51,7 @@ class ItertoolsMixin:
                     self.iterable = it_func(self.iterable)
                 # all kwargs
                 else:
-                    if sequence := next(
-                        (name for name in {"iterable", "data"} if name in parameters), None
-                    ):
+                    if sequence := next((name for name in {"iterable", "data"} if name in parameters), None):
                         kwargs[sequence] = self.iterable
                     self.iterable = it_func(**kwargs)
 

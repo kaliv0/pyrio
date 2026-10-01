@@ -1,6 +1,5 @@
 import importlib
 import shutil
-from collections.abc import Mapping
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -52,10 +51,10 @@ MAPPING_READ_CONFIG = AliasDict(
             "read_mode": "r",
         },
         ".pickle": {
-            "import_mod": "pickle",
+            "import_mod": "pyrio.io.pickle_handler",
             "callable": "load",
             "read_mode": "rb",
-            "wrap_scalars": True,
+            "extra_keys": ("trust_pickle",),
         },
     },
     aliases={".yaml": ".yml", ".ini": ".cfg", ".pickle": ".pkl"},
@@ -171,9 +170,6 @@ class FileStream(BaseStream):
 
         file_handler = open(path, **f_open)
         data = load(file_handler, **f_read, **extra)
-        if config.get("wrap_scalars") and not isinstance(data, (Mapping, list, tuple)):
-            data = (data,)
-
         return file_handler, data
 
     @staticmethod

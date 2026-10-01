@@ -1,5 +1,6 @@
 import importlib
 import shutil
+from collections.abc import Mapping
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -33,11 +34,13 @@ MAPPING_READ_CONFIG = AliasDict(
             "import_mod": "json",
             "callable": "load",
             "read_mode": "r",
+            "wrap_scalars": True,
         },
         ".yaml": {
             "import_mod": "pyrio.io.yaml_handler",
             "callable": "load",
             "read_mode": "r",
+            "wrap_scalars": True,
         },
         ".xml": {
             "import_mod": "pyrio.io.xml_handler",
@@ -51,10 +54,10 @@ MAPPING_READ_CONFIG = AliasDict(
             "read_mode": "r",
         },
         ".pickle": {
-            "import_mod": "pyrio.io.pickle_handler",
+            "import_mod": "pickle",
             "callable": "load",
             "read_mode": "rb",
-            "extra_keys": ("trust_pickle",),
+            "wrap_scalars": True,
         },
     },
     aliases={".yaml": ".yml", ".ini": ".cfg", ".pickle": ".pkl"},
@@ -147,11 +150,11 @@ class FileStream(BaseStream):
         else:
             return cls._read_plain(path, f_open)
 
-    @staticmethod
-    def _read_dsv(path, f_open, f_read):
+    @classmethod
+    def _read_dsv(cls, path, f_open, f_read):
         import csv
 
-        FileStream._prepare_io_options(
+        cls._prepare_io_options(
             [
                 (f_open, "newline", ""),
                 (f_read, "delimiter", DSV_CONFIG[path.suffix]["delimiter"]),
@@ -160,16 +163,20 @@ class FileStream(BaseStream):
         file_handler = open(path, **f_open)
         return file_handler, tuple(csv.DictReader(file_handler, **f_read))
 
-    @staticmethod
-    def _read_mapping(path, f_open, f_read, **kwargs):
+    @classmethod
+    def _read_mapping(cls, path, f_open, f_read, **kwargs):
         config = MAPPING_READ_CONFIG[path.suffix]
         load = getattr(importlib.import_module(config["import_mod"]), config["callable"])
 
-        FileStream._prepare_io_options([(f_open, "mode", config["read_mode"])])
+        cls._prepare_io_options([(f_open, "mode", config["read_mode"])])
         extra = {k: kwargs[k] for k in config.get("extra_keys", ()) if k in kwargs}
 
         file_handler = open(path, **f_open)
         data = load(file_handler, **f_read, **extra)
+
+        if config.get("wrap_scalars") and not isinstance(data, (Mapping, list, tuple)):
+            # make plain values iterable
+            data = (data,)
         return file_handler, data
 
     @staticmethod
@@ -237,7 +244,7 @@ class FileStream(BaseStream):
 
         output = self._materialize(materialize)
         extra = {k: kwargs[k] for k in config.get("extra_keys", ()) if k in kwargs}
-        FileStream._prepare_io_options([(f_open, "mode", config["write_mode"])])
+        self._prepare_io_options([(f_open, "mode", config["write_mode"])])
 
         dump = getattr(importlib.import_module(config["import_mod"]), config["callable"])
         with self._atomic_write(path, tmp_path, f_open) as f:  # noqa

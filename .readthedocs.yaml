@@ -3,7 +3,7 @@ version: 2
 build:
   os: ubuntu-lts-latest
   tools:
-    python: "3.13"
+    python: "3.14"
   jobs:
     pre_create_environment:
       - asdf plugin add uv
@@ -13,7 +13,13 @@ build:
       - uv venv $READTHEDOCS_VIRTUALENV_PATH
     install:
       # Use a cache dir in the same mount to halve the install time
-      - VIRTUAL_ENV=$READTHEDOCS_VIRTUALENV_PATH uv pip install --cache-dir $READTHEDOCS_VIRTUALENV_PATH/../../uv_cache -r docs/requirements.txt
+      # NB: Suppress the maximum version check of the underlying Rust build tools
+      - |
+        VIRTUAL_ENV=$READTHEDOCS_VIRTUALENV_PATH \
+        PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1 \
+        uv pip install \
+          --cache-dir $READTHEDOCS_VIRTUALENV_PATH/../../uv_cache \
+          -r docs/requirements.txt
 
 sphinx:
   configuration: docs/conf.py

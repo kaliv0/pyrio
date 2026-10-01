@@ -66,7 +66,9 @@ def test_pkl_alias(tmp_file_dir):
     data = {"abc": "xyz"}
     pkl = tmp_file_dir / "alias.pkl"
     pkl.write_bytes(pickle.dumps(data))
-    assert FileStream(pkl).map(lambda x: f"{x.key}=>{x.value}").to_tuple() == ("abc=>xyz",)
+    assert FileStream.process(pkl, trust_pickle=True).map(lambda x: f"{x.key}=>{x.value}").to_tuple() == (
+        "abc=>xyz",
+    )
 
 
 def test_ini_default_section_not_leaked():
@@ -758,11 +760,11 @@ def test_pickle_dict_round_trip(tmp_file_dir):
     src = tmp_file_dir / "dict.pickle"
     data = {"abc": "xyz", "qwerty": 42}
     src.write_bytes(pickle.dumps(data))
-    assert FileStream(src).to_dict() == data
+    assert FileStream.process(src, trust_pickle=True).to_dict() == data
 
     out = tmp_file_dir / "dict_out.pickle"
-    FileStream(src).save(out)
-    assert FileStream(out).to_dict() == data
+    FileStream.process(src, trust_pickle=True).save(out)
+    assert FileStream.process(out, trust_pickle=True).to_dict() == data
 
 
 @pytest.mark.parametrize(
@@ -772,7 +774,7 @@ def test_pickle_dict_round_trip(tmp_file_dir):
 def test_pickle_load(tmp_file_dir, data):
     src = tmp_file_dir / "data.pickle"
     src.write_bytes(pickle.dumps(data))
-    loaded = FileStream(src)
+    loaded = FileStream.process(src, trust_pickle=True)
     match data:
         case dict():
             assert loaded.to_dict() == data
@@ -787,18 +789,18 @@ def test_pickle_load(tmp_file_dir, data):
 def test_pickle_inplace_null_and_protocol(tmp_file_dir):
     path = tmp_file_dir / "data.pickle"
     path.write_bytes(pickle.dumps({"a": 1, "b": None}))
-    FileStream(path).save(
+    FileStream.process(path, trust_pickle=True).save(
         null_handler=lambda x: DictItem(x.key, "N/A") if x.value is None else x,
         f_write={"protocol": pickle.HIGHEST_PROTOCOL},
     )
-    assert FileStream(path).to_dict() == {"a": 1, "b": "N/A"}
+    assert FileStream.process(path, trust_pickle=True).to_dict() == {"a": 1, "b": "N/A"}
 
 
 def test_pickle_malformed_raises(tmp_file_dir):
     src = tmp_file_dir / "bad.pickle"
     src.write_bytes(b"not-a-pickle")
     with pytest.raises(pickle.UnpicklingError):
-        FileStream(src).to_list()
+        FileStream.process(src, trust_pickle=True).to_list()
 
 
 @pytest.mark.parametrize(
@@ -835,7 +837,7 @@ def test_pickle_materialize(tmp_file_dir, build, materialize, payload):
     build().save(out, materialize=materialize)
     assert pickle.loads(out.read_bytes()) == payload
 
-    loaded = FileStream(out)
+    loaded = FileStream.process(out, trust_pickle=True)
     match payload:
         case dict():
             assert loaded.to_dict() == payload
@@ -845,6 +847,21 @@ def test_pickle_materialize(tmp_file_dir, build, materialize, payload):
             assert loaded.to_list() == list(payload)
         case _:
             assert loaded.to_list() == [payload]  # wrap_scalars
+
+
+@pytest.mark.parametrize(
+    "build",
+    [
+        lambda src: FileStream(src),
+        lambda src: FileStream.process(src),
+        lambda src: FileStream.process(src, trust_pickle=False),
+    ],
+)
+def test_pickle_requires_trust(tmp_file_dir, build):
+    src = tmp_file_dir / "data.pickle"
+    src.write_bytes(pickle.dumps({"a": 1}))
+    with pytest.raises(ValueError, match="Cannot load pickle without trust_pickle=True"):
+        build(src)
 
 
 @pytest.mark.parametrize(

@@ -1,4 +1,7 @@
+import json
+import pickle
 import shutil
+from configparser import MissingSectionHeaderError
 from decimal import Decimal
 from json import JSONDecodeError
 from operator import attrgetter
@@ -41,41 +44,50 @@ def test_path_is_dir_error():
 
 @pytest.mark.parametrize("suffix", MAPPING_SUFFIXES)
 def test_read_files(suffix):
-    assert FileStream(_flat("foo", suffix)).map(lambda x: f"{x.key}=>{x.value}").to_tuple() == (
+    assert FileStream(_input("flat", "foo", suffix)).map(lambda x: f"{x.key}=>{x.value}").to_tuple() == (
         "abc=>xyz",
         "qwerty=>42",
     )
 
 
 def test_yml_alias():
-    assert FileStream(_flat("foo", ".yml")).map(lambda x: f"{x.key}=>{x.value}").to_tuple() == (
-        FileStream(_flat("foo", ".yaml")).map(lambda x: f"{x.key}=>{x.value}").to_tuple()
+    assert FileStream(_input("flat", "foo", ".yml")).map(lambda x: f"{x.key}=>{x.value}").to_tuple() == (
+        FileStream(_input("flat", "foo", ".yaml")).map(lambda x: f"{x.key}=>{x.value}").to_tuple()
     )
 
 
 def test_cfg_alias():
-    assert FileStream(_flat("foo", ".cfg")).map(lambda x: f"{x.key}=>{x.value}").to_tuple() == (
-        FileStream(_flat("foo", ".ini")).map(lambda x: f"{x.key}=>{x.value}").to_tuple()
+    assert FileStream(_input("flat", "foo", ".cfg")).map(lambda x: f"{x.key}=>{x.value}").to_tuple() == (
+        FileStream(_input("flat", "foo", ".ini")).map(lambda x: f"{x.key}=>{x.value}").to_tuple()
     )
+
+
+def test_pkl_alias(tmp_file_dir):
+    data = {"abc": "xyz"}
+    pkl = tmp_file_dir / "alias.pkl"
+    pkl.write_bytes(pickle.dumps(data))
+    assert FileStream(pkl).map(lambda x: f"{x.key}=>{x.value}").to_tuple() == ("abc=>xyz",)
 
 
 def test_ini_default_section_not_leaked():
     # ConfigParser inherits [DEFAULT] into every section via items() -> load must ignore that
-    assert FileStream(_options("default_section", ".ini")).to_dict() == {
+    assert FileStream(_input("options", "default_section", ".ini")).to_dict() == {
         "Name": "Alice",
         "child": {"x": "1"},
     }
 
 
 def test_read_xml_custom_root():
-    assert FileStream(_options("custom_root", ".xml")).map(lambda x: f"{x.key}=>{x.value}").to_tuple() == (
+    assert FileStream(_input("options", "custom_root", ".xml")).map(
+        lambda x: f"{x.key}=>{x.value}"
+    ).to_tuple() == (
         "abc=>xyz",
         "qwerty=>42",
     )
 
 
 def test_read_xml_include_root():
-    assert FileStream.process(_options("custom_root", ".xml"), include_root=True).map(
+    assert FileStream.process(_input("options", "custom_root", ".xml"), include_root=True).map(
         lambda x: f"root={x.key}: inner_records={str(Stream(x.value).to_dict())}"
     ).to_list() == ["root=my-root: inner_records={'abc': 'xyz', 'qwerty': '42'}"]
 
@@ -116,7 +128,7 @@ def test_read_plain_and_query():
 
 @pytest.mark.parametrize("suffix", MAPPING_SUFFIXES)
 def test_nested(suffix):
-    assert FileStream(_nested("nested", suffix)).map(lambda x: x.value).flat_map(
+    assert FileStream(_input("nested", "nested", suffix)).map(lambda x: x.value).flat_map(
         lambda x: Stream(x).filter(lambda y: y.key == "second").flat_map(lambda z: z.value).to_tuple()
     ).to_list() == ["x", "y", "z"]
 
@@ -124,7 +136,7 @@ def test_nested(suffix):
 @pytest.mark.parametrize("suffix", MAPPING_SUFFIXES)
 def test_nested_dict(suffix):
     assert (
-        FileStream(_nested("nested_dicts", suffix))
+        FileStream(_input("nested", "nested_dicts", suffix))
         .filter(lambda outer: "user" not in outer.key)
         .map(
             lambda outer: (
@@ -149,7 +161,7 @@ def test_nested_dict(suffix):
 @pytest.mark.parametrize("suffix", MAPPING_SUFFIXES)
 def test_nested_filter_keys(suffix):
     assert (
-        FileStream(_nested("nested", suffix))
+        FileStream(_input("nested", "nested", suffix))
         .filter(lambda x: x.key == "first")
         .map(lambda x: x.key)
         .to_list()
@@ -158,7 +170,7 @@ def test_nested_filter_keys(suffix):
 
 def test_complex_pipeline():
     assert (
-        FileStream(_nested("long", ".json"))
+        FileStream(_input("nested", "long", ".json"))
         .filter(lambda x: "a" in x.key)
         .map(lambda x: DictItem(x.key, sum(x.value) * 10))
         .sort(attrgetter("value"), reverse=True)
@@ -167,7 +179,7 @@ def test_complex_pipeline():
 
 
 def test_reusing_stream():
-    stream = FileStream(_flat("foo", ".json"))
+    stream = FileStream(_input("flat", "foo", ".json"))
     assert stream._is_consumed is False
 
     result = stream.map(lambda x: f"{x.key}=>{x.value}").tail(1).to_tuple()
@@ -181,7 +193,7 @@ def test_reusing_stream():
 
 
 def test_save_marks_stream_consumed(tmp_file_dir):
-    stream = FileStream(_flat("foo", ".json"))
+    stream = FileStream(_input("flat", "foo", ".json"))
     stream.save(tmp_file_dir / "out.json")
     assert stream._is_consumed
     assert stream._file_handler.closed
@@ -194,7 +206,7 @@ def test_terminal_closes_even_on_error():
     def boom(_):
         raise ValueError("boom")
 
-    stream = FileStream(_flat("foo", ".json"))
+    stream = FileStream(_input("flat", "foo", ".json"))
     with pytest.raises(ValueError, match="boom"):
         stream.for_each(boom)
 
@@ -206,8 +218,8 @@ def test_terminal_closes_even_on_error():
 
 def test_concat():
     assert (
-        FileStream(_nested("long", ".json"))
-        .concat(FileStream(_flat("foo", ".json")))
+        FileStream(_input("nested", "long", ".json"))
+        .concat(FileStream(_input("flat", "foo", ".json")))
         .map(lambda x: f"{x.key}: {x.value}")
     ).to_tuple() == (
         "a: [1, 2]",
@@ -226,7 +238,7 @@ def test_concat():
 def test_prepend(json_dict):
     in_memory_dict = Stream(json_dict).to_tuple()
     assert (
-        FileStream(_nested("long", ".json"))
+        FileStream(_input("nested", "long", ".json"))
         .prepend(in_memory_dict)
         .map(lambda x: f"key={x.key}, value={x.value}")
     ).to_tuple() == (
@@ -260,15 +272,15 @@ def test_process(suffix):
             case _:
                 return False
 
-    assert FileStream.process(_options("parse_float", suffix), f_read={"parse_float": Decimal}).all_match(
-        check_type
-    )
+    assert FileStream.process(
+        _input("options", "parse_float", suffix), f_read={"parse_float": Decimal}
+    ).all_match(check_type)
 
 
 def test_save_toml(tmp_file_dir, json_dict):
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
     tmp_file_path = tmp_file_dir / "test.toml"
-    FileStream(_nested("nested", ".json")).prepend(in_memory_dict).save(
+    FileStream(_input("nested", "nested", ".json")).prepend(in_memory_dict).save(
         tmp_file_path,
         null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
     )
@@ -278,7 +290,7 @@ def test_save_toml(tmp_file_dir, json_dict):
 def test_save_toml_default_null_handler(tmp_file_dir, json_dict):
     in_memory_dict = Stream(json_dict).to_tuple()
     tmp_file_path = tmp_file_dir / "test_default_null_handler.toml"
-    FileStream(_flat("foo", ".toml")).concat(in_memory_dict).save(tmp_file_path)
+    FileStream(_input("flat", "foo", ".toml")).concat(in_memory_dict).save(tmp_file_path)
     assert tmp_file_path.read_text() == (EXPECTED / "null" / "test_default_null_handler.toml").read_text()
 
 
@@ -289,7 +301,7 @@ def test_save_toml_default_null_handler(tmp_file_dir, json_dict):
 def test_save(tmp_file_dir, file_path, indent, json_dict):
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
     tmp_file_path = tmp_file_dir / file_path
-    FileStream(_nested("nested", ".json")).prepend(in_memory_dict).save(
+    FileStream(_input("nested", "nested", ".json")).prepend(in_memory_dict).save(
         tmp_file_path,
         f_open={"encoding": "utf-8"},
         f_write={"indent": indent},
@@ -312,7 +324,7 @@ def test_save_handle_null(tmp_file_dir, file_path, indent, json_dict):
     tmp_file_path = tmp_file_dir / file_path
     f_write = {"indent": indent} if indent is not None else {}
     f_open = {} if file_path.endswith((".toml", ".ini")) else {"encoding": "utf-8"}
-    FileStream(_nested("nested", ".json")).prepend(in_memory_dict).save(
+    FileStream(_input("nested", "nested", ".json")).prepend(in_memory_dict).save(
         tmp_file_path,
         f_open=f_open,
         f_write=f_write,
@@ -324,7 +336,7 @@ def test_save_handle_null(tmp_file_dir, file_path, indent, json_dict):
 def test_save_ini(tmp_file_dir, json_dict):
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
     tmp_file_path = tmp_file_dir / "test.ini"
-    FileStream(_nested("nested", ".json")).prepend(in_memory_dict).save(
+    FileStream(_input("nested", "nested", ".json")).prepend(in_memory_dict).save(
         tmp_file_path,
         null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
     )
@@ -335,7 +347,7 @@ def test_save_custom_xml_root(tmp_file_dir, json_dict):
     file_path = "custom_root.xml"
     tmp_file_path = tmp_file_dir / file_path
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
-    FileStream(_nested("nested", ".json")).prepend(in_memory_dict).save(
+    FileStream(_input("nested", "nested", ".json")).prepend(in_memory_dict).save(
         tmp_file_path,
         f_write={"indent": 4},
         null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
@@ -361,7 +373,7 @@ def test_save_plain(tmp_file_dir):
 
 def test_save_raises():
     with pytest.raises(UnicodeDecodeError) as e:
-        FileStream(_options("awake", ".mp3")).save("./tests/resources/woke.json")
+        FileStream(_input("options", "awake", ".mp3")).save("./tests/resources/woke.json")
     assert str(e.value) == "'utf-8' codec can't decode byte 0xff in position 45: invalid start byte"
 
 
@@ -382,7 +394,7 @@ def test_update_plain(tmp_file_dir, json_dict):
 
 def test_update_file(tmp_file_dir, json_dict):
     tmp_file_path = tmp_file_dir / "updated.json"
-    shutil.copyfile(_nested("long", ".json"), tmp_file_path)
+    shutil.copyfile(_input("nested", "long", ".json"), tmp_file_path)
     (
         FileStream(tmp_file_path)
         .map(lambda x: DictItem(x.key, ", ".join((str(y) for y in x.value)) if x.value else x.value))
@@ -397,7 +409,7 @@ def test_update_file(tmp_file_dir, json_dict):
 @pytest.mark.parametrize("suffix", MAPPING_SUFFIXES)
 def test_update_filter_keys(tmp_file_dir, suffix):
     tmp_file_path = tmp_file_dir / f"foo{suffix}"
-    shutil.copyfile(_flat("foo", suffix), tmp_file_path)
+    shutil.copyfile(_input("flat", "foo", suffix), tmp_file_path)
     f_open = {} if suffix == ".toml" else {"encoding": "utf-8"}
     f_write = {} if suffix == ".toml" else {"indent": 2}
     FileStream(tmp_file_path).filter(lambda x: x.key == "abc").save(
@@ -410,7 +422,7 @@ def test_update_filter_keys(tmp_file_dir, suffix):
 def test_filter_update_file(tmp_file_dir, suffix):
     file_name = f"filtered{suffix}"
     tmp_file_path = tmp_file_dir / file_name
-    shutil.copyfile(_nested("test", suffix), tmp_file_path)
+    shutil.copyfile(_input("nested", "test", suffix), tmp_file_path)
     (
         FileStream(tmp_file_path)
         .filter(lambda x: isinstance(x.value, str))
@@ -422,7 +434,7 @@ def test_filter_update_file(tmp_file_dir, suffix):
 
 @pytest.mark.parametrize("suffix", MAPPING_SUFFIXES)
 def test_round_trip_mapping(tmp_file_dir, suffix):
-    src = _flat("foo", suffix)
+    src = _input("flat", "foo", suffix)
     tmp = tmp_file_dir / f"round{suffix}"
     f_open = {} if suffix == ".toml" else {"encoding": "utf-8"}
     f_write = {} if suffix == ".toml" else {"indent": 2}
@@ -435,7 +447,7 @@ def test_round_trip_mapping(tmp_file_dir, suffix):
 
 @pytest.mark.parametrize("suffix", [".json", ".yaml", ".toml"])
 def test_round_trip_unicode(tmp_file_dir, suffix):
-    src = _options("unicode", suffix)
+    src = _input("options", "unicode", suffix)
     tmp = tmp_file_dir / f"unicode{suffix}"
     f_open = {} if suffix == ".toml" else {"encoding": "utf-8"}
     f_write = {} if suffix == ".toml" else {"indent": 2}
@@ -471,7 +483,7 @@ def test_save_csv(tmp_file_dir, suffix):
 def test_save_convert_to_csv(tmp_file_dir):
     tmp_file_path = tmp_file_dir / "converted.csv"
     (
-        FileStream(_options("convertable", ".json"))
+        FileStream(_input("options", "convertable", ".json"))
         .filter(
             lambda x: (
                 (
@@ -494,7 +506,7 @@ def test_save_to_csv_with_null_handler(tmp_file_dir):
 
     tmp_file_path = tmp_file_dir / "converted_null.csv"
     (
-        FileStream(_options("convertable", ".json"))
+        FileStream(_input("options", "convertable", ".json"))
         .filter(
             lambda x: (
                 Stream(x.value)
@@ -547,7 +559,7 @@ def test_combine_files_into_csv(tmp_file_dir):
     (
         FileStream(tmp_file_path)
         .concat(
-            FileStream(_options("convertable", ".json"))
+            FileStream(_input("options", "convertable", ".json"))
             .filter(
                 lambda x: (
                     (
@@ -579,7 +591,7 @@ def test_save_mapping_to_plain(tmp_file_dir, json_dict):
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
     file_path = "dict_2_plain.txt"
     tmp_file_path = tmp_file_dir / file_path
-    FileStream(_nested("nested", ".json")).prepend(in_memory_dict).map(
+    FileStream(_input("nested", "nested", ".json")).prepend(in_memory_dict).map(
         lambda x: f"{x._key}: {x._value}"
     ).save(tmp_file_path)
     assert tmp_file_path.read_text() == (EXPECTED / "plain" / file_path).read_text()
@@ -620,16 +632,16 @@ def test_plain_text_header_footer(tmp_file_dir):
 
 @pytest.mark.parametrize("suffix", [".json", ".yaml", ".toml"])
 def test_read_empty_mapping(suffix):
-    assert FileStream(_options("empty", suffix)).to_list() == []
+    assert FileStream(_input("options", "empty", suffix)).to_list() == []
 
 
 def test_read_empty_xml_raises():
     with pytest.raises(NoneTypeError):
-        FileStream(_options("empty", ".xml")).to_list()
+        FileStream(_input("options", "empty", ".xml")).to_list()
 
 
 def test_read_empty_csv():
-    assert FileStream(_options("empty", ".csv")).to_list() == []
+    assert FileStream(_input("options", "empty", ".csv")).to_list() == []
 
 
 def test_read_empty_plain():
@@ -638,7 +650,7 @@ def test_read_empty_plain():
 
 def test_save_empty_json(tmp_file_dir):
     tmp = tmp_file_dir / "empty.json"
-    FileStream(_options("empty", ".json")).save(tmp)
+    FileStream(_input("options", "empty", ".json")).save(tmp)
     assert tmp.read_text() == (EXPECTED / "save" / "empty.json").read_text()
 
 
@@ -652,7 +664,7 @@ def test_save_empty_json(tmp_file_dir):
     ],
 )
 def test_read_unicode(suffix, keys):
-    assert FileStream(_options("unicode", suffix)).map(lambda x: x.key).to_list() == keys
+    assert FileStream(_input("options", "unicode", suffix)).map(lambda x: x.key).to_list() == keys
 
 
 @pytest.mark.parametrize(
@@ -662,11 +674,12 @@ def test_read_unicode(suffix, keys):
         (".yaml", ParserError),
         (".xml", ExpatError),
         (".toml", TOMLDecodeError),
+        (".ini", MissingSectionHeaderError),
     ],
 )
 def test_malformed_raises(suffix, exc):
     with pytest.raises(exc):
-        FileStream(_options("malformed", suffix)).to_list()
+        FileStream(_input("options", "malformed", suffix)).to_list()
 
 
 def test_dsv_custom_delimiter(tmp_file_dir):
@@ -706,14 +719,14 @@ def test_file_handler_closed_on_exception(monkeypatch):
     monkeypatch.setattr(builtins, "open", tracking_open)
 
     with pytest.raises(RuntimeError, match="Simulated initialization error"):
-        FileStream(_flat("foo", ".json"))
+        FileStream(_input("flat", "foo", ".json"))
 
     assert len(close_called) > 0, "File handler was not closed after exception"
 
 
 def test_save_with_cleaning_up_tmp_file(tmp_file_dir):
     source_path = tmp_file_dir / "stale_tmp_source.json"
-    shutil.copyfile(_flat("foo", ".json"), source_path)
+    shutil.copyfile(_input("flat", "foo", ".json"), source_path)
 
     tmp_path = Path(f"{source_path}.tmp")
     tmp_path.write_text("stale tmp content")
@@ -728,7 +741,7 @@ def test_atomic_write_cleanup_on_serialization_error(tmp_file_dir):
         pass
 
     source_path = tmp_file_dir / "serialize_fail.json"
-    shutil.copyfile(_flat("foo", ".json"), source_path)
+    shutil.copyfile(_input("flat", "foo", ".json"), source_path)
 
     fs = FileStream(source_path)
     fs._iterable = (DictItem("key", NotSerializable()),)
@@ -738,17 +751,119 @@ def test_atomic_write_cleanup_on_serialization_error(tmp_file_dir):
 
     tmp_path = Path(f"{source_path}.tmp")
     assert not tmp_path.exists()
-    assert source_path.read_text() == Path(_flat("foo", ".json")).read_text()
+    assert source_path.read_text() == Path(_input("flat", "foo", ".json")).read_text()
 
 
-# ### ###
-def _flat(name, suffix):
-    return str(INPUT / "flat" / f"{name}{suffix}")
+def test_pickle_dict_round_trip(tmp_file_dir):
+    src = tmp_file_dir / "dict.pickle"
+    data = {"abc": "xyz", "qwerty": 42}
+    src.write_bytes(pickle.dumps(data))
+    assert FileStream(src).to_dict() == data
+
+    out = tmp_file_dir / "dict_out.pickle"
+    FileStream(src).save(out)
+    assert FileStream(out).to_dict() == data
 
 
-def _nested(name, suffix):
-    return str(INPUT / "nested" / f"{name}{suffix}")
+@pytest.mark.parametrize(
+    "data",
+    [{}, {"nested": {"x": 1}}, [], [1, 2], (1, 2), "xyz", 42, None],
+)
+def test_pickle_load(tmp_file_dir, data):
+    src = tmp_file_dir / "data.pickle"
+    src.write_bytes(pickle.dumps(data))
+    loaded = FileStream(src)
+    match data:
+        case dict():
+            assert loaded.to_dict() == data
+        case list():
+            assert loaded.to_list() == data
+        case tuple():
+            assert loaded.to_list() == list(data)
+        case _:
+            assert loaded.to_list() == [data]
 
 
-def _options(name, suffix):
-    return str(INPUT / "options" / f"{name}{suffix}")
+def test_pickle_inplace_null_and_protocol(tmp_file_dir):
+    path = tmp_file_dir / "data.pickle"
+    path.write_bytes(pickle.dumps({"a": 1, "b": None}))
+    FileStream(path).save(
+        null_handler=lambda x: DictItem(x.key, "N/A") if x.value is None else x,
+        f_write={"protocol": pickle.HIGHEST_PROTOCOL},
+    )
+    assert FileStream(path).to_dict() == {"a": 1, "b": "N/A"}
+
+
+def test_pickle_malformed_raises(tmp_file_dir):
+    src = tmp_file_dir / "bad.pickle"
+    src.write_bytes(b"not-a-pickle")
+    with pytest.raises(pickle.UnpicklingError):
+        FileStream(src).to_list()
+
+
+@pytest.mark.parametrize(
+    "build, materialize, payload",
+    [
+        (
+            lambda: FileStream(_input("flat", "foo", ".json")).map(lambda x: (x.key, x.value)),
+            "list",
+            [("abc", "xyz"), ("qwerty", 42)],
+        ),
+        (
+            lambda: FileStream(_input("flat", "foo", ".json")).map(lambda x: x.key),
+            "tuple",
+            ("abc", "qwerty"),
+        ),
+        (
+            lambda: (
+                FileStream(_input("flat", "foo", ".json"))
+                .filter(lambda x: x.key == "abc")
+                .map(lambda x: x.value)
+            ),
+            "raw",
+            "xyz",
+        ),
+        (
+            lambda: FileStream(_input("flat", "foo", ".json")),
+            lambda s: {item.key.upper(): item.value for item in s.iterable},
+            {"ABC": "xyz", "QWERTY": 42},
+        ),
+    ],
+)
+def test_pickle_materialize(tmp_file_dir, build, materialize, payload):
+    out = tmp_file_dir / "out.pickle"
+    build().save(out, materialize=materialize)
+    assert pickle.loads(out.read_bytes()) == payload
+
+    loaded = FileStream(out)
+    match payload:
+        case dict():
+            assert loaded.to_dict() == payload
+        case list():
+            assert loaded.to_list() == payload
+        case tuple():
+            assert loaded.to_list() == list(payload)
+        case _:
+            assert loaded.to_list() == [payload]  # wrap_scalars
+
+
+@pytest.mark.parametrize(
+    "materialize, match",
+    [
+        ("raw", "materialize='raw' requires exactly 1 element"),
+        ("set", "Unsupported materialize"),
+    ],
+)
+def test_materialize_errors(tmp_file_dir, materialize, match):
+    with pytest.raises(ValueError, match=match):
+        FileStream(_input("flat", "foo", ".json")).save(tmp_file_dir / "bad.pickle", materialize=materialize)
+
+
+def test_json_materialize_list(tmp_file_dir):
+    out = tmp_file_dir / "list.json"
+    FileStream(_input("flat", "foo", ".json")).map(lambda x: x.key).save(out, materialize="list")
+    assert json.loads(out.read_text()) == ["abc", "qwerty"]
+
+
+def _input(subdir, name, suffix):
+    return str(INPUT / subdir / f"{name}{suffix}")

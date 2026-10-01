@@ -486,8 +486,9 @@ Stream(["ABC", "D", "EF"]).round_robin().to_list()
 
 #### Querying files
 
-- working with <i>json</i>, <i>toml</i>, <i>yaml</i>, <i>xml</i> files
+- working with <i>json</i>, <i>toml</i>, <i>yaml</i>/<i>yml</i>, <i>xml</i>, <i>ini</i>/<i>cfg</i>, <i>pickle</i>/<i>pkl</i> files
   <br>NB: FileStream reads data as series of DictItem objects from underlying dict_items view
+  <br><i>json</i>/<i>yaml</i>/<i>pickle</i> scalar roots are wrapped as a one-element stream
 
 ```python
 FileStream("path/to/file").map(lambda x: f"{x.key}=>{x.value}").to_tuple()
@@ -659,6 +660,30 @@ FileStream("path/to/file.json").concat(in_memory_dict).save(
     f_write={"indent": 4},
     xml_root="my-custom-root",
 )
+```
+
+- control how the stream is turned into the object passed to mapping dumpers with <i>materialize</i>
+  <br>one of: <i>'dict'</i> (default), <i>'list'</i>, <i>'tuple'</i>, <i>'raw'</i> (exactly one element), or a callable
+  <br>NB: the target format must accept that shape - <i>json</i>/<i>yaml</i>/<i>pickle</i> allow lists
+  <br><i>toml</i>/<i>xml</i>/<i>ini</i> expect a dict
+
+```python
+FileStream("path/to/file.json").map(lambda x: x.key).save(
+    "path/to/keys.json",
+    materialize="list",
+)
+# ["abc", "qwerty"]
+
+FileStream("path/to/file.json").map(lambda x: x.key).save(
+    "path/to/keys.pickle",
+    materialize="list",
+)
+```
+
+```python
+# toml / xml / ini need a mapping root
+FileStream("path/to/file.json").save("path/to/out.toml")
+# same as materialize="dict"
 ```
 
 ---

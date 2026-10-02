@@ -10,9 +10,7 @@ def climbing_stairs(n):
         .get()
     )
 
-
 # climbing_stairs(10) => 89
-
 
 # 1137. N-th Tribonacci Number
 def tribonacci(n):
@@ -23,9 +21,7 @@ def tribonacci(n):
         .get()
     )
 
-
 # tribonacci(25) => 1389537
-
 
 # 198. House Robber
 def house_robber(nums):
@@ -35,9 +31,7 @@ def house_robber(nums):
 
     return Stream(nums).reduce(step, identity=(0, 0)).map(lambda state: state[1]).get()
 
-
 # house_robber([2, 7, 9, 3, 1]) => 12
-
 
 # 746. Min Cost Climbing Stairs
 def min_cost_climbing_stairs(cost):
@@ -46,9 +40,7 @@ def min_cost_climbing_stairs(cost):
 
     return Stream(cost).reduce(step, identity=(0, 0)).map(min).get()
 
-
 # min_cost_climbing_stairs([10, 15, 20]) => 15
-
 
 # 53. Maximum Subarray
 def maximum_subarray(nums):
@@ -59,9 +51,7 @@ def maximum_subarray(nums):
 
     return Stream(nums[1:]).reduce(step, identity=(nums[0], nums[0])).map(lambda state: state[1]).get()
 
-
 # maximum_subarray([-2, 1, -3, 4, -1, 2, 1, -5, 4]) => 6
-
 
 # 121. Best Time to Buy and Sell Stock
 def best_time_to_buy_and_sell_stock(prices):
@@ -71,9 +61,7 @@ def best_time_to_buy_and_sell_stock(prices):
 
     return Stream(prices).reduce(step, identity=(prices[0], 0)).map(lambda state: state[1]).get()
 
-
 # best_time_to_buy_and_sell_stock([7, 1, 5, 3, 6, 4]) => 5
-
 
 # 118. Pascal's Triangle
 def pascals_triangle(num_rows):
@@ -83,9 +71,7 @@ def pascals_triangle(num_rows):
 
     return Stream.iterate([1], next_row).limit(num_rows).to_list()
 
-
 # pascals_triangle(5) => [[1], [1, 1], [1, 2, 1], [1, 3, 3, 1], [1, 4, 6, 4, 1]]
-
 
 # 62. Unique Paths
 def unique_paths(m, n):
@@ -95,6 +81,5 @@ def unique_paths(m, n):
         .map(lambda x: x[-1])
         .get()
     )
-
 
 # unique_paths(3, 7) => 28

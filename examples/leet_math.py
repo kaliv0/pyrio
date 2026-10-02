@@ -16,9 +16,7 @@ def fizz_buzz(n):
 
     return Stream.from_range(1, n + 1).map(label).to_list()
 
-
 # fizz_buzz(5) => ["1", "2", "Fizz", "4", "Buzz"]
-
 
 # 728. Self Dividing Numbers
 def self_dividing_numbers(left, right):
@@ -27,9 +25,7 @@ def self_dividing_numbers(left, right):
 
     return Stream.from_range(left, right + 1).filter(is_self_dividing).to_list()
 
-
 # self_dividing_numbers(1, 22) => [1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 15, 22]
-
 
 # 509. Fibonacci Number
 def fibonacci(n):
@@ -40,14 +36,11 @@ def fibonacci(n):
         .to_list()
     )
 
-
 # fibonacci(8) => [0, 1, 1, 2, 3, 5, 8, 13]
-
 
 # 1431. Kids With the Greatest Number of Candies
 def kids_with_greatest_candies(candies, extra):
     greatest = max(candies)
     return Stream(candies).map(lambda count: count + extra >= greatest).to_list()
-
 
 # kids_with_greatest_candies([2, 3, 5, 1, 3], 3) => [True, True, True, False, True]

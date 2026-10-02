@@ -115,18 +115,11 @@ class FileStream(BaseStream):
         obj = super().__new__(cls)
         if file_path is None:
             raise NoneTypeError("File path cannot be None")
-        file_handler = None
-        try:
-            file_handler, iterable = cls._read_file(file_path, f_open, f_read, **kwargs)
-            super(cls, obj).__init__(iterable)
-            obj._file_path = file_path
-            obj._file_handler = file_handler
-            obj.on_close(lambda: obj._file_handler.close() if not obj._file_handler.closed else None)
-            return obj
-        except Exception:
-            if file_handler is not None and not file_handler.closed:
-                file_handler.close()
-            raise
+
+        iterable = cls._read_file(file_path, f_open, f_read, **kwargs)
+        super(cls, obj).__init__(iterable)
+        obj._file_path = file_path
+        return obj
 
     @classmethod
     def process(cls, file_path, *, f_open=None, f_read=None, **kwargs):
@@ -158,8 +151,7 @@ class FileStream(BaseStream):
                 (f_read, "delimiter", DSV_CONFIG[path.suffix]["delimiter"]),
             ]
         )
-        file_handler = open(path, **f_open)
-        return file_handler, tuple(csv.DictReader(file_handler, **f_read))
+        return cls._load_data(path, f_open, lambda f: tuple(csv.DictReader(f, **f_read)))
 
     @classmethod
     def _read_mapping(cls, path, f_open, f_read, **kwargs):
@@ -169,18 +161,24 @@ class FileStream(BaseStream):
         cls._prepare_io_options([(f_open, "mode", config["read_mode"])])
         extra = {k: kwargs[k] for k in config.get("extra_keys", ()) if k in kwargs}
 
-        file_handler = open(path, **f_open)
-        data = load(file_handler, **f_read, **extra)
+        def _mapping_loader(f):
+            data = load(f, **f_read, **extra)
+            if config.get("wrap_scalars") and not isinstance(data, (Mapping, list, tuple)):
+                # make plain values iterable
+                return (data,)
+            return data
 
-        if config.get("wrap_scalars") and not isinstance(data, (Mapping, list, tuple)):
-            # make plain values iterable
-            data = (data,)
-        return file_handler, data
+        return cls._load_data(path, f_open, _mapping_loader)
+
+    @classmethod
+    def _read_plain(cls, path, f_open):
+        return cls._load_data(path, f_open, tuple)
 
     @staticmethod
-    def _read_plain(path, f_open):
-        file_handler = open(path, **f_open)
-        return file_handler, (line for line in file_handler)
+    def _load_data(path, f_open, loader):
+        with open(path, **f_open) as f:
+            data = loader(f)
+        return data
 
     # ### writing to file ###
     @terminal

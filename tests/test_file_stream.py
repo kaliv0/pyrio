@@ -186,7 +186,6 @@ def test_reusing_stream():
     result = stream.map(lambda x: f"{x.key}=>{x.value}").tail(1).to_tuple()
     assert result == ("qwerty=>42",)
     assert stream._is_consumed
-    assert stream._file_handler.closed
 
     with pytest.raises(IllegalStateError) as e:
         stream.map(lambda x: x.value * 10).to_list()
@@ -197,7 +196,6 @@ def test_save_marks_stream_consumed(tmp_file_dir):
     stream = FileStream(_input("flat", "foo", ".json"))
     stream.save(tmp_file_dir / "out.json")
     assert stream._is_consumed
-    assert stream._file_handler.closed
     with pytest.raises(IllegalStateError) as e:
         stream.to_list()
     assert str(e.value) == "Stream object already consumed"
@@ -212,30 +210,16 @@ def test_terminal_closes_even_on_error():
         stream.for_each(boom)
 
     assert stream._is_consumed
-    assert stream._file_handler.closed
     with pytest.raises(IllegalStateError):
         stream.to_list()
 
 
-def test_on_close_keeps_file_handler_closed():
+def test_on_close_user_handler_runs():
     called = []
     stream = FileStream(_input("flat", "foo", ".json"))
     stream.on_close(lambda: called.append(True)).to_list()
     assert called == [True]
-    assert stream._file_handler.closed
-
-
-def test_on_close_user_handler_runs_before_file_close():
-    # File closer is registered first; user handler stacks on top (LIFO → user runs first)
-    seen = []
-    stream = FileStream(_input("flat", "foo", ".json"))
-
-    def user_handler():
-        seen.append(stream._file_handler.closed)
-
-    stream.on_close(user_handler).to_list()
-    assert seen == [False]
-    assert stream._file_handler.closed
+    assert stream._is_consumed
 
 
 def test_concat():
@@ -390,7 +374,7 @@ def test_save_plain(tmp_file_dir):
         .save(tmp_file_path)
     )
     assert tmp_file_path.read_text() == (EXPECTED / "plain" / file_path).read_text()
-    assert fs._file_handler.closed
+    assert fs._is_consumed
 
 
 def test_save_raises():

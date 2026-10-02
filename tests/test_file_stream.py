@@ -618,6 +618,23 @@ def test_append_to_plain(tmp_file_dir, json_dict):
     assert tmp_file_path.read_text() == (EXPECTED / "plain" / file_path).read_text()
 
 
+def test_append_to_missing_destination_creates_file(tmp_file_dir):
+    src = str(INPUT / "plain" / "plain.txt")
+    dst = tmp_file_dir / "brand_new.txt"
+    assert not dst.exists()
+
+    (
+        FileStream(src)
+        .map(lambda line: line.strip())
+        .filter(lambda line: "x" in line)
+        .save(dst, f_open={"mode": "a"})
+    )
+
+    assert dst.exists()
+    expected = FileStream(src).map(lambda line: line.strip()).filter(lambda line: "x" in line).to_string("\n")
+    assert dst.read_text() == expected
+
+
 def test_plain_text_header_footer(tmp_file_dir):
     file_path = "foo.txt"
     tmp_file_path = tmp_file_dir / file_path

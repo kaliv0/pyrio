@@ -302,7 +302,7 @@ class FileStream(BaseStream):
     @contextmanager
     def _atomic_write(self, path, tmp_path, f_open):
         try:
-            if f_open["mode"] == "a":
+            if f_open["mode"] == "a" and path.exists():
                 tmp_path = shutil.copyfile(path, tmp_path)
 
             with open(tmp_path, **f_open) as f:

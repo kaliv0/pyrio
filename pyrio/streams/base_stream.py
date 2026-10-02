@@ -327,7 +327,7 @@ class BaseStream:
     @terminal
     def to_string(self, delimiter=", "):
         """Concatenates the elements of the Stream, separated by the specified delimiter"""
-        return self._join(delimiter)
+        return delimiter.join(str(i) for i in self.iterable)
 
     @terminal
     def grouped_by(self, classifier=None, collector=None):
@@ -381,7 +381,4 @@ class BaseStream:
 
     # ### let's look nice ###
     def __repr__(self):
-        return f"{self.__class__.__name__}.of({self._join()})"
-
-    def _join(self, delimiter=", "):
-        return delimiter.join(str(i) for i in self.iterable)
+        return f"{self.__class__.__name__}.of(<iterable>)"

@@ -222,6 +222,33 @@ def test_on_close_user_handler_runs(Flag):
     assert stream._is_consumed
 
 
+def test_file_stream_repr_path_and_count():
+    path = _input("flat", "foo", ".json")
+    assert repr(FileStream(path)) == f"FileStream.of({path!r}, 2 elements)"
+
+
+def test_file_stream_repr_empty_file():
+    path = _input("options", "empty", ".json")
+    assert repr(FileStream(path)) == f"FileStream.of({path!r}, 0 elements)"
+
+
+def test_file_stream_repr_without_count_when_unsized():
+    path = _input("flat", "foo", ".json")
+    assert repr(FileStream(path).map(lambda x: x.key)) == f"FileStream.of({path!r})"
+
+
+def test_file_stream_repr_does_not_consume(Flag):
+    flag = Flag()
+    path = _input("flat", "foo", ".json")
+    stream = FileStream(path).on_close(flag.flip)
+
+    assert repr(stream) == f"FileStream.of({path!r}, 2 elements)"
+    assert stream._is_consumed is False
+    assert flag.value is False
+    assert stream.map(lambda x: x.key).to_list() == ["abc", "qwerty"]
+    assert flag.value is True
+
+
 def test_concat():
     assert (
         FileStream(_input("nested", "long", ".json"))

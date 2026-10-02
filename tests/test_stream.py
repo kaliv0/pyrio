@@ -1069,6 +1069,33 @@ def test_repr_does_not_consume_stream(Flag):
     assert flag.value is True
 
 
+def test_repr_truncates_long_stream():
+    assert repr(Stream.of(0, 1, 2, 3, 4, 5)) == "Stream.of(0, 1, 2, 3, 4, ...)"
+
+
+def test_repr_no_ellipsis_at_max_items():
+    assert repr(Stream.of(0, 1, 2, 3, 4)) == "Stream.of(0, 1, 2, 3, 4)"
+
+
+def test_repr_empty_stream():
+    assert repr(Stream.empty()) == "Stream.of()"
+
+
+def test_repr_unsized_iterable_falls_back_to_base():
+    assert repr(Stream(i for i in range(3))) == "Stream.of(<iterable>)"
+
+
+def test_repr_truncation_does_not_consume_stream(Flag):
+    flag = Flag()
+    stream = Stream.of(*range(10)).on_close(flag.flip)
+
+    assert repr(stream) == "Stream.of(0, 1, 2, 3, 4, ...)"
+    assert stream._is_consumed is False
+    assert flag.value is False
+    assert stream.to_list() == list(range(10))
+    assert flag.value is True
+
+
 # ### nested streams ###
 def test_nested_json_from_string(nested_json):
     assert (

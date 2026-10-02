@@ -311,3 +311,13 @@ class FileStream(BaseStream):
         except (IOError, Exception) as e:
             tmp_path.unlink(missing_ok=True)
             raise e
+
+    def __repr__(self):
+        try:
+            n = len(self.iterable)
+        except TypeError:
+            count = ""
+        else:
+            count = f", {n} elements"
+
+        return f"{self.__class__.__name__}.of({self._file_path!r}{count})"

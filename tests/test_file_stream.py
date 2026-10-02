@@ -217,6 +217,27 @@ def test_terminal_closes_even_on_error():
         stream.to_list()
 
 
+def test_on_close_keeps_file_handler_closed():
+    called = []
+    stream = FileStream(_input("flat", "foo", ".json"))
+    stream.on_close(lambda: called.append(True)).to_list()
+    assert called == [True]
+    assert stream._file_handler.closed
+
+
+def test_on_close_user_handler_runs_before_file_close():
+    # File closer is registered first; user handler stacks on top (LIFO → user runs first)
+    seen = []
+    stream = FileStream(_input("flat", "foo", ".json"))
+
+    def user_handler():
+        seen.append(stream._file_handler.closed)
+
+    stream.on_close(user_handler).to_list()
+    assert seen == [False]
+    assert stream._file_handler.closed
+
+
 def test_concat():
     assert (
         FileStream(_input("nested", "long", ".json"))

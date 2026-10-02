@@ -121,9 +121,7 @@ class FileStream(BaseStream):
             super(cls, obj).__init__(iterable)
             obj._file_path = file_path
             obj._file_handler = file_handler
-            obj._on_close_handler = lambda: (
-                obj._file_handler.close() if not obj._file_handler.closed else None
-            )
+            obj.on_close(lambda: obj._file_handler.close() if not obj._file_handler.closed else None)
             return obj
         except Exception:
             if file_handler is not None and not file_handler.closed:
@@ -276,7 +274,7 @@ class FileStream(BaseStream):
             output = f"{header}{output}{footer}"
 
         with self._atomic_write(path, tmp_path, f_open) as f:  # noqa
-            f.writelines(output)
+            f.write(output)
 
     # ### helpers ###
     @staticmethod

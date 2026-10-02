@@ -659,7 +659,49 @@ def test_cleanup_callback_on_close():
     stream = Stream([1, 2, 3, 4])
     stream.on_close(lambda: print("foo bar")).map(lambda x: x * 2).to_list()
     assert stream._is_consumed
-    assert stream._on_close_handler is None
+    assert stream._on_close_handlers == []
+
+
+def test_on_close_handlers_run_lifo():
+    order = []
+    (Stream.of(1).on_close(lambda: order.append("first")).on_close(lambda: order.append("second")).to_list())
+    assert order == ["second", "first"]
+
+
+def test_on_close_runs_remaining_handlers_when_one_raises():
+    order = []
+
+    def older():
+        order.append("older")
+
+    def newer():
+        order.append("newer")
+        raise ValueError("boom")
+
+    stream = Stream.of(1).on_close(older).on_close(newer)
+    with pytest.raises(ValueError, match="boom"):
+        stream.to_list()
+
+    assert order == ["newer", "older"]
+    assert stream._is_consumed
+
+
+def test_on_close_exception_group_when_multiple_handlers_raise():
+    def older():
+        raise ValueError("older")
+
+    def newer():
+        raise RuntimeError("newer")
+
+    stream = Stream.of(1).on_close(older).on_close(newer)
+    with pytest.raises(ExceptionGroup) as exc_info:
+        stream.to_list()
+
+    errors = exc_info.value.exceptions
+    assert len(errors) == 2
+    assert isinstance(errors[0], RuntimeError) and str(errors[0]) == "newer"
+    assert isinstance(errors[1], ValueError) and str(errors[1]) == "older"
+    assert stream._is_consumed
 
 
 def test_terminal_closes_even_on_error():

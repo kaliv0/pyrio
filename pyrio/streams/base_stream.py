@@ -15,7 +15,7 @@ class BaseStream:
             raise NoneTypeError("Cannot create Stream from None")
         self._iterable = iterable
         self._is_consumed = False
-        self._on_close_handler = None
+        self._on_close_handlers = []
 
     def __iter__(self):
         return iter(self.iterable)
@@ -352,23 +352,32 @@ class BaseStream:
         """Count how many of the elements are Truthy or evaluate to True based on a given predicate"""
         return sum(self.map(predicate))
 
-    def close(self):
-        """Closes the stream, causing the provided close handler to be called"""
-        if self._is_consumed:
-            return
-
-        if self._on_close_handler:
-            self._on_close_handler()
-        self._is_consumed = True
-        self._on_close_handler = None
-
     def on_close(self, handler):
-        """Returns an equivalent stream with an additional close handler"""
+        """Returns an equivalent stream with additional close handlers"""
         if not callable(handler):
             # since handler is called after stream result is materialized - check early on to avoid expensive computation
             raise TypeError(f"'{handler}' is not callable")
-        self._on_close_handler = handler
+        self._on_close_handlers.append(handler)
         return self
+
+    def close(self):
+        """Closes the stream, causing the provided close handlers to be called LIFO"""
+        if self._is_consumed:
+            return
+
+        errors = []
+        while self._on_close_handlers:
+            handler = self._on_close_handlers.pop()
+            try:
+                handler()
+            except Exception as e:
+                errors.append(e)
+        self._is_consumed = True
+
+        if len(errors) == 1:
+            raise errors[0]
+        if len(errors) > 1:
+            raise ExceptionGroup("on_close handlers failed", errors)
 
     # ### let's look nice ###
     def __repr__(self):

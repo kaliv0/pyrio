@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 
-from pyrio.decorators import handle_consumed, pre_call, terminal
+from pyrio.decorators import handle_consumed, pre_call, raise_if_consumed, terminal
 from pyrio.exceptions import IllegalStateError, NoneTypeError, UnsupportedTypeError
 from pyrio.iterators import StreamGenerator
 from pyrio.utils import DictItem, Optional
@@ -18,7 +18,15 @@ class BaseStream:
         self._on_close_handlers = []
 
     def __iter__(self):
-        return iter(self.iterable)
+        raise_if_consumed(self)
+
+        def gen():
+            try:
+                yield from self.iterable
+            finally:
+                self.close()
+
+        return gen()
 
     @property
     def iterable(self):

@@ -714,6 +714,26 @@ def test_terminal_closes_even_on_error(Flag):
         stream.to_list()
 
 
+def test_for_loop_runs_on_close(Flag):
+    flag = Flag()
+    stream = Stream.of(1, 2, 3).on_close(flag.flip)
+    assert flag.value is False
+
+    for _ in stream:
+        ...
+
+    assert flag.value is True
+    assert stream._is_consumed
+
+
+def test_for_loop_on_consumed_raises():
+    stream = Stream.of(1, 2, 3)
+    stream.to_list()
+    with pytest.raises(IllegalStateError):
+        for _ in stream:
+            ...
+
+
 def test_compare_with():
     assert Stream([1, 2]).compare_with(Stream([1, 2]))
     assert Stream([1, 2]).compare_with(Stream([2, 1])) is False

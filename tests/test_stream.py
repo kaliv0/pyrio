@@ -629,16 +629,11 @@ def test_stream_on_close_handler_is_not_callable():
     assert str(e.value) == "'foo' is not callable"
 
 
-def test_stream_on_close_callback_using_pointer_to_enclosing_scope():
-    flag = False
-
-    def flip():
-        nonlocal flag
-        flag = True
-
-    result = Stream([1, 2, 3, 4]).on_close(flip).map(lambda x: x * 2).to_list()
+def test_stream_on_close_callback_using_pointer_to_enclosing_scope(Flag):
+    flag = Flag()
+    result = Stream([1, 2, 3, 4]).on_close(flag.flip).map(lambda x: x * 2).to_list()
     assert result == [2, 4, 6, 8]
-    assert flag is True
+    assert flag.value is True
 
 
 def test_no_op_if_stream_alerady_closed():
@@ -704,21 +699,16 @@ def test_on_close_exception_group_when_multiple_handlers_raise():
     assert stream._is_consumed
 
 
-def test_terminal_closes_even_on_error():
-    flag = False
-
-    def flip():
-        nonlocal flag
-        flag = True
-
+def test_terminal_closes_even_on_error(Flag):
     def boom(_):
         raise ValueError("boom")
 
-    stream = Stream.of(1, 2, 3).on_close(flip)
+    flag = Flag()
+    stream = Stream.of(1, 2, 3).on_close(flag.flip)
     with pytest.raises(ValueError, match="boom"):
         stream.for_each(boom)
 
-    assert flag
+    assert flag.value is True
     assert stream._is_consumed
     with pytest.raises(IllegalStateError):
         stream.to_list()
@@ -1066,6 +1056,17 @@ def test_repr(nested_json):
         "DictItem(key='super_user', value=(DictItem(key='Name', value='sudo'), DictItem(key='Email', value='admin@sudo.su'), DictItem(key='Some Other Number', value='000-0011'))), "
         "DictItem(key='fraud', value=(DictItem(key='Name', value='Freud'), DictItem(key='Email', value='ziggy@psycho.au'))))"
     )
+
+
+def test_repr_does_not_consume_stream(Flag):
+    flag = Flag()
+    stream = Stream.of(1, 2, 3).on_close(flag.flip)
+
+    assert repr(stream) == "Stream.of(1, 2, 3)"
+    assert stream._is_consumed is False
+    assert flag.value is False
+    assert stream.to_list() == [1, 2, 3]
+    assert flag.value is True
 
 
 # ### nested streams ###

@@ -288,7 +288,7 @@ class FileStream(BaseStream):
         if file_path is None:
             file_path = self._file_path
         path = self._get_file_path(file_path, read_mode=False)
-        tmp_path = Path(TEMP_PATH.format(file_path=self._file_path))
+        tmp_path = Path(TEMP_PATH.format(file_path=path))
         if tmp_path.exists():
             # So sorry Montessori...
             tmp_path.unlink(missing_ok=True)

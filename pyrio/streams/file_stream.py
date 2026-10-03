@@ -177,8 +177,7 @@ class FileStream(BaseStream):
     @staticmethod
     def _load_data(path, f_open, loader):
         with open(path, **f_open) as f:
-            data = loader(f)
-        return data
+            return loader(f)
 
     # ### writing to file ###
     @terminal

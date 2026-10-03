@@ -4,7 +4,6 @@ import shutil
 from configparser import MissingSectionHeaderError
 from decimal import Decimal
 from json import JSONDecodeError
-from operator import attrgetter
 from pathlib import Path
 from tomllib import TOMLDecodeError
 from xml.parsers.expat import ExpatError
@@ -173,8 +172,8 @@ def test_complex_pipeline():
     assert (
         FileStream(_input("nested", "long", ".json"))
         .filter(lambda x: "a" in x.key)
-        .map(lambda x: DictItem(x.key, sum(x.value) * 10))
-        .sort(attrgetter("value"), reverse=True)
+        .map(lambda x: x.with_value(sum(x.value) * 10))
+        .sort(DictItem.value_of, reverse=True)
         .map(lambda x: f"{str(x.value)}::{x.key}")
     ).to_list() == ["230::xza", "110::abba", "30::a"]
 

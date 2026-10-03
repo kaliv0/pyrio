@@ -97,3 +97,57 @@ def test_dict_item_hash_unhashable_value_raises(value, expected_type):
     with pytest.raises(TypeError) as e:
         hash(DictItem(key="k", value=value))
     assert str(e.value) == f"unhashable type: 'DictItem' (value of type '{expected_type}' is unhashable)"
+
+
+def test_dict_item_unpack():
+    key, value = DictItem("a", 1)
+    assert key == "a"
+    assert value == 1
+
+
+def test_dict_item_unpack_mapped_nested_value():
+    key, value = DictItem("data", {"x": 1, "y": 2})
+    assert key == "data"
+    assert value == (DictItem("x", 1), DictItem("y", 2))
+
+
+def test_dict_item_match():
+    match DictItem("a", 1):
+        case DictItem(key=k, value=v):
+            assert k == "a"
+            assert v == 1
+        case _:
+            pytest.fail("DictItem did not match")
+
+
+def test_dict_item_with_key_and_value():
+    item = DictItem("a", 1)
+    assert item.with_key("b") == DictItem("b", 1)
+    assert item.with_value(2) == DictItem("a", 2)
+    assert item.with_key("b").with_value(None) == DictItem("b", None)
+    assert item == DictItem("a", 1)  # original stays unchanged
+
+
+def test_dict_item_entries():
+    item = DictItem("user", {"Name": "Ada", "id": 1})
+    assert item.entries().map(lambda x: x.key).to_list() == ["Name", "id"]
+    assert item.entries().to_dict() == {"Name": "Ada", "id": 1}
+
+
+def test_dict_item_entries_requires_mapping():
+    with pytest.raises(TypeError) as e:
+        DictItem("a", [1, 2]).entries()
+    assert str(e.value) == "entries() expects a mapping value, got 'list' instead"
+
+
+def test_dict_item_key_of_value_of():
+    item = DictItem("a", 1)
+    assert DictItem.key_of(item) == "a"
+    assert DictItem.value_of(item) == 1
+
+
+def test_dict_item_replace_null():
+    handler = DictItem.replace_null("N/A")
+    assert handler(DictItem("a", None)) == DictItem("a", "N/A")
+    assert handler(DictItem("b", 0)) == DictItem("b", 0)
+    assert handler(DictItem("c", "")) == DictItem("c", "")

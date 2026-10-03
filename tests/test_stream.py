@@ -543,6 +543,15 @@ def test_sort_multiple_keys():
     ]
 
 
+def test_sort_dict_item_key_of_value_of():
+    data = {"c": 1, "a": 3, "b": 2}
+    assert (Stream(data).sort(DictItem.value_of, reverse=True).map(DictItem.key_of).to_list()) == [
+        "a",
+        "b",
+        "c",
+    ]
+
+
 def test_sort_comparator_and_reverse():
     assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sort(
         itemgetter(1), reverse=True

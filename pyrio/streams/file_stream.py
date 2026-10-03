@@ -69,7 +69,7 @@ MAPPING_WRITE_CONFIG = AliasDict(
             "import_mod": "tomli_w",
             "callable": "dump",
             "write_mode": "wb",
-            "default_null_handler": lambda x: DictItem(x.key, "N/A") if x.value is None else x,
+            "default_null_handler": DictItem.replace_null("N/A"),
         },
         ".json": {
             "import_mod": "json",

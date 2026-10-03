@@ -698,6 +698,38 @@ def test_read_empty_mapping(suffix):
     assert FileStream(_input("options", "empty", suffix)).to_list() == []
 
 
+@pytest.mark.parametrize("suffix", [".json", ".yaml"])
+def test_read_top_level_array(suffix):
+    rows = FileStream(_input("options", "array", suffix)).to_list()
+    assert rows == [
+        {"name": "Ada", "id": 1},
+        {"name": "Grace", "id": 2},
+    ]
+    assert all(isinstance(row, dict) for row in rows)
+
+
+@pytest.mark.parametrize("suffix", [".json", ".yaml"])
+def test_top_level_array_query(suffix):
+    assert FileStream(_input("options", "array", suffix)).map(lambda row: row["name"]).to_list() == [
+        "Ada",
+        "Grace",
+    ]
+
+
+@pytest.mark.parametrize("suffix", [".json", ".yaml"])
+def test_read_empty_top_level_array(suffix):
+    assert FileStream(_input("options", "empty_array", suffix)).to_list() == []
+
+
+@pytest.mark.parametrize("suffix", [".json", ".yaml"])
+def test_top_level_array_round_trip(tmp_file_dir, suffix):
+    src = _input("options", "array", suffix)
+    out = tmp_file_dir / f"array_out{suffix}"
+    FileStream(src).save(out, materialize="list")
+
+    assert FileStream(out).to_list() == FileStream(src).to_list()
+
+
 def test_read_empty_xml_raises():
     with pytest.raises(NoneTypeError):
         FileStream(_input("options", "empty", ".xml")).to_list()

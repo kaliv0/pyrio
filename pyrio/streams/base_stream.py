@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 
-from pyrio.decorators import handle_consumed, pre_call, terminal
+from pyrio.decorators import handle_consumed, pre_call, raise_if_consumed, terminal
 from pyrio.exceptions import IllegalStateError, NoneTypeError, UnsupportedTypeError
 from pyrio.iterators import StreamGenerator
 from pyrio.utils import DictItem, Optional
@@ -15,10 +15,18 @@ class BaseStream:
             raise NoneTypeError("Cannot create Stream from None")
         self._iterable = iterable
         self._is_consumed = False
-        self._on_close_handler = None
+        self._on_close_handlers = []
 
     def __iter__(self):
-        return iter(self.iterable)
+        raise_if_consumed(self)
+
+        def gen():
+            try:
+                yield from self.iterable
+            finally:
+                self.close()
+
+        return gen()
 
     @property
     def iterable(self):
@@ -327,7 +335,7 @@ class BaseStream:
     @terminal
     def to_string(self, delimiter=", "):
         """Concatenates the elements of the Stream, separated by the specified delimiter"""
-        return self._join(delimiter)
+        return delimiter.join(str(i) for i in self.iterable)
 
     @terminal
     def grouped_by(self, classifier=None, collector=None):
@@ -352,27 +360,33 @@ class BaseStream:
         """Count how many of the elements are Truthy or evaluate to True based on a given predicate"""
         return sum(self.map(predicate))
 
-    def close(self):
-        """Closes the stream, causing the provided close handler to be called"""
-        if self._is_consumed:
-            return
-
-        if self._on_close_handler:
-            self._on_close_handler()
-        self._is_consumed = True
-        self._on_close_handler = None
-
     def on_close(self, handler):
-        """Returns an equivalent stream with an additional close handler"""
+        """Returns an equivalent stream with additional close handlers"""
         if not callable(handler):
             # since handler is called after stream result is materialized - check early on to avoid expensive computation
             raise TypeError(f"'{handler}' is not callable")
-        self._on_close_handler = handler
+        self._on_close_handlers.append(handler)
         return self
+
+    def close(self):
+        """Closes the stream, causing the provided close handlers to be called LIFO"""
+        if self._is_consumed:
+            return
+
+        errors = []
+        while self._on_close_handlers:
+            handler = self._on_close_handlers.pop()
+            try:
+                handler()
+            except Exception as e:
+                errors.append(e)
+        self._is_consumed = True
+
+        if len(errors) == 1:
+            raise errors[0]
+        if len(errors) > 1:
+            raise ExceptionGroup("on_close handlers failed", errors)
 
     # ### let's look nice ###
     def __repr__(self):
-        return f"{self.__class__.__name__}.of({self._join()})"
-
-    def _join(self, delimiter=", "):
-        return delimiter.join(str(i) for i in self.iterable)
+        return f"{self.__class__.__name__}.of(<iterable>)"

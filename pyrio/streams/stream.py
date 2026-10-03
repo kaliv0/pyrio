@@ -1,3 +1,5 @@
+import itertools
+
 from pyrio.iterators import ItertoolsMixin, StreamGenerator
 from pyrio.streams import BaseStream
 
@@ -41,3 +43,16 @@ class Stream(BaseStream, ItertoolsMixin):
     def from_range(cls, start, stop, step=1):
         """Creates Stream from start (inclusive) to stop (exclusive) by an incremental step"""
         return cls(StreamGenerator.range(start, stop, step))
+
+    def __repr__(self):
+        _REPR_MAX_ITEMS = 5
+
+        items = self.iterable
+        try:
+            n = len(items)
+        except TypeError:
+            # don't walk generators
+            return super().__repr__()
+
+        preview = ", ".join(str(i) for i in itertools.islice(items, _REPR_MAX_ITEMS))
+        return f"{self.__class__.__name__}.of({f'{preview}, ...' if n > _REPR_MAX_ITEMS else preview})"

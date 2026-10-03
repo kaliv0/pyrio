@@ -543,6 +543,15 @@ def test_sort_multiple_keys():
     ]
 
 
+def test_sort_dict_item_key_of_value_of():
+    data = {"c": 1, "a": 3, "b": 2}
+    assert (Stream(data).sort(DictItem.value_of, reverse=True).map(DictItem.key_of).to_list()) == [
+        "a",
+        "b",
+        "c",
+    ]
+
+
 def test_sort_comparator_and_reverse():
     assert Stream.of(3, 5, 2, 1).map(lambda x: (str(x), x * 10)).sort(
         itemgetter(1), reverse=True
@@ -629,16 +638,11 @@ def test_stream_on_close_handler_is_not_callable():
     assert str(e.value) == "'foo' is not callable"
 
 
-def test_stream_on_close_callback_using_pointer_to_enclosing_scope():
-    flag = False
-
-    def flip():
-        nonlocal flag
-        flag = True
-
-    result = Stream([1, 2, 3, 4]).on_close(flip).map(lambda x: x * 2).to_list()
+def test_stream_on_close_callback_using_pointer_to_enclosing_scope(Flag):
+    flag = Flag()
+    result = Stream([1, 2, 3, 4]).on_close(flag.flip).map(lambda x: x * 2).to_list()
     assert result == [2, 4, 6, 8]
-    assert flag is True
+    assert flag.value is True
 
 
 def test_no_op_if_stream_alerady_closed():
@@ -659,27 +663,84 @@ def test_cleanup_callback_on_close():
     stream = Stream([1, 2, 3, 4])
     stream.on_close(lambda: print("foo bar")).map(lambda x: x * 2).to_list()
     assert stream._is_consumed
-    assert stream._on_close_handler is None
+    assert stream._on_close_handlers == []
 
 
-def test_terminal_closes_even_on_error():
-    flag = False
+def test_on_close_handlers_run_lifo():
+    order = []
+    (Stream.of(1).on_close(lambda: order.append("first")).on_close(lambda: order.append("second")).to_list())
+    assert order == ["second", "first"]
 
-    def flip():
-        nonlocal flag
-        flag = True
 
+def test_on_close_runs_remaining_handlers_when_one_raises():
+    order = []
+
+    def older():
+        order.append("older")
+
+    def newer():
+        order.append("newer")
+        raise ValueError("boom")
+
+    stream = Stream.of(1).on_close(older).on_close(newer)
+    with pytest.raises(ValueError, match="boom"):
+        stream.to_list()
+
+    assert order == ["newer", "older"]
+    assert stream._is_consumed
+
+
+def test_on_close_exception_group_when_multiple_handlers_raise():
+    def older():
+        raise ValueError("older")
+
+    def newer():
+        raise RuntimeError("newer")
+
+    stream = Stream.of(1).on_close(older).on_close(newer)
+    with pytest.raises(ExceptionGroup) as exc_info:
+        stream.to_list()
+
+    errors = exc_info.value.exceptions
+    assert len(errors) == 2
+    assert isinstance(errors[0], RuntimeError) and str(errors[0]) == "newer"
+    assert isinstance(errors[1], ValueError) and str(errors[1]) == "older"
+    assert stream._is_consumed
+
+
+def test_terminal_closes_even_on_error(Flag):
     def boom(_):
         raise ValueError("boom")
 
-    stream = Stream.of(1, 2, 3).on_close(flip)
+    flag = Flag()
+    stream = Stream.of(1, 2, 3).on_close(flag.flip)
     with pytest.raises(ValueError, match="boom"):
         stream.for_each(boom)
 
-    assert flag
+    assert flag.value is True
     assert stream._is_consumed
     with pytest.raises(IllegalStateError):
         stream.to_list()
+
+
+def test_for_loop_runs_on_close(Flag):
+    flag = Flag()
+    stream = Stream.of(1, 2, 3).on_close(flag.flip)
+    assert flag.value is False
+
+    for _ in stream:
+        ...
+
+    assert flag.value is True
+    assert stream._is_consumed
+
+
+def test_for_loop_on_consumed_raises():
+    stream = Stream.of(1, 2, 3)
+    stream.to_list()
+    with pytest.raises(IllegalStateError):
+        for _ in stream:
+            ...
 
 
 def test_compare_with():
@@ -1024,6 +1085,44 @@ def test_repr(nested_json):
         "DictItem(key='super_user', value=(DictItem(key='Name', value='sudo'), DictItem(key='Email', value='admin@sudo.su'), DictItem(key='Some Other Number', value='000-0011'))), "
         "DictItem(key='fraud', value=(DictItem(key='Name', value='Freud'), DictItem(key='Email', value='ziggy@psycho.au'))))"
     )
+
+
+def test_repr_does_not_consume_stream(Flag):
+    flag = Flag()
+    stream = Stream.of(1, 2, 3).on_close(flag.flip)
+
+    assert repr(stream) == "Stream.of(1, 2, 3)"
+    assert stream._is_consumed is False
+    assert flag.value is False
+    assert stream.to_list() == [1, 2, 3]
+    assert flag.value is True
+
+
+def test_repr_truncates_long_stream():
+    assert repr(Stream.of(0, 1, 2, 3, 4, 5)) == "Stream.of(0, 1, 2, 3, 4, ...)"
+
+
+def test_repr_no_ellipsis_at_max_items():
+    assert repr(Stream.of(0, 1, 2, 3, 4)) == "Stream.of(0, 1, 2, 3, 4)"
+
+
+def test_repr_empty_stream():
+    assert repr(Stream.empty()) == "Stream.of()"
+
+
+def test_repr_unsized_iterable_falls_back_to_base():
+    assert repr(Stream(i for i in range(3))) == "Stream.of(<iterable>)"
+
+
+def test_repr_truncation_does_not_consume_stream(Flag):
+    flag = Flag()
+    stream = Stream.of(*range(10)).on_close(flag.flip)
+
+    assert repr(stream) == "Stream.of(0, 1, 2, 3, 4, ...)"
+    assert stream._is_consumed is False
+    assert flag.value is False
+    assert stream.to_list() == list(range(10))
+    assert flag.value is True
 
 
 # ### nested streams ###

@@ -92,8 +92,8 @@ Stream.of(3, 4, 5).prepend(Stream.of([0, 1], 2)).to_list()
 ```
 
 NB: creating new stream from None raises error.
-<br>In cases when the <i>iterable</i> could potentially be None use the <i>of_nullable()</i> method instead;
-<br>it returns an <i>empty stream</i> if None and a <i>regular</i> one otherwise
+<br>In cases when the <i>iterable</i> could potentially be None use the <i>of_nullable()</i> method instead,
+<br>since it returns an <i>empty stream</i> if None and a <i>regular</i> one otherwise
 
 ---
 
@@ -219,8 +219,8 @@ Stream.of(1, 2, 3, 5, 6, 7, 2).drop_while(lambda x: x < 5).to_list()
 ```
 
 - sort
-  <br>(sorts the elements of the current stream according to natural order or based on the given comparator;
-  <br>if 'reverse' flag is True, the elements are sorted in descending order)
+  <br>(sorts the elements of the current stream according to natural order or based on the given comparator,
+  <br>and if 'reverse' flag is True, the elements are sorted in descending order)
 
 ```python
 (Stream.of((3, 30), (2, 30), (2, 20), (1, 20), (1, 10))
@@ -230,7 +230,7 @@ Stream.of(1, 2, 3, 5, 6, 7, 2).drop_while(lambda x: x < 5).to_list()
 ```
 
 - reverse
-  <br>(sorts the elements of the current stream in reverse order;
+  <br>(sorts the elements of the current stream in reverse order,
   <br>alias for <i>'sort(collector, reverse=True)'</i>)
 
 ```python
@@ -240,16 +240,17 @@ Stream.of(1, 2, 3, 5, 6, 7, 2).drop_while(lambda x: x < 5).to_list()
 # [(3, 30), (2, 30), (2, 20), (1, 20), (1, 10)]
 ```
 
-<br>NB: in case of stream of dicts all key-value pairs are represented internally as <i>DictItem</i> objects
-<br>(including recursively for nested Mapping structures)
-<br>to provide more convenient intermediate operations syntax e.g.
+<br>NB: when the stream source is a mapping, each entry is a <i>DictItem</i>
+<br>with <i>.key</i> / <i>.value</i> (nested mappings are exposed as tuples of DictItems via <i>.value</i>).
+<br>DictItem supports unpacking (<i>key, value = item</i>), <i>with_key</i>/<i>with_value</i>,
+<br><i>entries()</i> for nested mappings, <i>key_of</i>/<i>value_of</i> for sort/map (convenient alias for <i>lambda x: x.value</i>), and <i>replace_null</i>.
 
 ```python
 first_dict = {"a": 1, "b": 2}
 second_dict = {"x": 3, "y": 4}
 (Stream(first_dict).concat(second_dict)
     .filter(lambda x: x.value % 2 == 0)
-    .map(lambda x: x.key)
+    .map(DictItem.key_of)
     .to_list())
 ```
 
@@ -305,7 +306,7 @@ Stream(collection).to_dict(collector=lambda x: (x.name, x.num), merger=lambda ol
 ```python
 first_dict = {"x": 1, "y": 2}
 second_dict = {"p": 33, "q": 44, "r": None}
-Stream(first_dict).concat(Stream(second_dict)).to_dict(lambda x: DictItem(x.key, x.value or 0))
+Stream(first_dict).concat(Stream(second_dict)).to_dict(DictItem.replace_null(0))
 # {"x": 1, "y": 2, "p": 33, "q": 44, "r": 0}
 ```
 
@@ -506,7 +507,8 @@ Stream(["ABC", "D", "EF"]).round_robin().to_list()
 #### Querying files
 
 - working with <i>json</i>, <i>toml</i>, <i>yaml</i>/<i>yml</i>, <i>xml</i>, <i>ini</i>/<i>cfg</i>, <i>pickle</i>/<i>pkl</i> files
-  <br>NB: FileStream reads data as series of DictItem objects from underlying dict_items view
+  <br>NB: a <b>mapping root</b> (JSON/YAML object, etc.) is a stream of <i>DictItem</i> entries,
+  <br>and a <b>sequence root</b> (JSON/YAML array) is a stream of plain elements (often dict records).
   <br><i>json</i>/<i>yaml</i>/<i>pickle</i> scalar roots are wrapped as a one-element stream
 
 ```python
@@ -515,13 +517,10 @@ FileStream("path/to/file").map(lambda x: f"{x.key}=>{x.value}").to_tuple()
 ```
 
 ```python
-from operator import attrgetter
-from pyrio import DictItem
-
 (FileStream("path/to/file")
  .filter(lambda x: "a" in x.key)
- .map(lambda x: DictItem(x.key, sum(x.value) * 10))
- .sort(attrgetter("value"), reverse=True)
+ .map(lambda x: x.with_value(sum(x.value) * 10))
+ .sort(DictItem.value_of, reverse=True)
  .map(lambda x: f"{str(x.value)}::{x.key}")
  .to_list())
 # ["230::xza", "110::abba", "30::a"]
@@ -542,12 +541,17 @@ FileStream("path/to/file").map(itemgetter('fizz')).to_list()
 # ['42', 'aaa']
 ```
 
-You could query the nested dicts by creating streams out of them
+You could query nested mappings via <i>entries()</i> (or <i>Stream(x.value)</i>)
 
 ```python
-(FileStream("path/to/file")
-    .map(lambda x: (Stream(x).to_dict(lambda y: DictItem(y.key, y.value or "Unknown"))))
-    .save())
+# file.json → {"user": {"Name": "Ada", "id": 1}, "admin": {"Name": "Grace", "id": 2}}
+
+(FileStream("path/to/file.json")
+    .filter(lambda x: x.key == "user")
+    .flat_map(lambda x: x.entries())  # stream of nested DictItems
+    .map(lambda y: f"{y.key}={y.value}")
+    .to_list())
+# ["Name=Ada", "id=1"]
 ```
 
 - reading <i>plain text</i> (if the file doesn't have one of the aforementioned extensions)
@@ -612,10 +616,11 @@ NB: if while updating the file something goes wrong, the original content will b
   <br>(pass <i>null_handler</i> function to replace null values)
 
 ```python
-FileStream("path/to/test.toml").save(null_handler=lambda x: DictItem(x.key, x.value or "N/A"))
+FileStream("path/to/test.toml").save(null_handler=DictItem.replace_null("N/A"))
 ```
 
 NB: useful for writing <i>.toml</i> files which don't allow None values
+<br>(toml save() also applies this default when no <i>null_handler</i> is passed)
 
 - passing advanced <i>file open</i> and <i>write</i> options
   <br>similarly to the <i>process</i> method you could provide
@@ -724,7 +729,7 @@ FileStream("path/to/file.json").save("path/to/out.toml")
         )
         .map(lambda x: x.value)
     )
-    .map(lambda x: (Stream(x).to_dict(lambda y: DictItem(y.key, y.value or "N/A"))))
+    .map(lambda x: (Stream(x).to_dict(DictItem.replace_null("N/A"))))
     .save("path/to/third/file.tsv")
 )
 ```
@@ -754,15 +759,13 @@ def climbing_stairs(n: int) -> int:
 [347. Top K Frequent Elements](https://github.com/kaliv0/pyrio/tree/main/examples/leet_hash.py):
 
 ```python
-from operator import attrgetter
-
 def top_k_frequent(nums: list[int], k: int) -> set[int]:
     counts = Stream(nums).group_by(collector=lambda key, group: (key, len(group)))
     return (
         Stream(counts)
-        .sort(attrgetter("value"), reverse=True)
+        .sort(DictItem.value_of, reverse=True)
         .limit(k)
-        .map(attrgetter("key"))
+        .map(DictItem.key_of)
         .to_set()
     )
 

@@ -2,6 +2,18 @@ import pytest
 
 
 @pytest.fixture
+def Flag():
+    class Flag:
+        def __init__(self):
+            self.value = False
+
+        def flip(self):
+            self.value = not self.value
+
+    return Flag
+
+
+@pytest.fixture
 def Foo():
     class Foo:
         def __init__(self, name, num):

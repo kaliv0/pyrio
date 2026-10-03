@@ -69,7 +69,7 @@ MAPPING_WRITE_CONFIG = AliasDict(
             "import_mod": "tomli_w",
             "callable": "dump",
             "write_mode": "wb",
-            "default_null_handler": lambda x: DictItem(x.key, "N/A") if x.value is None else x,
+            "default_null_handler": DictItem.replace_null("N/A"),
         },
         ".json": {
             "import_mod": "json",
@@ -115,20 +115,11 @@ class FileStream(BaseStream):
         obj = super().__new__(cls)
         if file_path is None:
             raise NoneTypeError("File path cannot be None")
-        file_handler = None
-        try:
-            file_handler, iterable = cls._read_file(file_path, f_open, f_read, **kwargs)
-            super(cls, obj).__init__(iterable)
-            obj._file_path = file_path
-            obj._file_handler = file_handler
-            obj._on_close_handler = lambda: (
-                obj._file_handler.close() if not obj._file_handler.closed else None
-            )
-            return obj
-        except Exception:
-            if file_handler is not None and not file_handler.closed:
-                file_handler.close()
-            raise
+
+        iterable = cls._read_file(file_path, f_open, f_read, **kwargs)
+        super(cls, obj).__init__(iterable)
+        obj._file_path = file_path
+        return obj
 
     @classmethod
     def process(cls, file_path, *, f_open=None, f_read=None, **kwargs):
@@ -160,8 +151,7 @@ class FileStream(BaseStream):
                 (f_read, "delimiter", DSV_CONFIG[path.suffix]["delimiter"]),
             ]
         )
-        file_handler = open(path, **f_open)
-        return file_handler, tuple(csv.DictReader(file_handler, **f_read))
+        return cls._load_data(path, f_open, lambda f: tuple(csv.DictReader(f, **f_read)))
 
     @classmethod
     def _read_mapping(cls, path, f_open, f_read, **kwargs):
@@ -171,18 +161,23 @@ class FileStream(BaseStream):
         cls._prepare_io_options([(f_open, "mode", config["read_mode"])])
         extra = {k: kwargs[k] for k in config.get("extra_keys", ()) if k in kwargs}
 
-        file_handler = open(path, **f_open)
-        data = load(file_handler, **f_read, **extra)
+        def _mapping_loader(f):
+            data = load(f, **f_read, **extra)
+            if config.get("wrap_scalars") and not isinstance(data, (Mapping, list, tuple)):
+                # make plain values iterable
+                return (data,)
+            return data
 
-        if config.get("wrap_scalars") and not isinstance(data, (Mapping, list, tuple)):
-            # make plain values iterable
-            data = (data,)
-        return file_handler, data
+        return cls._load_data(path, f_open, _mapping_loader)
+
+    @classmethod
+    def _read_plain(cls, path, f_open):
+        return cls._load_data(path, f_open, tuple)
 
     @staticmethod
-    def _read_plain(path, f_open):
-        file_handler = open(path, **f_open)
-        return file_handler, (line for line in file_handler)
+    def _load_data(path, f_open, loader):
+        with open(path, **f_open) as f:
+            return loader(f)
 
     # ### writing to file ###
     @terminal
@@ -276,7 +271,7 @@ class FileStream(BaseStream):
             output = f"{header}{output}{footer}"
 
         with self._atomic_write(path, tmp_path, f_open) as f:  # noqa
-            f.writelines(output)
+            f.write(output)
 
     # ### helpers ###
     @staticmethod
@@ -292,7 +287,7 @@ class FileStream(BaseStream):
         if file_path is None:
             file_path = self._file_path
         path = self._get_file_path(file_path, read_mode=False)
-        tmp_path = Path(TEMP_PATH.format(file_path=self._file_path))
+        tmp_path = Path(TEMP_PATH.format(file_path=path))
         if tmp_path.exists():
             # So sorry Montessori...
             tmp_path.unlink(missing_ok=True)
@@ -306,7 +301,7 @@ class FileStream(BaseStream):
     @contextmanager
     def _atomic_write(self, path, tmp_path, f_open):
         try:
-            if f_open["mode"] == "a":
+            if f_open["mode"] == "a" and path.exists():
                 tmp_path = shutil.copyfile(path, tmp_path)
 
             with open(tmp_path, **f_open) as f:
@@ -315,3 +310,13 @@ class FileStream(BaseStream):
         except (IOError, Exception) as e:
             tmp_path.unlink(missing_ok=True)
             raise e
+
+    def __repr__(self):
+        try:
+            n = len(self.iterable)
+        except TypeError:
+            count = ""
+        else:
+            count = f", {n} elements"
+
+        return f"{self.__class__.__name__}.of({self._file_path!r}{count})"

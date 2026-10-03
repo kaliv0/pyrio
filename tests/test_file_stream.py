@@ -4,7 +4,6 @@ import shutil
 from configparser import MissingSectionHeaderError
 from decimal import Decimal
 from json import JSONDecodeError
-from operator import attrgetter
 from pathlib import Path
 from tomllib import TOMLDecodeError
 from xml.parsers.expat import ExpatError
@@ -173,8 +172,8 @@ def test_complex_pipeline():
     assert (
         FileStream(_input("nested", "long", ".json"))
         .filter(lambda x: "a" in x.key)
-        .map(lambda x: DictItem(x.key, sum(x.value) * 10))
-        .sort(attrgetter("value"), reverse=True)
+        .map(lambda x: x.with_value(sum(x.value) * 10))
+        .sort(DictItem.value_of, reverse=True)
         .map(lambda x: f"{str(x.value)}::{x.key}")
     ).to_list() == ["230::xza", "110::abba", "30::a"]
 
@@ -186,7 +185,6 @@ def test_reusing_stream():
     result = stream.map(lambda x: f"{x.key}=>{x.value}").tail(1).to_tuple()
     assert result == ("qwerty=>42",)
     assert stream._is_consumed
-    assert stream._file_handler.closed
 
     with pytest.raises(IllegalStateError) as e:
         stream.map(lambda x: x.value * 10).to_list()
@@ -197,7 +195,6 @@ def test_save_marks_stream_consumed(tmp_file_dir):
     stream = FileStream(_input("flat", "foo", ".json"))
     stream.save(tmp_file_dir / "out.json")
     assert stream._is_consumed
-    assert stream._file_handler.closed
     with pytest.raises(IllegalStateError) as e:
         stream.to_list()
     assert str(e.value) == "Stream object already consumed"
@@ -212,9 +209,43 @@ def test_terminal_closes_even_on_error():
         stream.for_each(boom)
 
     assert stream._is_consumed
-    assert stream._file_handler.closed
     with pytest.raises(IllegalStateError):
         stream.to_list()
+
+
+def test_on_close_user_handler_runs(Flag):
+    flag = Flag()
+    stream = FileStream(_input("flat", "foo", ".json"))
+    stream.on_close(flag.flip).to_list()
+    assert flag.value is True
+    assert stream._is_consumed
+
+
+def test_file_stream_repr_path_and_count():
+    path = _input("flat", "foo", ".json")
+    assert repr(FileStream(path)) == f"FileStream.of({path!r}, 2 elements)"
+
+
+def test_file_stream_repr_empty_file():
+    path = _input("options", "empty", ".json")
+    assert repr(FileStream(path)) == f"FileStream.of({path!r}, 0 elements)"
+
+
+def test_file_stream_repr_without_count_when_unsized():
+    path = _input("flat", "foo", ".json")
+    assert repr(FileStream(path).map(lambda x: x.key)) == f"FileStream.of({path!r})"
+
+
+def test_file_stream_repr_does_not_consume(Flag):
+    flag = Flag()
+    path = _input("flat", "foo", ".json")
+    stream = FileStream(path).on_close(flag.flip)
+
+    assert repr(stream) == f"FileStream.of({path!r}, 2 elements)"
+    assert stream._is_consumed is False
+    assert flag.value is False
+    assert stream.map(lambda x: x.key).to_list() == ["abc", "qwerty"]
+    assert flag.value is True
 
 
 def test_concat():
@@ -323,8 +354,10 @@ def test_save(tmp_file_dir, file_path, indent, json_dict):
 def test_save_handle_null(tmp_file_dir, file_path, indent, json_dict):
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
     tmp_file_path = tmp_file_dir / file_path
+
     f_write = {"indent": indent} if indent is not None else {}
     f_open = {} if file_path.endswith((".toml", ".ini")) else {"encoding": "utf-8"}
+
     FileStream(_input("nested", "nested", ".json")).prepend(in_memory_dict).save(
         tmp_file_path,
         f_open=f_open,
@@ -337,6 +370,7 @@ def test_save_handle_null(tmp_file_dir, file_path, indent, json_dict):
 def test_save_ini(tmp_file_dir, json_dict):
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
     tmp_file_path = tmp_file_dir / "test.ini"
+
     FileStream(_input("nested", "nested", ".json")).prepend(in_memory_dict).save(
         tmp_file_path,
         null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
@@ -347,7 +381,9 @@ def test_save_ini(tmp_file_dir, json_dict):
 def test_save_custom_xml_root(tmp_file_dir, json_dict):
     file_path = "custom_root.xml"
     tmp_file_path = tmp_file_dir / file_path
+
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
+
     FileStream(_input("nested", "nested", ".json")).prepend(in_memory_dict).save(
         tmp_file_path,
         f_write={"indent": 4},
@@ -360,6 +396,7 @@ def test_save_custom_xml_root(tmp_file_dir, json_dict):
 def test_save_plain(tmp_file_dir):
     file_path = "lorem.txt"
     tmp_file_path = tmp_file_dir / "lorem.txt"
+
     fs = FileStream(str(INPUT / "plain" / "plain.txt"))
     (
         fs.map(lambda line: line.strip())
@@ -369,7 +406,7 @@ def test_save_plain(tmp_file_dir):
         .save(tmp_file_path)
     )
     assert tmp_file_path.read_text() == (EXPECTED / "plain" / file_path).read_text()
-    assert fs._file_handler.closed
+    assert fs._is_consumed
 
 
 def test_save_raises():
@@ -378,7 +415,7 @@ def test_save_raises():
     assert str(e.value) == "'utf-8' codec can't decode byte 0xff in position 45: invalid start byte"
 
 
-def test_update_plain(tmp_file_dir, json_dict):
+def test_update_plain(tmp_file_dir):
     file_path = "lorem.txt"
     tmp_file_path = tmp_file_dir / file_path
     shutil.copyfile(INPUT / "plain" / "plain.txt", tmp_file_path)
@@ -393,7 +430,7 @@ def test_update_plain(tmp_file_dir, json_dict):
     assert tmp_file_path.read_text() == (EXPECTED / "plain" / file_path).read_text()
 
 
-def test_update_file(tmp_file_dir, json_dict):
+def test_update_file(tmp_file_dir):
     tmp_file_path = tmp_file_dir / "updated.json"
     shutil.copyfile(_input("nested", "long", ".json"), tmp_file_path)
     (
@@ -411,8 +448,10 @@ def test_update_file(tmp_file_dir, json_dict):
 def test_update_filter_keys(tmp_file_dir, suffix):
     tmp_file_path = tmp_file_dir / f"foo{suffix}"
     shutil.copyfile(_input("flat", "foo", suffix), tmp_file_path)
+
     f_open = {} if suffix == ".toml" else {"encoding": "utf-8"}
     f_write = {} if suffix == ".toml" else {"indent": 2}
+
     FileStream(tmp_file_path).filter(lambda x: x.key == "abc").save(
         tmp_file_path, f_open=f_open, f_write=f_write
     )
@@ -437,8 +476,10 @@ def test_filter_update_file(tmp_file_dir, suffix):
 def test_round_trip_mapping(tmp_file_dir, suffix):
     src = _input("flat", "foo", suffix)
     tmp = tmp_file_dir / f"round{suffix}"
+
     f_open = {} if suffix == ".toml" else {"encoding": "utf-8"}
     f_write = {} if suffix == ".toml" else {"indent": 2}
+
     FileStream(src).save(tmp, f_open=f_open, f_write=f_write)
     assert (
         FileStream(tmp).map(lambda x: (x.key, str(x.value))).to_list()
@@ -450,8 +491,10 @@ def test_round_trip_mapping(tmp_file_dir, suffix):
 def test_round_trip_unicode(tmp_file_dir, suffix):
     src = _input("options", "unicode", suffix)
     tmp = tmp_file_dir / f"unicode{suffix}"
+
     f_open = {} if suffix == ".toml" else {"encoding": "utf-8"}
     f_write = {} if suffix == ".toml" else {"indent": 2}
+
     FileStream(src).save(tmp, f_open=f_open, f_write=f_write)
     assert FileStream(tmp).to_dict() == FileStream(src).to_dict()
 
@@ -592,13 +635,14 @@ def test_save_mapping_to_plain(tmp_file_dir, json_dict):
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
     file_path = "dict_2_plain.txt"
     tmp_file_path = tmp_file_dir / file_path
+
     FileStream(_input("nested", "nested", ".json")).prepend(in_memory_dict).map(
         lambda x: f"{x._key}: {x._value}"
     ).save(tmp_file_path)
     assert tmp_file_path.read_text() == (EXPECTED / "plain" / file_path).read_text()
 
 
-def test_append_to_plain(tmp_file_dir, json_dict):
+def test_append_to_plain(tmp_file_dir):
     file_path = "append_map.txt"
     tmp_file_path = tmp_file_dir / file_path
     shutil.copyfile(INPUT / "plain" / "plain_dict.txt", tmp_file_path)
@@ -611,6 +655,23 @@ def test_append_to_plain(tmp_file_dir, json_dict):
         .save(f_open={"mode": "a"})
     )
     assert tmp_file_path.read_text() == (EXPECTED / "plain" / file_path).read_text()
+
+
+def test_append_to_missing_destination_creates_file(tmp_file_dir):
+    src = str(INPUT / "plain" / "plain.txt")
+    dst = tmp_file_dir / "brand_new.txt"
+    assert not dst.exists()
+
+    (
+        FileStream(src)
+        .map(lambda line: line.strip())
+        .filter(lambda line: "x" in line)
+        .save(dst, f_open={"mode": "a"})
+    )
+
+    assert dst.exists()
+    expected = FileStream(src).map(lambda line: line.strip()).filter(lambda line: "x" in line).to_string("\n")
+    assert dst.read_text() == expected
 
 
 def test_plain_text_header_footer(tmp_file_dir):
@@ -634,6 +695,38 @@ def test_plain_text_header_footer(tmp_file_dir):
 @pytest.mark.parametrize("suffix", [".json", ".yaml", ".toml"])
 def test_read_empty_mapping(suffix):
     assert FileStream(_input("options", "empty", suffix)).to_list() == []
+
+
+@pytest.mark.parametrize("suffix", [".json", ".yaml"])
+def test_read_top_level_array(suffix):
+    rows = FileStream(_input("options", "array", suffix)).to_list()
+    assert rows == [
+        {"name": "Ada", "id": 1},
+        {"name": "Grace", "id": 2},
+    ]
+    assert all(isinstance(row, dict) for row in rows)
+
+
+@pytest.mark.parametrize("suffix", [".json", ".yaml"])
+def test_top_level_array_query(suffix):
+    assert FileStream(_input("options", "array", suffix)).map(lambda row: row["name"]).to_list() == [
+        "Ada",
+        "Grace",
+    ]
+
+
+@pytest.mark.parametrize("suffix", [".json", ".yaml"])
+def test_read_empty_top_level_array(suffix):
+    assert FileStream(_input("options", "empty_array", suffix)).to_list() == []
+
+
+@pytest.mark.parametrize("suffix", [".json", ".yaml"])
+def test_top_level_array_round_trip(tmp_file_dir, suffix):
+    src = _input("options", "array", suffix)
+    out = tmp_file_dir / f"array_out{suffix}"
+    FileStream(src).save(out, materialize="list")
+
+    assert FileStream(out).to_list() == FileStream(src).to_list()
 
 
 def test_read_empty_xml_raises():
@@ -690,39 +783,6 @@ def test_dsv_custom_delimiter(tmp_file_dir):
     assert FileStream.process(tmp, f_read={"delimiter": "|"}).map(
         lambda x: f"{x['fizz']}:{x['buzz']}"
     ).to_list() == ["42:45", "aaa:bbb"]
-
-
-def test_file_handler_closed_on_exception(monkeypatch):
-    import builtins
-
-    from pyrio.streams import BaseStream
-
-    close_called = []
-    original_init = BaseStream.__init__
-    original_open = builtins.open
-
-    def mock_init(self, iterable):
-        original_init(self, iterable)
-        raise RuntimeError("Simulated initialization error")
-
-    def tracking_open(*args, **kwargs):
-        f = original_open(*args, **kwargs)
-        original_close = f.close
-
-        def tracked_close():
-            close_called.append(True)
-            return original_close()
-
-        f.close = tracked_close
-        return f
-
-    monkeypatch.setattr(BaseStream, "__init__", mock_init)
-    monkeypatch.setattr(builtins, "open", tracking_open)
-
-    with pytest.raises(RuntimeError, match="Simulated initialization error"):
-        FileStream(_input("flat", "foo", ".json"))
-
-    assert len(close_called) > 0, "File handler was not closed after exception"
 
 
 def test_save_with_cleaning_up_tmp_file(tmp_file_dir):

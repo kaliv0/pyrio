@@ -2,12 +2,13 @@ import importlib
 import shutil
 from collections.abc import Mapping
 from contextlib import contextmanager
+from itertools import chain
 from pathlib import Path
 
 from aldict import AliasDict
 
 from pyrio.decorators import handle_consumed, pre_call, terminal
-from pyrio.exceptions import NoneTypeError
+from pyrio.exceptions import NoneTypeError, UnknownSuffixError, UnsupportedFormatError
 from pyrio.streams import BaseStream, Stream
 from pyrio.utils import DictItem
 
@@ -107,7 +108,21 @@ MAPPING_WRITE_CONFIG = AliasDict(
     aliases={".yaml": ".yml", ".ini": ".cfg", ".pickle": ".pkl"},
 )
 
-SNIFF_FORMATS = [
+PLAIN_SUFFIXES = {
+    ".txt",
+    ".log",
+    ".md",
+    ".text",
+    ".rst",
+    ".out",
+    ".err",
+    ".diff",
+    ".patch",
+    ".adoc",
+    ".wiki",
+}
+
+SNIFF_FORMATS = (
     # NB: we skip sniffing for:
     # - pickle (wrong bytes can do "bad things")
     # - csv/tsv (too permissive; can steal plain text)
@@ -116,7 +131,24 @@ SNIFF_FORMATS = [
     ".toml",
     ".xml",
     ".ini",
-]
+)
+
+
+def _build_format_lookup():
+    lookup = {}
+    for suffix in chain(DSV_CONFIG, MAPPING_READ_CONFIG.origin_keys(), PLAIN_SUFFIXES):
+        # NB: we support both plain and dotted version
+        lookup[suffix] = suffix
+        lookup[suffix.lstrip(".")] = suffix
+
+    for alias in MAPPING_READ_CONFIG.aliases():
+        origin = MAPPING_READ_CONFIG.origin_key(alias)
+        lookup[alias] = origin
+        lookup[alias.lstrip(".")] = origin
+    return lookup
+
+
+FORMAT_LOOKUP = _build_format_lookup() # prepare at import time
 
 
 @pre_call(handle_consumed)
@@ -124,46 +156,68 @@ class FileStream(BaseStream):
     """Derived Stream class for querying files; maps file content to im-memory dict structures and vice versa"""
 
     # Dirty deeds for a nice-looking API
-    def __init__(self, file_path):  # noqa
+    def __init__(self, file_path, *args, **kwargs):  # noqa
         """Creates Stream from a file"""
         pass
 
-    def __new__(cls, file_path, f_open=None, f_read=None, default_to_plain_text=False, **kwargs):
+    def __new__(cls, file_path, f_open=None, f_read=None, format=None, default_to_plain=False, **kwargs):
         obj = super().__new__(cls)
         if file_path is None:
             raise NoneTypeError("File path cannot be None")
 
-        iterable = cls._try_read(file_path, f_open, f_read, default_to_plain_text, **kwargs)
+        iterable = cls._try_read(file_path, f_open, f_read, format, default_to_plain, **kwargs)
         super(cls, obj).__init__(iterable)
         obj._file_path = file_path
         return obj
 
     @classmethod
-    def process(cls, file_path, *, f_open=None, f_read=None, default_to_plain_text=False, **kwargs):
-        """Creates Stream from a file with advanced 'reading' options passed by the user"""
-        return cls.__new__(cls, file_path, f_open, f_read, default_to_plain_text, **kwargs)
+    def process(
+        cls, file_path, *, f_open=None, f_read=None, format=None, default_to_plain=False, **kwargs
+    ):
+        """Creates Stream from a file with advanced reading options.
+
+        format: force a file reader chosen by the user (bare or dotted, e.g. 'json' / '.json').
+        default_to_plain: if parsing by path.suffix fails skip format sniffing and fall back to plain text.
+        """
+        return cls.__new__(cls, file_path, f_open, f_read, format, default_to_plain, **kwargs)
 
     # ### reading from file ###
     @classmethod
-    def _try_read(cls, file_path, f_open=None, f_read=None, default_to_plain_text=False, **kwargs):
+    def _try_read(
+        cls, file_path, f_open=None, f_read=None, format=None, default_to_plain=False, **kwargs
+    ):
         path = cls._get_file_path(file_path)
         f_open = f_open or {}
         f_read = f_read or {}
 
-        data, ok = cls._read_file(path, path.suffix, f_open, f_read, **kwargs)
-        if ok:
-            return data
+        forced_format = format is not None
+        suffix = cls._normalize_format(format) if forced_format else path.suffix
+        formats = [suffix]
+        if not (forced_format or default_to_plain):
+            # NB: keep SNIFF_FORMATS order
+            formats += [fmt for fmt in SNIFF_FORMATS if fmt != suffix]
 
-        if not default_to_plain_text:
-            for file_fmt in SNIFF_FORMATS:
-                if file_fmt == path.suffix:
-                    continue
-                data, ok = cls._read_file(path, file_fmt, f_open, f_read, **kwargs)
-                if ok:
-                    return data
+        for fmt in formats:
+            data, err = cls._read_file(path, fmt, f_open, f_read, **kwargs)
+            if err is None:
+                return data
+            if isinstance(err, UnicodeDecodeError):
+                raise err
 
-        data, _ = cls._read_plain(path, f_open)
+        data, err = cls._read_plain(path, f_open)
+        if err is not None:
+            raise err
         return data
+
+    @staticmethod
+    def _normalize_format(fmt):
+        if not (isinstance(fmt, str) and (name := fmt.strip().lower())):
+            raise UnsupportedFormatError(f"Invalid format: {fmt!r}")
+
+        try:
+            return FORMAT_LOOKUP[name]
+        except KeyError:
+            raise UnsupportedFormatError(f"Unsupported format: {fmt!r}") from None
 
     @classmethod
     def _read_file(cls, path, suffix, f_open=None, f_read=None, **kwargs):
@@ -171,8 +225,9 @@ class FileStream(BaseStream):
             return cls._read_dsv(path, suffix, f_open, f_read)
         elif suffix in MAPPING_READ_CONFIG:
             return cls._read_mapping(path, suffix, f_open, f_read, **kwargs)
-        else:
+        elif suffix in PLAIN_SUFFIXES:
             return cls._read_plain(path, f_open)
+        return None, UnknownSuffixError()
 
     @classmethod
     def _read_dsv(cls, path, suffix, f_open, f_read):
@@ -181,9 +236,9 @@ class FileStream(BaseStream):
         f_open = {"newline": "", **f_open}
         f_read = {"delimiter": DSV_CONFIG[suffix]["delimiter"], **f_read}
         try:
-            return cls._load_data(path, f_open, lambda f: tuple(csv.DictReader(f, **f_read))), True
-        except csv.Error:
-            return None, False
+            return cls._load_data(path, f_open, lambda f: tuple(csv.DictReader(f, **f_read))), None
+        except (csv.Error, UnicodeDecodeError) as err:
+            return None, err
 
     @classmethod
     def _read_mapping(cls, path, suffix, f_open, f_read, **kwargs):
@@ -203,13 +258,16 @@ class FileStream(BaseStream):
             return data
 
         try:
-            return cls._load_data(path, f_open, _mapping_loader), True
-        except parse_err:
-            return None, False
+            return cls._load_data(path, f_open, _mapping_loader), None
+        except (parse_err, UnicodeDecodeError) as err:
+            return None, err
 
     @classmethod
     def _read_plain(cls, path, f_open):
-        return cls._load_data(path, f_open, tuple), True
+        try:
+            return cls._load_data(path, f_open, tuple), None
+        except UnicodeDecodeError as err:
+            return None, err
 
     @staticmethod
     def _load_data(path, f_open, loader):

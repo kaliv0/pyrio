@@ -1,16 +1,12 @@
+import csv
 import json
 import pickle
 import shutil
-from configparser import MissingSectionHeaderError
 from decimal import Decimal
-from json import JSONDecodeError
 from pathlib import Path
-from tomllib import TOMLDecodeError
-from xml.parsers.expat import ExpatError
 
 import pytest
 import yaml
-from yaml.parser import ParserError
 
 from pyrio import DictItem, FileStream, Stream
 from pyrio.exceptions import IllegalStateError, NoneTypeError
@@ -762,18 +758,64 @@ def test_read_unicode(suffix, keys):
 
 
 @pytest.mark.parametrize(
-    "suffix, exc",
+    "suffix, expected",
     [
-        (".json", JSONDecodeError),
-        (".yaml", ParserError),
-        (".xml", ExpatError),
-        (".toml", TOMLDecodeError),
-        (".ini", MissingSectionHeaderError),
+        (".json", ["{not valid\n"]),
+        (".yaml", ["[[invalid\n"]),
+        (".xml", ["not xml at all\n"]),
+        (".toml", ["= invalid\n"]),
+        (".ini", ["[broken\n", "no closing\n"]),
     ],
 )
-def test_malformed_raises(suffix, exc):
-    with pytest.raises(exc):
-        FileStream(_input("options", "malformed", suffix)).to_list()
+@pytest.mark.parametrize("default_to_plain_text", [False, True])
+def test_malformed_falls_back_to_plain_text(suffix, expected, default_to_plain_text):
+    path = _input("options", "malformed", suffix)
+    assert FileStream.process(path, default_to_plain_text=default_to_plain_text).to_list() == expected
+
+
+def test_dsv_csv_error_falls_back_to_plain(tmp_file_dir):
+    class Strict(csv.excel):
+        strict = True
+
+    path = tmp_file_dir / "bad.csv"
+    path.write_text('a,b\n"unclosed,2\n')
+    # Skip sniff so f_read dialect is not forwarded to json/toml/etc.
+    assert FileStream.process(path, f_read={"dialect": Strict}, default_to_plain_text=True).to_list() == [
+        "a,b\n",
+        '"unclosed,2\n',
+    ]
+
+
+def test_sniff_recovers_json_content_with_wrong_extension(tmp_file_dir):
+    path = tmp_file_dir / "mislabeled.toml"
+    path.write_text(Path(_input("flat", "foo", ".json")).read_text())
+
+    assert FileStream(path).map(lambda x: f"{x.key}=>{x.value}").to_tuple() == (
+        "abc=>xyz",
+        "qwerty=>42",
+    )
+
+
+def test_sniff_recovers_xml_content_with_wrong_extension(tmp_file_dir):
+    path = tmp_file_dir / "mislabeled.json"
+    path.write_bytes(Path(_input("flat", "foo", ".xml")).read_bytes())
+
+    assert FileStream(path).map(lambda x: f"{x.key}=>{x.value}").to_tuple() == (
+        "abc=>xyz",
+        "qwerty=>42",
+    )
+
+
+def test_default_to_plain_text_skips_sniff(tmp_file_dir):
+    path = tmp_file_dir / "mislabeled.toml"
+    path.write_text(Path(_input("flat", "foo", ".json")).read_text())
+
+    assert FileStream.process(path, default_to_plain_text=True).to_list() == [
+        "{\n",
+        '  "abc": "xyz",\n',
+        '  "qwerty": 42\n',
+        "}",
+    ]
 
 
 def test_dsv_custom_delimiter(tmp_file_dir):
@@ -853,11 +895,11 @@ def test_pickle_inplace_null_and_protocol(tmp_file_dir):
     assert FileStream(path).to_dict() == {"a": 1, "b": "N/A"}
 
 
-def test_pickle_malformed_raises(tmp_file_dir):
+def test_pickle_malformed_falls_back_to_plain_text(tmp_file_dir):
     src = tmp_file_dir / "bad.pickle"
     src.write_bytes(b"not-a-pickle")
-    with pytest.raises(pickle.UnpicklingError):
-        FileStream(src).to_list()
+    assert FileStream(src).to_list() == ["not-a-pickle"]
+    assert FileStream.process(src, default_to_plain_text=True).to_list() == ["not-a-pickle"]
 
 
 @pytest.mark.parametrize(

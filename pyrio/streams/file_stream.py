@@ -148,7 +148,7 @@ def _build_format_lookup():
     return lookup
 
 
-FORMAT_LOOKUP = _build_format_lookup() # prepare at import time
+FORMAT_LOOKUP = _build_format_lookup()  # prepare at import time
 
 
 @pre_call(handle_consumed)
@@ -171,9 +171,7 @@ class FileStream(BaseStream):
         return obj
 
     @classmethod
-    def process(
-        cls, file_path, *, f_open=None, f_read=None, format=None, default_to_plain=False, **kwargs
-    ):
+    def process(cls, file_path, *, f_open=None, f_read=None, format=None, default_to_plain=False, **kwargs):
         """Creates Stream from a file with advanced reading options.
 
         format: force a file reader chosen by the user (bare or dotted, e.g. 'json' / '.json').
@@ -183,9 +181,7 @@ class FileStream(BaseStream):
 
     # ### reading from file ###
     @classmethod
-    def _try_read(
-        cls, file_path, f_open=None, f_read=None, format=None, default_to_plain=False, **kwargs
-    ):
+    def _try_read(cls, file_path, f_open=None, f_read=None, format=None, default_to_plain=False, **kwargs):
         path = cls._get_file_path(file_path)
         f_open = f_open or {}
         f_read = f_read or {}

@@ -1,4 +1,8 @@
+import xml.parsers
+
 import xmltodict
+
+ExpatError = xml.parsers.expat.ExpatError
 
 
 def load(file_handler, include_root=False, **kwargs):

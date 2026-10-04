@@ -1,8 +1,10 @@
-from configparser import ConfigParser
+import configparser
+
+ConfigParserError = configparser.ParsingError
 
 
 def load(file_handler, **kwargs):
-    parser = ConfigParser(**kwargs)
+    parser = configparser.ConfigParser(**kwargs)
     parser.optionxform = str  # keep key case (default lowercases)
     parser.read_file(file_handler)
 
@@ -23,7 +25,7 @@ def load(file_handler, **kwargs):
 
 
 def dump(data, file_handler, **kwargs):
-    parser = ConfigParser()
+    parser = configparser.ConfigParser()
     parser.optionxform = str
 
     def walk(obj, path):

@@ -29,34 +29,40 @@ MAPPING_READ_CONFIG = AliasDict(
             "import_mod": "tomllib",
             "callable": "load",
             "read_mode": "rb",
+            "error": "TOMLDecodeError",
         },
         ".json": {
             "import_mod": "json",
             "callable": "load",
             "read_mode": "r",
+            "error": "JSONDecodeError",
             "wrap_scalars": True,
         },
         ".yaml": {
             "import_mod": "pyrio.io.yaml_handler",
             "callable": "load",
             "read_mode": "r",
+            "error": "YAMLError",
             "wrap_scalars": True,
         },
         ".xml": {
             "import_mod": "pyrio.io.xml_handler",
             "callable": "load",
             "read_mode": "rb",
+            "error": "ExpatError",
             "extra_keys": ("include_root",),
         },
         ".ini": {
             "import_mod": "pyrio.io.ini_handler",
             "callable": "load",
             "read_mode": "r",
+            "error": "ConfigParserError",
         },
         ".pickle": {
             "import_mod": "pickle",
             "callable": "load",
             "read_mode": "rb",
+            "error": "UnpicklingError",
             "wrap_scalars": True,
         },
     },
@@ -101,6 +107,17 @@ MAPPING_WRITE_CONFIG = AliasDict(
     aliases={".yaml": ".yml", ".ini": ".cfg", ".pickle": ".pkl"},
 )
 
+SNIFF_FORMATS = [
+    # NB: we skip sniffing for:
+    # - pickle (wrong bytes can do "bad things")
+    # - csv/tsv (too permissive; can steal plain text)
+    # - yaml (PyYAML accepts many non-YAML strings as scalars)
+    ".json",
+    ".toml",
+    ".xml",
+    ".ini",
+]
+
 
 @pre_call(handle_consumed)
 class FileStream(BaseStream):
@@ -111,54 +128,71 @@ class FileStream(BaseStream):
         """Creates Stream from a file"""
         pass
 
-    def __new__(cls, file_path, f_open=None, f_read=None, **kwargs):
+    def __new__(cls, file_path, f_open=None, f_read=None, default_to_plain_text=False, **kwargs):
         obj = super().__new__(cls)
         if file_path is None:
             raise NoneTypeError("File path cannot be None")
 
-        iterable = cls._read_file(file_path, f_open, f_read, **kwargs)
+        iterable = cls._try_read(file_path, f_open, f_read, default_to_plain_text, **kwargs)
         super(cls, obj).__init__(iterable)
         obj._file_path = file_path
         return obj
 
     @classmethod
-    def process(cls, file_path, *, f_open=None, f_read=None, **kwargs):
+    def process(cls, file_path, *, f_open=None, f_read=None, default_to_plain_text=False, **kwargs):
         """Creates Stream from a file with advanced 'reading' options passed by the user"""
-        return cls.__new__(cls, file_path, f_open, f_read, **kwargs)
+        return cls.__new__(cls, file_path, f_open, f_read, default_to_plain_text, **kwargs)
 
     # ### reading from file ###
     @classmethod
-    def _read_file(cls, file_path, f_open=None, f_read=None, **kwargs):
+    def _try_read(cls, file_path, f_open=None, f_read=None, default_to_plain_text=False, **kwargs):
         path = cls._get_file_path(file_path)
-
         f_open = f_open or {}
         f_read = f_read or {}
 
-        if (suffix := path.suffix) in DSV_CONFIG:
-            return cls._read_dsv(path, f_open, f_read)
+        data, ok = cls._read_file(path, path.suffix, f_open, f_read, **kwargs)
+        if ok:
+            return data
+
+        if not default_to_plain_text:
+            for file_fmt in SNIFF_FORMATS:
+                if file_fmt == path.suffix:
+                    continue
+                data, ok = cls._read_file(path, file_fmt, f_open, f_read, **kwargs)
+                if ok:
+                    return data
+
+        data, _ = cls._read_plain(path, f_open)
+        return data
+
+    @classmethod
+    def _read_file(cls, path, suffix, f_open=None, f_read=None, **kwargs):
+        if suffix in DSV_CONFIG:
+            return cls._read_dsv(path, suffix, f_open, f_read)
         elif suffix in MAPPING_READ_CONFIG:
-            return cls._read_mapping(path, f_open, f_read, **kwargs)
+            return cls._read_mapping(path, suffix, f_open, f_read, **kwargs)
         else:
             return cls._read_plain(path, f_open)
 
     @classmethod
-    def _read_dsv(cls, path, f_open, f_read):
+    def _read_dsv(cls, path, suffix, f_open, f_read):
         import csv
 
-        cls._prepare_io_options(
-            [
-                (f_open, "newline", ""),
-                (f_read, "delimiter", DSV_CONFIG[path.suffix]["delimiter"]),
-            ]
-        )
-        return cls._load_data(path, f_open, lambda f: tuple(csv.DictReader(f, **f_read)))
+        f_open = {"newline": "", **f_open}
+        f_read = {"delimiter": DSV_CONFIG[suffix]["delimiter"], **f_read}
+        try:
+            return cls._load_data(path, f_open, lambda f: tuple(csv.DictReader(f, **f_read))), True
+        except csv.Error:
+            return None, False
 
     @classmethod
-    def _read_mapping(cls, path, f_open, f_read, **kwargs):
-        config = MAPPING_READ_CONFIG[path.suffix]
-        load = getattr(importlib.import_module(config["import_mod"]), config["callable"])
+    def _read_mapping(cls, path, suffix, f_open, f_read, **kwargs):
+        config = MAPPING_READ_CONFIG[suffix]
+        mod = config["import_mod"]
+        load = getattr(importlib.import_module(mod), config["callable"])
+        parse_err = getattr(importlib.import_module(mod), config["error"])
 
-        cls._prepare_io_options([(f_open, "mode", config["read_mode"])])
+        f_open = {"mode": config["read_mode"], **f_open}
         extra = {k: kwargs[k] for k in config.get("extra_keys", ()) if k in kwargs}
 
         def _mapping_loader(f):
@@ -168,11 +202,14 @@ class FileStream(BaseStream):
                 return (data,)
             return data
 
-        return cls._load_data(path, f_open, _mapping_loader)
+        try:
+            return cls._load_data(path, f_open, _mapping_loader), True
+        except parse_err:
+            return None, False
 
     @classmethod
     def _read_plain(cls, path, f_open):
-        return cls._load_data(path, f_open, tuple)
+        return cls._load_data(path, f_open, tuple), True
 
     @staticmethod
     def _load_data(path, f_open, loader):

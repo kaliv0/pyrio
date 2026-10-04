@@ -9,7 +9,7 @@ import pytest
 import yaml
 
 from pyrio import DictItem, FileStream, Stream
-from pyrio.exceptions import IllegalStateError, NoneTypeError
+from pyrio.exceptions import IllegalStateError, NoneTypeError, UnsupportedFormatError
 
 INPUT = Path("./tests/resources/input")
 EXPECTED = Path("./tests/resources/expected")
@@ -411,6 +411,19 @@ def test_save_raises():
     assert str(e.value) == "'utf-8' codec can't decode byte 0xff in position 45: invalid start byte"
 
 
+def test_binary_unknown_default_to_plain_raises_on_plain_fallback():
+    # skip sniff so UnicodeDecodeError comes from the final plain read.
+    with pytest.raises(UnicodeDecodeError):
+        FileStream.process(_input("options", "awake", ".mp3"), default_to_plain=True)
+
+
+def test_binary_plain_suffix_raises(tmp_file_dir):
+    path = tmp_file_dir / "noise.txt"
+    path.write_bytes(Path(_input("options", "awake", ".mp3")).read_bytes())
+    with pytest.raises(UnicodeDecodeError):
+        FileStream(path)
+
+
 def test_update_plain(tmp_file_dir):
     file_path = "lorem.txt"
     tmp_file_path = tmp_file_dir / file_path
@@ -767,10 +780,10 @@ def test_read_unicode(suffix, keys):
         (".ini", ["[broken\n", "no closing\n"]),
     ],
 )
-@pytest.mark.parametrize("default_to_plain_text", [False, True])
-def test_malformed_falls_back_to_plain_text(suffix, expected, default_to_plain_text):
+@pytest.mark.parametrize("default_to_plain", [False, True])
+def test_malformed_falls_back_to_plain_text(suffix, expected, default_to_plain):
     path = _input("options", "malformed", suffix)
-    assert FileStream.process(path, default_to_plain_text=default_to_plain_text).to_list() == expected
+    assert FileStream.process(path, default_to_plain=default_to_plain).to_list() == expected
 
 
 def test_dsv_csv_error_falls_back_to_plain(tmp_file_dir):
@@ -779,8 +792,8 @@ def test_dsv_csv_error_falls_back_to_plain(tmp_file_dir):
 
     path = tmp_file_dir / "bad.csv"
     path.write_text('a,b\n"unclosed,2\n')
-    # Skip sniff so f_read dialect is not forwarded to json/toml/etc.
-    assert FileStream.process(path, f_read={"dialect": Strict}, default_to_plain_text=True).to_list() == [
+    # skip sniff so f_read dialect is not forwarded to json/toml/etc.
+    assert FileStream.process(path, f_read={"dialect": Strict}, default_to_plain=True).to_list() == [
         "a,b\n",
         '"unclosed,2\n',
     ]
@@ -806,16 +819,79 @@ def test_sniff_recovers_xml_content_with_wrong_extension(tmp_file_dir):
     )
 
 
-def test_default_to_plain_text_skips_sniff(tmp_file_dir):
+def test_default_to_plain_skips_sniff(tmp_file_dir):
     path = tmp_file_dir / "mislabeled.toml"
     path.write_text(Path(_input("flat", "foo", ".json")).read_text())
 
-    assert FileStream.process(path, default_to_plain_text=True).to_list() == [
+    assert FileStream.process(path, default_to_plain=True).to_list() == [
         "{\n",
         '  "abc": "xyz",\n',
         '  "qwerty": 42\n',
         "}",
     ]
+
+
+def test_sniff_unknown_extension_recovers_json(tmp_file_dir):
+    path = tmp_file_dir / "data.bin"
+    path.write_text(Path(_input("flat", "foo", ".json")).read_text())
+
+    assert FileStream(path).map(lambda x: f"{x.key}=>{x.value}").to_tuple() == (
+        "abc=>xyz",
+        "qwerty=>42",
+    )
+
+
+def test_unknown_extension_default_to_plain_skips_sniff(tmp_file_dir):
+    path = tmp_file_dir / "data.bin"
+    path.write_text(Path(_input("flat", "foo", ".json")).read_text())
+
+    assert FileStream.process(path, default_to_plain=True).to_list() == [
+        "{\n",
+        '  "abc": "xyz",\n',
+        '  "qwerty": 42\n',
+        "}",
+    ]
+
+
+def test_unknown_extension_plain_text_still_works_after_failed_sniff():
+    assert FileStream(str(INPUT / "plain" / "plain.txt")).map(lambda x: x.strip()).filter(
+        lambda line: line.startswith("Lorem")
+    ).to_list() == ["Lorem ipsum dolor sit amet, consectetur adipisicing elit,"]
+
+
+@pytest.mark.parametrize("fmt", ["yaml", ".yaml", "yml", ".YML"])
+def test_format_override_parses_yaml_in_env_file(tmp_file_dir, fmt):
+    path = tmp_file_dir / "app.env"
+    path.write_text(Path(_input("flat", "foo", ".yaml")).read_text())
+
+    assert FileStream(path, format=fmt).map(lambda x: f"{x.key}=>{x.value}").to_tuple() == (
+        "abc=>xyz",
+        "qwerty=>42",
+    )
+
+
+def test_format_override_skips_sniff(tmp_file_dir):
+    # JSON content under .toml - forcing plain must not sniff back to JSON
+    path = tmp_file_dir / "mislabeled.toml"
+    path.write_text(Path(_input("flat", "foo", ".json")).read_text())
+
+    assert FileStream.process(path, format="txt").to_list() == [
+        "{\n",
+        '  "abc": "xyz",\n',
+        '  "qwerty": 42\n',
+        "}",
+    ]
+
+
+def test_format_invalid_raises():
+    with pytest.raises(UnsupportedFormatError, match="Unsupported format"):
+        FileStream(_input("flat", "foo", ".json"), format="nope")
+
+
+@pytest.mark.parametrize("fmt", ["", "   ", 42])
+def test_format_empty_or_non_string_raises(fmt):
+    with pytest.raises(UnsupportedFormatError, match="Invalid format"):
+        FileStream(_input("flat", "foo", ".json"), format=fmt)
 
 
 def test_dsv_custom_delimiter(tmp_file_dir):
@@ -899,7 +975,7 @@ def test_pickle_malformed_falls_back_to_plain_text(tmp_file_dir):
     src = tmp_file_dir / "bad.pickle"
     src.write_bytes(b"not-a-pickle")
     assert FileStream(src).to_list() == ["not-a-pickle"]
-    assert FileStream.process(src, default_to_plain_text=True).to_list() == ["not-a-pickle"]
+    assert FileStream.process(src, default_to_plain=True).to_list() == ["not-a-pickle"]
 
 
 @pytest.mark.parametrize(

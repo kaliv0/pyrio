@@ -792,8 +792,8 @@ def test_dsv_csv_error_falls_back_to_plain(tmp_file_dir):
 
     path = tmp_file_dir / "bad.csv"
     path.write_text('a,b\n"unclosed,2\n')
-    # skip sniff so f_read dialect is not forwarded to json/toml/etc.
-    assert FileStream.process(path, f_read={"dialect": Strict}, default_to_plain=True).to_list() == [
+    # sniff must not forward CSV-only f_read (dialect) to json/toml/etc.
+    assert FileStream.process(path, f_read={"dialect": Strict}).to_list() == [
         "a,b\n",
         '"unclosed,2\n',
     ]
@@ -864,7 +864,7 @@ def test_format_override_parses_yaml_in_env_file(tmp_file_dir, fmt):
     path = tmp_file_dir / "app.env"
     path.write_text(Path(_input("flat", "foo", ".yaml")).read_text())
 
-    assert FileStream(path, format=fmt).map(lambda x: f"{x.key}=>{x.value}").to_tuple() == (
+    assert FileStream.process(path, format=fmt).map(lambda x: f"{x.key}=>{x.value}").to_tuple() == (
         "abc=>xyz",
         "qwerty=>42",
     )

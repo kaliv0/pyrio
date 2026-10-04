@@ -156,7 +156,7 @@ class FileStream(BaseStream):
     """Derived Stream class for querying files; maps file content to im-memory dict structures and vice versa"""
 
     # Dirty deeds for a nice-looking API
-    def __init__(self, file_path, *args, **kwargs):  # noqa
+    def __init__(self, file_path):  # noqa
         """Creates Stream from a file"""
         pass
 
@@ -193,8 +193,9 @@ class FileStream(BaseStream):
             # NB: keep SNIFF_FORMATS order
             formats += [fmt for fmt in SNIFF_FORMATS if fmt != suffix]
 
-        for fmt in formats:
-            data, err = cls._read_file(path, fmt, f_open, f_read, **kwargs)
+        for i, fmt in enumerate(formats):
+            # NB: caller f_read is format-specific - subsequent sniff candidates get empty config
+            data, err = cls._read_file(path, fmt, f_open, f_read if i == 0 else {}, **kwargs)
             if err is None:
                 return data
             if isinstance(err, UnicodeDecodeError):

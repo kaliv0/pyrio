@@ -255,13 +255,12 @@ class FileStream(BaseStream):
             self.map(null_handler)
         output = self.map(lambda x: Stream(x).to_dict()).to_tuple()
 
-        self._prepare_io_options(
-            [
-                (f_open, "mode", "w"),
-                (f_write, "delimiter", DSV_CONFIG[path.suffix]["delimiter"]),
-                (f_write, "fieldnames", output[0].keys() if output else ()),
-            ]
-        )
+        f_open = {"mode": "w", **f_open}
+        f_write = {
+            "delimiter": DSV_CONFIG[path.suffix]["delimiter"],
+            "fieldnames": output[0].keys() if output else (),
+            **f_write,
+        }
         with self._atomic_write(path, tmp_path, f_open) as f:  # noqa
             writer = csv.DictWriter(f, **f_write)
             writer.writeheader()
@@ -276,7 +275,7 @@ class FileStream(BaseStream):
 
         output = self._materialize(materialize)
         extra = {k: kwargs[k] for k in config.get("extra_keys", ()) if k in kwargs}
-        self._prepare_io_options([(f_open, "mode", config["write_mode"])])
+        f_open = {"mode": config["write_mode"], **f_open}
 
         dump = getattr(importlib.import_module(config["import_mod"]), config["callable"])
         with self._atomic_write(path, tmp_path, f_open) as f:  # noqa
@@ -299,15 +298,15 @@ class FileStream(BaseStream):
         )
 
     def _write_plain(self, path, tmp_path, f_open, f_write):
-        self._prepare_io_options([(f_open, "mode", "w")])
+        open_opts = {"mode": "w", **f_open}
 
-        output = self.to_string(f_write.pop("delimiter", "\n"))
-        header = f_write.pop("header", "")
-        footer = f_write.pop("footer", "")
+        output = self.to_string(f_write.get("delimiter", "\n"))
+        header = f_write.get("header", "")
+        footer = f_write.get("footer", "")
         if header or footer:
             output = f"{header}{output}{footer}"
 
-        with self._atomic_write(path, tmp_path, f_open) as f:  # noqa
+        with self._atomic_write(path, tmp_path, open_opts) as f:  # noqa
             f.write(output)
 
     # ### helpers ###
@@ -329,11 +328,6 @@ class FileStream(BaseStream):
             # So sorry Montessori...
             tmp_path.unlink(missing_ok=True)
         return path, tmp_path
-
-    @staticmethod
-    def _prepare_io_options(settings):
-        for options, key, value in settings:
-            options.setdefault(key, value)
 
     @contextmanager
     def _atomic_write(self, path, tmp_path, f_open):

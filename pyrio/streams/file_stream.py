@@ -126,7 +126,7 @@ SNIFF_FORMATS = (
     # - pickle (wrong bytes can do "bad things")
     # - csv/tsv (too permissive, can easily steal plain text)
     # - yaml (PyYAML accepts many non-YAML strings as scalars,
-    #       sometimes it can load "successfully" json being it's superset)
+    #       JSON can also load as YAML since it's largely a subset)
     ".json",
     ".toml",
     ".xml",

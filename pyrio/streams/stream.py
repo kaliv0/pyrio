@@ -45,7 +45,7 @@ class Stream(BaseStream, ItertoolsMixin):
         return cls(StreamGenerator.range(start, stop, step))
 
     def __repr__(self):
-        _REPR_MAX_ITEMS = 5
+        REPR_MAX_ITEMS = 5
 
         items = self.iterable
         try:
@@ -54,5 +54,5 @@ class Stream(BaseStream, ItertoolsMixin):
             # don't walk generators
             return super().__repr__()
 
-        preview = ", ".join(str(i) for i in itertools.islice(items, _REPR_MAX_ITEMS))
-        return f"{self.__class__.__name__}.of({f'{preview}, ...' if n > _REPR_MAX_ITEMS else preview})"
+        preview = ", ".join(str(i) for i in itertools.islice(items, REPR_MAX_ITEMS))
+        return f"{self.__class__.__name__}.of({f'{preview}, ...' if n > REPR_MAX_ITEMS else preview})"

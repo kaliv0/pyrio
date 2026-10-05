@@ -1,3 +1,4 @@
+import inspect
 import itertools as it
 import operator
 
@@ -498,3 +499,11 @@ def test_find_indices_custom_start():
 
 def test_find_indices_custom_stop():
     assert Stream("AABCADEAF").find_indices(value="A", stop=5).to_list() == [0, 1, 4]
+
+
+def test_integrate_handles_missing_signature(monkeypatch):
+    def no_signature(_func):
+        raise ValueError("no signature")
+
+    monkeypatch.setattr(inspect, "signature", no_signature)
+    assert Stream.empty().count(start=10, step=2).limit(3).to_list() == [10, 12, 14]

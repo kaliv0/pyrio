@@ -7,7 +7,7 @@ from pathlib import Path
 from aldict import AliasDict
 
 from pyrio.decorators import handle_consumed, pre_call, terminal
-from pyrio.exceptions import NoneTypeError
+from pyrio.exceptions import NoneTypeError, UnknownSuffixError, UnsupportedFormatError
 from pyrio.streams import BaseStream, Stream
 from pyrio.utils import DictItem
 
@@ -29,34 +29,40 @@ MAPPING_READ_CONFIG = AliasDict(
             "import_mod": "tomllib",
             "callable": "load",
             "read_mode": "rb",
+            "error": "TOMLDecodeError",
         },
         ".json": {
             "import_mod": "json",
             "callable": "load",
             "read_mode": "r",
+            "error": "JSONDecodeError",
             "wrap_scalars": True,
         },
         ".yaml": {
             "import_mod": "pyrio.io.yaml_handler",
             "callable": "load",
             "read_mode": "r",
+            "error": "YAMLError",
             "wrap_scalars": True,
         },
         ".xml": {
             "import_mod": "pyrio.io.xml_handler",
             "callable": "load",
             "read_mode": "rb",
+            "error": "ExpatError",
             "extra_keys": ("include_root",),
         },
         ".ini": {
             "import_mod": "pyrio.io.ini_handler",
             "callable": "load",
             "read_mode": "r",
+            "error": "ConfigParserError",
         },
         ".pickle": {
             "import_mod": "pickle",
             "callable": "load",
             "read_mode": "rb",
+            "error": "UnpicklingError",
             "wrap_scalars": True,
         },
     },
@@ -101,6 +107,31 @@ MAPPING_WRITE_CONFIG = AliasDict(
     aliases={".yaml": ".yml", ".ini": ".cfg", ".pickle": ".pkl"},
 )
 
+PLAIN_FORMATS = {
+    ".txt",
+    ".log",
+    ".md",
+    ".text",
+    ".rst",
+    ".out",
+    ".err",
+    ".diff",
+    ".patch",
+    ".adoc",
+    ".wiki",
+}
+
+SNIFF_FORMATS = (
+    # NB: we skip sniffing for:
+    # - pickle (wrong bytes can do "bad things")
+    # - csv/tsv (too permissive, can easily steal plain text)
+    # - yaml (PyYAML accepts many non-YAML strings as scalars,
+    #       JSON can also load as YAML since it's largely a subset)
+    ".json",
+    ".toml",
+    ".xml",
+)
+
 
 @pre_call(handle_consumed)
 class FileStream(BaseStream):
@@ -111,54 +142,100 @@ class FileStream(BaseStream):
         """Creates Stream from a file"""
         pass
 
-    def __new__(cls, file_path, f_open=None, f_read=None, **kwargs):
+    def __new__(cls, file_path, f_open=None, f_read=None, format=None, default_to_plain=False, **kwargs):
         obj = super().__new__(cls)
         if file_path is None:
             raise NoneTypeError("File path cannot be None")
 
-        iterable = cls._read_file(file_path, f_open, f_read, **kwargs)
+        iterable = cls._try_read(file_path, f_open, f_read, format, default_to_plain, **kwargs)
         super(cls, obj).__init__(iterable)
         obj._file_path = file_path
         return obj
 
     @classmethod
-    def process(cls, file_path, *, f_open=None, f_read=None, **kwargs):
-        """Creates Stream from a file with advanced 'reading' options passed by the user"""
-        return cls.__new__(cls, file_path, f_open, f_read, **kwargs)
+    def process(cls, file_path, *, f_open=None, f_read=None, format=None, default_to_plain=False, **kwargs):
+        """Creates Stream from a file with advanced reading options.
+
+        'format' forces a file reader (bare or dotted, e.g. 'json' / '.json'),
+        on failure raises (unless default_to_plain=True).
+
+        'default_to_plain' skips format 'sniffing' when 'format' param is unset,
+        allows plain fallback when 'format' is set
+        """
+        return cls.__new__(cls, file_path, f_open, f_read, format, default_to_plain, **kwargs)
 
     # ### reading from file ###
     @classmethod
-    def _read_file(cls, file_path, f_open=None, f_read=None, **kwargs):
+    def _try_read(cls, file_path, f_open=None, f_read=None, format=None, default_to_plain=False, **kwargs):
         path = cls._get_file_path(file_path)
-
         f_open = f_open or {}
         f_read = f_read or {}
 
-        if (suffix := path.suffix) in DSV_CONFIG:
-            return cls._read_dsv(path, f_open, f_read)
-        elif suffix in MAPPING_READ_CONFIG:
-            return cls._read_mapping(path, f_open, f_read, **kwargs)
-        else:
-            return cls._read_plain(path, f_open)
+        forced_format = format is not None
+        suffix = cls._normalize_format(format) if forced_format else path.suffix
+        formats = [suffix]
+        if not (forced_format or default_to_plain):
+            # keep SNIFF_FORMATS order
+            formats += [fmt for fmt in SNIFF_FORMATS if fmt != suffix]
+
+        for i, fmt in enumerate(formats):
+            # NB: caller f_read is format-specific - subsequent sniff candidates get empty config
+            data, err = cls._read_file(path, fmt, f_open, f_read if i == 0 else {}, **kwargs)
+            if err is None:
+                return data
+            if isinstance(err, UnicodeDecodeError):
+                raise err
+            if forced_format and not default_to_plain:
+                raise err
+
+        data, err = cls._read_plain(path, f_open)
+        if err is not None:
+            raise err
+        return data
+
+    @staticmethod
+    def _normalize_format(fmt):
+        import itertools
+
+        if not (isinstance(fmt, str) and (name := fmt.strip().lower())):
+            raise UnsupportedFormatError(f"Invalid format: {fmt!r}")
+
+        if not name.startswith("."):
+            name = f".{name}"
+
+        if name not in itertools.chain(DSV_CONFIG, MAPPING_READ_CONFIG, PLAIN_FORMATS):
+            raise UnsupportedFormatError(f"Unsupported format: {fmt!r}")
+        return name
 
     @classmethod
-    def _read_dsv(cls, path, f_open, f_read):
+    def _read_file(cls, path, suffix, f_open=None, f_read=None, **kwargs):
+        if suffix in DSV_CONFIG:
+            return cls._read_dsv(path, suffix, f_open, f_read)
+        elif suffix in MAPPING_READ_CONFIG:
+            return cls._read_mapping(path, suffix, f_open, f_read, **kwargs)
+        elif suffix in PLAIN_FORMATS:
+            return cls._read_plain(path, f_open)
+        return None, UnknownSuffixError()
+
+    @classmethod
+    def _read_dsv(cls, path, suffix, f_open, f_read):
         import csv
 
-        cls._prepare_io_options(
-            [
-                (f_open, "newline", ""),
-                (f_read, "delimiter", DSV_CONFIG[path.suffix]["delimiter"]),
-            ]
-        )
-        return cls._load_data(path, f_open, lambda f: tuple(csv.DictReader(f, **f_read)))
+        f_open = {"newline": "", **f_open}
+        f_read = {"delimiter": DSV_CONFIG[suffix]["delimiter"], **f_read}
+        try:
+            return cls._load_data(path, f_open, lambda f: tuple(csv.DictReader(f, **f_read))), None
+        except (csv.Error, UnicodeDecodeError) as err:
+            return None, err
 
     @classmethod
-    def _read_mapping(cls, path, f_open, f_read, **kwargs):
-        config = MAPPING_READ_CONFIG[path.suffix]
-        load = getattr(importlib.import_module(config["import_mod"]), config["callable"])
+    def _read_mapping(cls, path, suffix, f_open, f_read, **kwargs):
+        config = MAPPING_READ_CONFIG[suffix]
+        mod = config["import_mod"]
+        load = getattr(importlib.import_module(mod), config["callable"])
+        parse_err = getattr(importlib.import_module(mod), config["error"])
 
-        cls._prepare_io_options([(f_open, "mode", config["read_mode"])])
+        f_open = {"mode": config["read_mode"], **f_open}
         extra = {k: kwargs[k] for k in config.get("extra_keys", ()) if k in kwargs}
 
         def _mapping_loader(f):
@@ -168,11 +245,17 @@ class FileStream(BaseStream):
                 return (data,)
             return data
 
-        return cls._load_data(path, f_open, _mapping_loader)
+        try:
+            return cls._load_data(path, f_open, _mapping_loader), None
+        except (parse_err, UnicodeDecodeError) as err:
+            return None, err
 
     @classmethod
     def _read_plain(cls, path, f_open):
-        return cls._load_data(path, f_open, tuple)
+        try:
+            return cls._load_data(path, f_open, tuple), None
+        except UnicodeDecodeError as err:
+            return None, err
 
     @staticmethod
     def _load_data(path, f_open, loader):
@@ -218,13 +301,12 @@ class FileStream(BaseStream):
             self.map(null_handler)
         output = self.map(lambda x: Stream(x).to_dict()).to_tuple()
 
-        self._prepare_io_options(
-            [
-                (f_open, "mode", "w"),
-                (f_write, "delimiter", DSV_CONFIG[path.suffix]["delimiter"]),
-                (f_write, "fieldnames", output[0].keys() if output else ()),
-            ]
-        )
+        f_open = {"mode": "w", **f_open}
+        f_write = {
+            "delimiter": DSV_CONFIG[path.suffix]["delimiter"],
+            "fieldnames": output[0].keys() if output else (),
+            **f_write,
+        }
         with self._atomic_write(path, tmp_path, f_open) as f:  # noqa
             writer = csv.DictWriter(f, **f_write)
             writer.writeheader()
@@ -239,7 +321,7 @@ class FileStream(BaseStream):
 
         output = self._materialize(materialize)
         extra = {k: kwargs[k] for k in config.get("extra_keys", ()) if k in kwargs}
-        self._prepare_io_options([(f_open, "mode", config["write_mode"])])
+        f_open = {"mode": config["write_mode"], **f_open}
 
         dump = getattr(importlib.import_module(config["import_mod"]), config["callable"])
         with self._atomic_write(path, tmp_path, f_open) as f:  # noqa
@@ -262,11 +344,11 @@ class FileStream(BaseStream):
         )
 
     def _write_plain(self, path, tmp_path, f_open, f_write):
-        self._prepare_io_options([(f_open, "mode", "w")])
+        f_open = {"mode": "w", **f_open}
 
-        output = self.to_string(f_write.pop("delimiter", "\n"))
-        header = f_write.pop("header", "")
-        footer = f_write.pop("footer", "")
+        output = self.to_string(f_write.get("delimiter", "\n"))
+        header = f_write.get("header", "")
+        footer = f_write.get("footer", "")
         if header or footer:
             output = f"{header}{output}{footer}"
 
@@ -292,11 +374,6 @@ class FileStream(BaseStream):
             # So sorry Montessori...
             tmp_path.unlink(missing_ok=True)
         return path, tmp_path
-
-    @staticmethod
-    def _prepare_io_options(settings):
-        for options, key, value in settings:
-            options.setdefault(key, value)
 
     @contextmanager
     def _atomic_write(self, path, tmp_path, f_open):

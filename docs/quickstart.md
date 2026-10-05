@@ -535,7 +535,8 @@ You could query nested mappings via <i>entries()</i> (or <i>Stream(x.value)</i>)
 # ["Name=Ada", "id=1"]
 ```
 
-- reading <i>plain text</i> (if the file doesn't have one of the aforementioned extensions)
+- reading <i>plain text</i>
+  <br>(known plain suffixes like <i>.txt</i>/<i>.log</i>/<i>.md</i>, or as fallback when a structured parse fails)
 
 ```python
 (FileStream("path/to/lorem/ipsum")
@@ -550,9 +551,23 @@ You could query nested mappings via <i>entries()</i> (or <i>Stream(x.value)</i>)
 #  7: "qui officia deserunt mollit anim id est laborum."}
 ```
 
+NB: if the extension-based parse fails, FileStream sniffs <i>json</i>/<i>toml</i>/<i>xml</i>, then falls back to plain text.
+<br>Pass <i>default_to_plain=True</i> to skip sniffing and go straight to plain.
+
+```python
+# JSON content saved as .toml → sniffed as JSON
+FileStream("path/to/mislabeled.toml").map(lambda x: x.key).to_list()
+# ["abc", "qwerty"]
+
+# same file, skip sniff → plain lines
+FileStream.process("path/to/mislabeled.toml", default_to_plain=True).to_list()
+# ['{\n', '  "abc": "xyz",\n', ...]
+```
+
 - reading a file with <i>process()</i> method
   - use extra <i>f_open</i> options (for the underlying <i>open file</i> function)
   - <i>f_read</i> (to be passed to the corresponding library function that is loading the file content e.g. tomllib, json)
+  - <i>format</i> forces a file reader (bare or dotted, e.g. <i>'yaml'</i> / <i>'.yaml'</i>) regardless of path suffix (sniffing is skipped) - on failure raises unless <i>default_to_plain=True</i>
 
 ```python
 from decimal import Decimal
@@ -562,7 +577,15 @@ from decimal import Decimal
     f_open={"encoding": "utf-8"},
     f_read={"parse_float": Decimal})
  .map(lambda x:x.value).to_list())
-# ['foo', True, Decimal('1.22'), Decimal('5.456367654)]
+# ['foo', True, Decimal('1.22'), Decimal('5.456367654')]
+```
+
+```python
+# YAML content under a non-YAML name
+FileStream.process("/etc/myapp/app.env", format="yaml").map(
+    lambda x: f"{x.key}=>{x.value}"
+).to_tuple()
+# ("abc=>xyz", "qwerty=>42")
 ```
 
 To include the <i>root</i> tag when loading an <i>.xml</i> file pass <i>'include_root=True'</i>

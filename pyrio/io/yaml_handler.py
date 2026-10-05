@@ -1,5 +1,7 @@
 import yaml
 
+YAMLError = yaml.YAMLError
+
 
 def load(file_handler, **kwargs):
     if (parse_float := kwargs.pop("parse_float", None)) is None:

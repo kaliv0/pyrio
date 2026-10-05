@@ -14,5 +14,13 @@ class UnsupportedTypeError(TypeError):
     pass
 
 
+class UnsupportedFormatError(ValueError):
+    pass
+
+
 class MethodNotFoundError(AttributeError):
+    pass
+
+
+class UnknownSuffixError(Exception):
     pass

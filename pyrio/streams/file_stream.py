@@ -2,7 +2,6 @@ import importlib
 import shutil
 from collections.abc import Mapping
 from contextlib import contextmanager
-from itertools import chain
 from pathlib import Path
 
 from aldict import AliasDict
@@ -125,30 +124,13 @@ PLAIN_SUFFIXES = {
 SNIFF_FORMATS = (
     # NB: we skip sniffing for:
     # - pickle (wrong bytes can do "bad things")
-    # - csv/tsv (too permissive; can steal plain text)
-    # - yaml (PyYAML accepts many non-YAML strings as scalars)
+    # - csv/tsv (too permissive, can easily steal plain text)
+    # - yaml (PyYAML accepts many non-YAML strings as scalars,
+    #       sometimes it can load "successfully" json being it's superset)
     ".json",
     ".toml",
     ".xml",
-    ".ini",
 )
-
-
-def _build_format_lookup():
-    lookup = {}
-    for suffix in chain(DSV_CONFIG, MAPPING_READ_CONFIG.origin_keys(), PLAIN_SUFFIXES):
-        # NB: we support both plain and dotted version
-        lookup[suffix] = suffix
-        lookup[suffix.lstrip(".")] = suffix
-
-    for alias in MAPPING_READ_CONFIG.aliases():
-        origin = MAPPING_READ_CONFIG.origin_key(alias)
-        lookup[alias] = origin
-        lookup[alias.lstrip(".")] = origin
-    return lookup
-
-
-FORMAT_LOOKUP = _build_format_lookup()  # prepare at import time
 
 
 @pre_call(handle_consumed)
@@ -174,8 +156,11 @@ class FileStream(BaseStream):
     def process(cls, file_path, *, f_open=None, f_read=None, format=None, default_to_plain=False, **kwargs):
         """Creates Stream from a file with advanced reading options.
 
-        format: force a file reader chosen by the user (bare or dotted, e.g. 'json' / '.json').
-        default_to_plain: if parsing by path.suffix fails skip format sniffing and fall back to plain text.
+        'format' forces a file reader (bare or dotted, e.g. 'json' / '.json'),
+        on failure raises (unless default_to_plain=True).
+
+        'default_to_plain' skips format 'sniffing' when 'format' param is unset,
+        allows plain fallback when 'format' is set
         """
         return cls.__new__(cls, file_path, f_open, f_read, format, default_to_plain, **kwargs)
 
@@ -190,7 +175,7 @@ class FileStream(BaseStream):
         suffix = cls._normalize_format(format) if forced_format else path.suffix
         formats = [suffix]
         if not (forced_format or default_to_plain):
-            # NB: keep SNIFF_FORMATS order
+            # keep SNIFF_FORMATS order
             formats += [fmt for fmt in SNIFF_FORMATS if fmt != suffix]
 
         for i, fmt in enumerate(formats):
@@ -200,6 +185,8 @@ class FileStream(BaseStream):
                 return data
             if isinstance(err, UnicodeDecodeError):
                 raise err
+            if forced_format and not default_to_plain:
+                raise err
 
         data, err = cls._read_plain(path, f_open)
         if err is not None:
@@ -208,13 +195,17 @@ class FileStream(BaseStream):
 
     @staticmethod
     def _normalize_format(fmt):
+        import itertools
+
         if not (isinstance(fmt, str) and (name := fmt.strip().lower())):
             raise UnsupportedFormatError(f"Invalid format: {fmt!r}")
 
-        try:
-            return FORMAT_LOOKUP[name]
-        except KeyError:
-            raise UnsupportedFormatError(f"Unsupported format: {fmt!r}") from None
+        if not name.startswith("."):
+            name = f".{name}"
+
+        if name not in itertools.chain(DSV_CONFIG, MAPPING_READ_CONFIG, PLAIN_SUFFIXES):
+            raise UnsupportedFormatError(f"Unsupported format: {fmt!r}")
+        return name
 
     @classmethod
     def _read_file(cls, path, suffix, f_open=None, f_read=None, **kwargs):

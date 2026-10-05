@@ -2,6 +2,7 @@ import csv
 import json
 import pickle
 import shutil
+import tomllib
 from decimal import Decimal
 from pathlib import Path
 
@@ -883,15 +884,44 @@ def test_format_override_skips_sniff(tmp_file_dir):
     ]
 
 
+def test_format_override_raises_on_parse_failure(tmp_file_dir):
+    path = tmp_file_dir / "not.json"
+    path.write_text("not json\n")
+    with pytest.raises(json.JSONDecodeError):
+        FileStream.process(path, format="json")
+
+
+def test_format_override_default_to_plain_on_failure(tmp_file_dir):
+    path = tmp_file_dir / "not.json"
+    path.write_text("not json\n")
+    assert FileStream.process(path, format="json", default_to_plain=True).to_list() == ["not json\n"]
+
+
+def test_format_override_does_not_sniff_on_failure(tmp_file_dir):
+    # JSON-looking content under forced toml: must raise, not sniff back to JSON
+    path = tmp_file_dir / "mislabeled.env"
+    path.write_text(Path(_input("flat", "foo", ".json")).read_text())
+    with pytest.raises(tomllib.TOMLDecodeError):
+        FileStream.process(path, format="toml")
+
+
+def test_ini_not_sniffed_for_unknown_extension(tmp_file_dir):
+    # ini is not in SNIFF_FORMATS -> wrong-ext INI falls through to plain
+    src = Path(_input("flat", "foo", ".ini"))
+    path = tmp_file_dir / "data.bin"
+    path.write_text(src.read_text())
+    assert FileStream(path).to_list() == src.read_text().splitlines(keepends=True)
+
+
 def test_format_invalid_raises():
     with pytest.raises(UnsupportedFormatError, match="Unsupported format"):
-        FileStream(_input("flat", "foo", ".json"), format="nope")
+        FileStream.process(_input("flat", "foo", ".json"), format="nope")
 
 
 @pytest.mark.parametrize("fmt", ["", "   ", 42])
 def test_format_empty_or_non_string_raises(fmt):
     with pytest.raises(UnsupportedFormatError, match="Invalid format"):
-        FileStream(_input("flat", "foo", ".json"), format=fmt)
+        FileStream.process(_input("flat", "foo", ".json"), format=fmt)
 
 
 def test_dsv_custom_delimiter(tmp_file_dir):

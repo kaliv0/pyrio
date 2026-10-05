@@ -107,7 +107,7 @@ MAPPING_WRITE_CONFIG = AliasDict(
     aliases={".yaml": ".yml", ".ini": ".cfg", ".pickle": ".pkl"},
 )
 
-PLAIN_SUFFIXES = {
+PLAIN_FORMATS = {
     ".txt",
     ".log",
     ".md",
@@ -203,7 +203,7 @@ class FileStream(BaseStream):
         if not name.startswith("."):
             name = f".{name}"
 
-        if name not in itertools.chain(DSV_CONFIG, MAPPING_READ_CONFIG, PLAIN_SUFFIXES):
+        if name not in itertools.chain(DSV_CONFIG, MAPPING_READ_CONFIG, PLAIN_FORMATS):
             raise UnsupportedFormatError(f"Unsupported format: {fmt!r}")
         return name
 
@@ -213,7 +213,7 @@ class FileStream(BaseStream):
             return cls._read_dsv(path, suffix, f_open, f_read)
         elif suffix in MAPPING_READ_CONFIG:
             return cls._read_mapping(path, suffix, f_open, f_read, **kwargs)
-        elif suffix in PLAIN_SUFFIXES:
+        elif suffix in PLAIN_FORMATS:
             return cls._read_plain(path, f_open)
         return None, UnknownSuffixError()
 
@@ -344,7 +344,7 @@ class FileStream(BaseStream):
         )
 
     def _write_plain(self, path, tmp_path, f_open, f_write):
-        open_opts = {"mode": "w", **f_open}
+        f_open = {"mode": "w", **f_open}
 
         output = self.to_string(f_write.get("delimiter", "\n"))
         header = f_write.get("header", "")
@@ -352,7 +352,7 @@ class FileStream(BaseStream):
         if header or footer:
             output = f"{header}{output}{footer}"
 
-        with self._atomic_write(path, tmp_path, open_opts) as f:  # noqa
+        with self._atomic_write(path, tmp_path, f_open) as f:  # noqa
             f.write(output)
 
     # ### helpers ###

@@ -871,6 +871,24 @@ def test_format_override_parses_yaml_in_env_file(tmp_file_dir, fmt):
     )
 
 
+@pytest.mark.parametrize("suffix", [".env", ".conf", ".config", ".properties"])
+def test_conf_like_suffixes_read_as_plain(tmp_file_dir, suffix):
+    path = tmp_file_dir / f"app{suffix}"
+    path.write_text(Path(_input("flat", "foo", ".json")).read_text())
+    assert FileStream(path).to_list() == [
+        "{\n",
+        '  "abc": "xyz",\n',
+        '  "qwerty": 42\n',
+        "}",
+    ]
+
+
+def test_env_yaml_without_format_stays_plain(tmp_file_dir):
+    path = tmp_file_dir / "app.env"
+    path.write_text("abc: xyz\nqwerty: 42\n")
+    assert FileStream(path).to_list() == ["abc: xyz\n", "qwerty: 42\n"]
+
+
 def test_format_override_skips_sniff(tmp_file_dir):
     # JSON content under .toml - forcing plain must not sniff back to JSON
     path = tmp_file_dir / "mislabeled.toml"

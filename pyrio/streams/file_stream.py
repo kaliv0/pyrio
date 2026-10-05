@@ -119,6 +119,11 @@ PLAIN_FORMATS = {
     ".patch",
     ".adoc",
     ".wiki",
+    # treat the following as plain text although they often contain YAML or other formats
+    ".env",
+    ".conf",
+    ".config",
+    ".properties",
 }
 
 SNIFF_FORMATS = (

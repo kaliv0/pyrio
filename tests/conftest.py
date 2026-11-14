@@ -24,6 +24,17 @@ def Foo():
 
 
 @pytest.fixture
+def Bar():
+    class Bar:
+        def __init__(self, name, rank, level):
+            self.name = name
+            self.rank = rank
+            self.level = level
+
+    return Bar
+
+
+@pytest.fixture
 def nested_json():
     return """
     {

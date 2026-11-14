@@ -364,6 +364,32 @@ def test_distinct():
     assert Stream([1, 1, 2, 2, 2, 3]).distinct().to_list() == [1, 2, 3]
 
 
+def test_distinct_with_selector(Foo):
+    fizz = Foo("fizz", 1)
+    buzz = Foo("buzz", 2)
+    foo = Foo("foo", 1)
+    bar = Foo("bar", 1)
+    baz = Foo("baz", 2)
+    qux = Foo("qux", 3)
+    assert Stream([fizz, buzz, foo, bar, baz, qux]).distinct(selector=lambda x: x.num).to_list() == [
+        fizz,
+        buzz,
+        qux,
+    ]
+
+
+def test_distinct_with_selector_for_multiple_properties(Bar):
+    fizz = Bar("fizz", "A", 1)
+    buzz = Bar("buzz", "B", 2)
+    foo = Bar("foo", "A", 3)
+    bar = Bar("bar", "C", 1)
+    baz = Bar("baz", "B", 1)
+    qux = Bar("qux", "B", 2)
+    assert Stream([fizz, buzz, foo, bar, baz, qux]).distinct(
+        selector=lambda x: (x.rank, x.level)
+    ).to_list() == [fizz, buzz, foo, bar, baz]
+
+
 def test_len():
     assert Stream([1, 2, 3, 4]).filter(lambda x: x % 2 == 0).len() == 2
 

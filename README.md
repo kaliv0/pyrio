@@ -180,6 +180,19 @@ Stream([1, 2, 3, 4, 5, 6, 7, 8, 9]).view(start=1, stop=-3, step=2).to_list()
 Stream([1, 1, 2, 2, 2, 3]).distinct().to_list()
 ```
 
+If a selector is passed the distinction is based on the selected item property
+
+```python
+fizz = Foo("fizz", 1)
+buzz = Foo("buzz", 2)
+foo = Foo("foo", 1)
+bar = Foo("bar", 1)
+baz = Foo("baz", 2)
+qux = Foo("qux", 3)
+Stream([fizz, buzz, foo, bar, baz, qux]).distinct(selector=lambda x: x.num).to_list()
+# [fizz, buzz, qux]
+```
+
 - skip
   <br>(discards the first n elements of the stream and returns a new stream with the remaining ones)
 

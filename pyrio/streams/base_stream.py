@@ -78,9 +78,10 @@ class BaseStream:
         self.iterable = StreamGenerator.peek(self.iterable, operation)
         return self
 
-    def distinct(self):
-        """Returns a stream with the distinct elements of the current one"""
-        self.iterable = StreamGenerator.distinct(self.iterable)
+    def distinct(self, selector=None):
+        """Returns a stream with the distinct elements of the current one.
+        If a selector is passed the distinction is based on the selected item property"""
+        self.iterable = StreamGenerator.distinct(self.iterable, selector)
         return self
 
     @terminal

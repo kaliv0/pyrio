@@ -59,10 +59,13 @@ class StreamGenerator:
     def iterate(seed, operation, condition=None):
         """Generates sequence by repeatedly applying operation to seed"""
         if condition is None:
-            condition = lambda _: True  # noqa
-        while condition(seed):
-            yield seed
-            seed = operation(seed)
+            while True:
+                yield seed
+                seed = operation(seed)
+        else:
+            while condition(seed):
+                yield seed
+                seed = operation(seed)
 
     @staticmethod
     def generate(supplier):
@@ -77,13 +80,19 @@ class StreamGenerator:
             yield i
 
     @staticmethod
-    def distinct(iterable):
+    def distinct(iterable, selector=None):
         """Yields unique elements preserving first occurrence order"""
         elements = set()
-        for i in iterable:
-            if i not in elements:
-                elements.add(i)
-                yield i
+        if selector is None:
+            for i in iterable:
+                if i not in elements:
+                    elements.add(i)
+                    yield i
+        else:
+            for i in iterable:
+                if (el := selector(i)) not in elements:
+                    elements.add(el)
+                    yield i
 
     @staticmethod
     def skip(iterable, count):

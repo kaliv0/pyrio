@@ -8,6 +8,13 @@ import pytest
 from pyrio import DictItem, Optional, Stream
 from pyrio.exceptions import IllegalStateError, NoneTypeError, UnsupportedTypeError
 
+NON_NUMBER_ELEMENTS = [
+    ("a", "b"),
+    (1, 2, "three", 4),
+    (1, None, 2),
+    (None, None, None),
+]
+
 
 def test_stream():
     assert Stream([1, 2, 3])._iterable == [1, 2, 3]
@@ -399,6 +406,7 @@ def test_len_empty_collection():
     assert Stream.empty().len() == 0
 
 
+# ### ###
 def test_sum():
     assert Stream.of(1, 2, 3, 4).sum() == 10
 
@@ -406,12 +414,6 @@ def test_sum():
 def test_sum_empty_collection():
     assert Stream([]).sum() == 0
     assert Stream.empty().sum() == 0
-
-
-def test_sum_non_number_elements():
-    with pytest.raises(ValueError) as e:
-        Stream.of("a", "b").sum()
-    assert str(e.value) == "Cannot apply sum on non-number elements"
 
 
 def test_sum_on_iterator():
@@ -422,57 +424,38 @@ def test_sum_with_floats():
     assert Stream.of(1.5, 2.5, 3.0).sum() == 7.0
 
 
-def test_sum_with_none_values():
-    assert Stream.of(1, None, 2, None, 3).sum() == 6
-
-
-def test_sum_mixed_types_raises():
+@pytest.mark.parametrize("elements", NON_NUMBER_ELEMENTS)
+def test_sum_non_number_elements_raises(elements):
     with pytest.raises(ValueError) as e:
-        Stream.of(1, 2, "three", 4).sum()
-    assert str(e.value) == "Cannot apply sum on non-number elements"
-
-
-def test_sum_all_none():
-    assert Stream.of(None, None, None).sum() == 0
+        Stream.of(*elements).sum()
+    assert str(e.value) == "Cannot apply 'sum()' on non-number elements"
 
 
 def test_average():
-    assert Stream.of(1, 2, 3, 4, 5).average() == 3.0
+    assert Stream.of(1, 2, 3, 4, 5).average() == Optional.of(3.0)
 
 
 def test_average_empty_collection():
-    assert Stream([]).average() == 0
-    assert Stream.empty().average() == 0
-
-
-def test_average_non_number_elements():
-    with pytest.raises(ValueError) as e:
-        Stream.of("a", "b").average()
-    assert str(e.value) == "Cannot apply average on non-number elements"
+    assert Stream([]).average() == Optional.empty()
+    assert Stream.empty().average() == Optional.empty()
 
 
 def test_average_on_iterator():
-    assert Stream(iter([1, 2, 3, 4, 5])).average() == 3.0
+    assert Stream(iter([1, 2, 3, 4, 5])).average() == Optional.of(3.0)
 
 
 def test_average_with_floats():
-    assert Stream.of(1.0, 2.0, 3.0).average() == 2.0
+    assert Stream.of(1.0, 2.0, 3.0).average() == Optional.of(2.0)
 
 
-def test_average_with_none_values():
-    assert Stream.of(1, None, 2, None, 3).average() == 2.0
-
-
-def test_average_mixed_types_raises():
+@pytest.mark.parametrize("elements", NON_NUMBER_ELEMENTS)
+def test_average_non_number_elements_raises(elements):
     with pytest.raises(ValueError) as e:
-        Stream.of(1, 2, "three", 4).average()
-    assert str(e.value) == "Cannot apply average on non-number elements"
+        Stream.of(*elements).average()
+    assert str(e.value) == "Cannot apply 'average()' on non-number elements"
 
 
-def test_average_all_none():
-    assert Stream.of(None, None, None).average() == 0
-
-
+# ### ###
 def test_take_while():
     assert Stream.of("adam", "aman", "ahmad", "hamid", "muhammad", "aladdin").take_while(
         lambda x: x[0] == "a"

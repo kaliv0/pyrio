@@ -386,10 +386,10 @@ Stream.of(2, 1, 3, 4).max().get()
 ```
 
 - average
-  <br>(returns the average value of elements in the stream)
+  <br>(returns Optional with the average value of elements in the stream)
 
 ```python
-Stream.of(1, 2, 3, 4, 5).average()
+Stream.of(1, 2, 3, 4, 5).average().get()
 ```
 
 - find_first

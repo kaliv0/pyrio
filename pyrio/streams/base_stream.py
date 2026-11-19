@@ -5,6 +5,8 @@ from pyrio.exceptions import IllegalStateError, NoneTypeError, UnsupportedTypeEr
 from pyrio.iterators import StreamGenerator
 from pyrio.utils import DictItem, Optional
 
+INVALID_NON_NUMBER_ELEMENTS = "Cannot apply '{op}()' on non-number elements"
+
 
 @pre_call(handle_consumed)
 class BaseStream:
@@ -89,23 +91,29 @@ class BaseStream:
         """Returns the count of elements in the stream"""
         return len(tuple(self.iterable))
 
-    def _validate_numeric_data(self, op):
-        data = tuple(self.iterable)
-        if not all(isinstance(x, (int, float)) or x is None for x in data):
-            raise ValueError(f"Cannot apply {op} on non-number elements")
-        return [x for x in data if x is not None]
-
     @terminal
     def sum(self):
         """Sums the elements of the stream"""
-        valid_data = self._validate_numeric_data(self.sum.__name__)
-        return sum(valid_data) if valid_data else 0
+        try:
+            return sum(self.iterable)
+        except TypeError as e:
+            raise ValueError(INVALID_NON_NUMBER_ELEMENTS.format(op=self.sum.__name__)) from e
 
     @terminal
     def average(self):
-        """Returns the average value of elements in the stream"""
-        valid_data = self._validate_numeric_data(self.average.__name__)
-        return sum(valid_data) / len(valid_data) if valid_data else 0
+        """Returns Optional with the average value of elements in the stream"""
+        total = 0
+        count = 0
+        try:
+            for i in self.iterable:
+                total += i
+                count += 1
+        except TypeError as e:
+            raise ValueError(INVALID_NON_NUMBER_ELEMENTS.format(op=self.average.__name__)) from e
+
+        if count == 0:
+            return Optional.empty()
+        return Optional.of(total / count)
 
     def skip(self, count):
         """Discards the first n elements of the stream and returns a new stream with the remaining ones"""
@@ -199,12 +207,12 @@ class BaseStream:
 
     @terminal
     def min(self, comparator=None, default=None):
-        """Returns the minimum element of the stream according to the given comparator"""
+        """Returns Optional with the minimum element of the stream according to the given comparator"""
         return Optional.of_nullable(min(self.iterable, key=comparator, default=default))
 
     @terminal
     def max(self, comparator=None, default=None):
-        """Returns the maximum element of the stream according to the given comparator"""
+        """Returns Optional with the maximum element of the stream according to the given comparator"""
         return Optional.of_nullable(max(self.iterable, key=comparator, default=default))
 
     @terminal

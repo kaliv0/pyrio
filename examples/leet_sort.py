@@ -10,6 +10,6 @@ def third_maximum_number(nums):
 
 # 1491. Average Salary Excluding the Minimum and Maximum Salary
 def average_salary_excluding_minmax(salary):
-    return Stream(salary).sort().view(1, -1).average()
+    return Stream(salary).sort().view(1, -1).average().get()
 
 # average_salary_excluding_minmax([4000, 3000, 1000, 2000]) => 2500.0

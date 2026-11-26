@@ -506,6 +506,8 @@ Stream(["ABC", "D", "EF"]).round_robin().to_list()
   <br><i>json</i>/<i>yaml</i>/<i>pickle</i> scalar roots are wrapped as a one-element stream
 
 ```python
+from pyrio.fs import FileStream
+
 FileStream("path/to/file").map(lambda x: f"{x.key}=>{x.value}").to_tuple()
 # ("abc=>xyz", "qwerty=>42")
 ```

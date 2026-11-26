@@ -1,7 +1,9 @@
 import csv
+import importlib
 import json
 import pickle
 import shutil
+import sys
 import tomllib
 from decimal import Decimal
 from pathlib import Path
@@ -9,14 +11,25 @@ from pathlib import Path
 import pytest
 import yaml
 
-from pyrio import DictItem, FileStream, Stream
+from pyrio import DictItem, Stream
 from pyrio.exceptions import IllegalStateError, NoneTypeError, UnsupportedFormatError
+from pyrio.fs import FileStream
 
 INPUT = Path("./tests/resources/input")
 EXPECTED = Path("./tests/resources/expected")
 
 MAPPING_SUFFIXES = [".json", ".yaml", ".xml", ".toml", ".ini"]
 DSV_SUFFIXES = [".csv", ".tsv"]
+
+
+def test_fs_requires_fs_extra(monkeypatch):
+    monkeypatch.setitem(sys.modules, "aldict", None)
+    sys.modules.pop("pyrio.fs", None)
+    sys.modules.pop("pyrio.fs.file_stream", None)
+
+    with pytest.raises(ModuleNotFoundError) as e:
+        importlib.import_module("pyrio.fs")
+    assert str(e.value) == "pyrio.fs requires the 'fs' extra. Install with: pip install pyrio[fs]"
 
 
 def test_none_path_error():

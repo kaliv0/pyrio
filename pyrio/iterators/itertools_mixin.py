@@ -192,6 +192,7 @@ class ItertoolsMixin:
 
     def round_robin(self):
         """Visits input iterables in a cycle until each is exhausted"""
+        self._ensure_sized()
         self.iterable = self._round_robin(self.iterable)
         return self
 
@@ -214,6 +215,7 @@ class ItertoolsMixin:
 
     def subslices(self):
         """Returns all contiguous non-empty sub-slices"""
+        self._ensure_sized()
         slices = it.starmap(slice, it.combinations(range(len(self.iterable) + 1), 2))
         self.iterable = map(operator.getitem, it.repeat(self.iterable), slices)  # noqa
         return self

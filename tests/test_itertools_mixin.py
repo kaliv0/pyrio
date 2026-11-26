@@ -391,6 +391,12 @@ def test_subslices_empty_collection():
     assert Stream.empty().subslices().to_list() == []
 
 
+def test_subslices_after_intermediate_ops():
+    expected = Stream(list("ABCD")).subslices().to_list()
+    assert Stream("ABCD").map(lambda x: x).subslices().to_list() == expected
+    assert Stream("ABCD").filter(lambda x: True).subslices().to_list() == expected
+
+
 def test_partition():
     assert Stream(range(10)).partition(lambda x: x % 2 != 0).map(lambda x: list(x)).to_list() == [
         [1, 3, 5, 7, 9],
@@ -400,6 +406,16 @@ def test_partition():
 
 def test_round_robin():
     assert Stream(["ABC", "D", "EF"]).round_robin().to_list() == ["A", "D", "E", "B", "F", "C"]
+
+
+def test_round_robin_empty_collection():
+    assert Stream.empty().round_robin().to_list() == []
+
+
+def test_round_robin_after_intermediate_ops():
+    expected = ["A", "D", "E", "B", "F", "C"]
+    assert Stream(["ABC", "D", "EF"]).map(lambda x: x).round_robin().to_list() == expected
+    assert Stream(["ABC", "D", "EF", ""]).filter(lambda x: x).round_robin().to_list() == expected
 
 
 def test_grouper_fill():

@@ -156,8 +156,8 @@ class ItertoolsMixin:
     # ### ###
     def sliding_window(self, n):
         """Collects data into overlapping fixed-length chunks or blocks"""
-        if n < 0:
-            raise ValueError("Window size cannot be negative")
+        if n < 1:
+            raise ValueError("Window size must be at least 1")
         self.iterable = self._sliding_window(self.iterable, n)
         return self
 
@@ -165,8 +165,9 @@ class ItertoolsMixin:
     def _sliding_window(iterable, n):
         import collections
 
-        window = collections.deque(it.islice(iterable, n - 1), maxlen=n)
-        for x in it.islice(iterable, n - 1, len(iterable)):
+        iterator = iter(iterable)
+        window = collections.deque(it.islice(iterator, n - 1), maxlen=n)
+        for x in iterator:
             window.append(x)
             yield tuple(window)
 

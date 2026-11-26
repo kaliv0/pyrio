@@ -342,14 +342,34 @@ def test_sliding_window():
     ]
 
 
+def test_sliding_window_after_intermediate_ops():
+    assert Stream.of(1, 2, 3, 4, 5, 6, 7).map(lambda x: x).sliding_window(4).to_list() == [
+        (1, 2, 3, 4),
+        (2, 3, 4, 5),
+        (3, 4, 5, 6),
+        (4, 5, 6, 7),
+    ]
+    assert Stream.of(1, 2, 3, 4, 5, 6, 7, 8).filter(lambda x: x % 2 == 0).sliding_window(3).to_list() == [
+        (2, 4, 6),
+        (4, 6, 8),
+    ]
+
+
 def test_sliding_window_empty_collection():
     assert Stream.empty().sliding_window(2).to_list() == []
 
 
-def test_sliding_window_negative_count():
+def test_sliding_window_boundaries():
+    assert Stream.of(1, 2, 3).sliding_window(1).to_list() == [(1,), (2,), (3,)]
+    assert Stream.of(1, 2, 3).sliding_window(3).to_list() == [(1, 2, 3)]
+    assert Stream.of(1, 2, 3).sliding_window(5).to_list() == []
+
+
+@pytest.mark.parametrize("n", [0, -1])
+def test_sliding_window_invalid_count(n):
     with pytest.raises(ValueError) as e:
-        Stream("ABCD").sliding_window(-1).to_list()
-    assert str(e.value) == "Window size cannot be negative"
+        Stream("ABCD").sliding_window(n).to_list()
+    assert str(e.value) == "Window size must be at least 1"
 
 
 def test_subslices():

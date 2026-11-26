@@ -776,6 +776,13 @@ def test_compare_with_custom_key(Foo):
     assert Stream([fizz, buzz]).compare_with(Stream([buzz]), comparator) is False
 
 
+def test_compare_with_does_not_close_sized_peer():
+    other = Stream([1, 2, 3])
+    assert Stream([1, 2, 3]).compare_with(other)
+    assert other._is_consumed is False
+    assert other.map(lambda x: x * 10).to_list() == [10, 20, 30]
+
+
 def test_quantify():
     assert Stream([2, 3, 4, 5, 6]).quantify(predicate=lambda x: x % 2 == 0) == 3
 

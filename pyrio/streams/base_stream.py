@@ -253,7 +253,8 @@ class BaseStream:
     def compare_with(self, other, comparator=None):
         """Compares current stream with another one based on a given comparator"""
         comparator = comparator or (lambda a, b: a == b)
-        left, right = iter(self.iterable), iter(other)
+        left = iter(self.iterable)
+        right = iter(other.iterable) if isinstance(other, BaseStream) else iter(other)
         sentinel = object()
         while True:
             a = next(left, sentinel)

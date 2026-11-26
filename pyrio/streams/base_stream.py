@@ -186,8 +186,11 @@ class BaseStream:
     def find_first(self, predicate=None):
         """
         Searches for an element of the stream that satisfies a predicate.
+        (Without a predicate this matches `take_first()`)
         Returns an Optional with the first found value, if any, or None
         """
+        if predicate is None:
+            return Optional.of_nullable(next(iter(self.iterable), None))
         return Optional.of_nullable(next(filter(predicate, self.iterable), None))
 
     @terminal

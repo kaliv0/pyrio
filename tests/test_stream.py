@@ -791,12 +791,29 @@ def test_find_first():
 
 def test_find_first_with_predicate():
     assert Stream.of(1, 2, 3, 4).find_first(lambda x: x % 2 == 0).get() == 2
+    assert Stream.of(0, None, 1).find_first(lambda x: x is not None and x != 0).get() == 1
+    assert Stream.of(1, 2, 3, 4).find_first(lambda x: x > 10).is_empty()
 
 
 def test_find_first_in_empty_stream():
     result = Stream.empty().find_first()
     assert isinstance(result, Optional)
     assert result.is_empty()
+
+
+@pytest.mark.parametrize(
+    "elements",
+    [
+        (0, None, 1),
+        ("", "a"),
+        (False, True),
+        (None, 1),
+        (1, 2, 3),
+        (),
+    ],
+)
+def test_find_first_without_predicate_matches_take_first(elements):
+    assert Stream.of(*elements).find_first() == Stream.of(*elements).take_first()
 
 
 # ### match ###

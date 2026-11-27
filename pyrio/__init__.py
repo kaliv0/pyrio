@@ -3,4 +3,4 @@ from .utils.dict_item import DictItem as DictItem
 from .utils.optional import Optional as Optional
 
 __all__ = ["Stream", "Optional", "DictItem"]
-__version__ = "1.15.0"
+__version__ = "1.16.0"

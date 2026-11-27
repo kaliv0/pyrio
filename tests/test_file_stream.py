@@ -5,6 +5,7 @@ import pickle
 import shutil
 import sys
 import tomllib
+from collections import UserDict
 from decimal import Decimal
 from pathlib import Path
 
@@ -695,6 +696,13 @@ def test_save_csv(tmp_file_dir, suffix):
     tmp_file_path = tmp_file_dir / file_path
     FileStream(str(INPUT / "dsv" / "bar.csv")).save(tmp_file_path)
     assert tmp_file_path.read_text() == (EXPECTED / "save" / file_path).read_text()
+
+
+def test_row_as_dict():
+    row = {"a": "1"}
+    assert FileStream._row_as_dict(row) is row
+    assert FileStream._row_as_dict(UserDict(row)) == row
+    assert FileStream._row_as_dict((DictItem("a", "1"), DictItem("b", "2"))) == {"a": "1", "b": "2"}
 
 
 def test_save_convert_to_csv(tmp_file_dir):

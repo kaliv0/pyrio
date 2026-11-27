@@ -299,7 +299,7 @@ class FileStream(BaseStream):
     def _write_dsv(self, path, f_open, f_write, null_handler=None):
         if null_handler:
             self.map(null_handler)
-        output = self.map(lambda x: Stream(x).to_dict()).to_tuple()
+        output = self.map(self._row_as_dict).to_tuple()
 
         f_open = {"mode": "w", **f_open}
         f_write = {
@@ -311,6 +311,14 @@ class FileStream(BaseStream):
             writer = csv.DictWriter(f, **f_write)
             writer.writeheader()
             writer.writerows(output)
+
+    @staticmethod
+    def _row_as_dict(row):
+        if isinstance(row, dict):
+            return row
+        if isinstance(row, Mapping):
+            return dict(row)
+        return Stream(row).to_dict()
 
     def _write_mapping(self, path, f_open, f_write, null_handler=None, materialize="dict", **kwargs):
         config = MAPPING_WRITE_CONFIG[path.suffix]

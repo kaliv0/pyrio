@@ -964,16 +964,28 @@ def test_dsv_custom_delimiter(tmp_file_dir):
     ).to_list() == ["42:45", "aaa:bbb"]
 
 
-def test_save_with_cleaning_up_tmp_file(tmp_file_dir):
+def test_atomic_write_successful_replace_leaves_no_temp(tmp_file_dir):
+    source_path = tmp_file_dir / "atomic_ok.json"
+    shutil.copyfile(_input("flat", "foo", ".json"), source_path)
+
+    FileStream(source_path).save()
+
+    assert source_path.exists()
+    assert _atomic_tmp_glob(source_path) == []
+
+
+def test_save_leaves_unrelated_tmp_sibling(tmp_file_dir):
     source_path = tmp_file_dir / "stale_tmp_source.json"
     shutil.copyfile(_input("flat", "foo", ".json"), source_path)
 
-    tmp_path = Path(f"{source_path}.tmp")
-    tmp_path.write_text("stale tmp content")
-    assert tmp_path.exists()
+    sibling = Path(f"{source_path}.tmp")
+    sibling.write_text("stale tmp content")
 
     FileStream(source_path).save()
-    assert not tmp_path.exists()
+
+    assert sibling.exists()
+    assert sibling.read_text() == "stale tmp content"
+    assert _atomic_tmp_glob(source_path) == []
 
 
 def test_atomic_write_cleanup_on_serialization_error(tmp_file_dir):
@@ -982,6 +994,7 @@ def test_atomic_write_cleanup_on_serialization_error(tmp_file_dir):
 
     source_path = tmp_file_dir / "serialize_fail.json"
     shutil.copyfile(_input("flat", "foo", ".json"), source_path)
+    original = source_path.read_text()
 
     fs = FileStream(source_path)
     fs._iterable = (DictItem("key", NotSerializable()),)
@@ -989,9 +1002,8 @@ def test_atomic_write_cleanup_on_serialization_error(tmp_file_dir):
     with pytest.raises(TypeError):
         fs.save()
 
-    tmp_path = Path(f"{source_path}.tmp")
-    assert not tmp_path.exists()
-    assert source_path.read_text() == Path(_input("flat", "foo", ".json")).read_text()
+    assert _atomic_tmp_glob(source_path) == []
+    assert source_path.read_text() == original
 
 
 def test_pickle_dict_round_trip(tmp_file_dir):
@@ -1120,3 +1132,7 @@ def test_wrap_scalars(tmp_file_dir, suffix, write, value):
 
 def _input(subdir, name, suffix):
     return str(INPUT / subdir / f"{name}{suffix}")
+
+
+def _atomic_tmp_glob(path):
+    return list(path.parent.glob(f".{path.name}*.tmp"))

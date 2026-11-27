@@ -111,6 +111,23 @@ def test_dict_item_unpack_mapped_nested_value():
     assert value == (DictItem("x", 1), DictItem("y", 2))
 
 
+def test_dict_item_value_cached_for_dict():
+    item = DictItem("data", {"a": 1, "b": {"c": 2}})
+    first = item.value
+    second = item.value
+    assert first is second
+    assert first == (
+        DictItem("a", 1),
+        DictItem("b", (DictItem("c", 2),)),
+    )
+
+
+def test_dict_item_value_uncached_for_scalar():
+    item = DictItem("job", None)
+    assert item.value is None
+    assert item._mapped is None
+
+
 def test_dict_item_match():
     match DictItem("a", 1):
         case DictItem(key=k, value=v):

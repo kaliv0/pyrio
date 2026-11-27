@@ -1,4 +1,3 @@
-import inspect
 import itertools as it
 import operator
 
@@ -541,5 +540,6 @@ def test_integrate_handles_missing_signature(monkeypatch):
     def no_signature(_func):
         raise ValueError("no signature")
 
-    monkeypatch.setattr(inspect, "signature", no_signature)
+    # patch the name bound in the mixin (from inspect import signature), not inspect.signature
+    monkeypatch.setattr("pyrio.iterators.itertools_mixin.signature", no_signature)
     assert Stream.empty().count(start=10, step=2).limit(3).to_list() == [10, 12, 14]

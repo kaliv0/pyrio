@@ -1,6 +1,8 @@
 import itertools as it
 import operator
+from collections import deque
 from functools import wraps
+from inspect import signature
 
 from pyrio.decorators import handle_consumed, pre_call, raise_if_consumed, terminal
 from pyrio.exceptions import MethodNotFoundError
@@ -39,10 +41,8 @@ class ItertoolsMixin:
             case "product" | "zip_longest":
                 self.iterable = it_func(*self.iterable, **kwargs)
             case _:
-                import inspect
-
                 try:
-                    parameters = inspect.signature(it_func).parameters
+                    parameters = signature(it_func).parameters
                 except ValueError:
                     parameters = {}
 
@@ -76,10 +76,8 @@ class ItertoolsMixin:
 
     def advance(self, n=None):
         """Advances the iterator n-steps ahead. If n is None, drains stream entirely without closing it"""
-        import collections
-
         if n is None:
-            self.iterable = collections.deque(self.iterable, maxlen=0)
+            self.iterable = deque(self.iterable, maxlen=0)
             return self
         if n < 0:
             raise ValueError("Advance boundary cannot be negative")
@@ -163,10 +161,8 @@ class ItertoolsMixin:
 
     @staticmethod
     def _sliding_window(iterable, n):
-        import collections
-
         iterator = iter(iterable)
-        window = collections.deque(it.islice(iterator, n - 1), maxlen=n)
+        window = deque(it.islice(iterator, n - 1), maxlen=n)
         for x in iterator:
             window.append(x)
             yield tuple(window)

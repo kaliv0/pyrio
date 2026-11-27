@@ -1,3 +1,5 @@
+import builtins
+from collections import deque
 from collections.abc import Mapping
 
 from pyrio.decorators import handle_consumed, pre_call, raise_if_consumed, terminal
@@ -165,8 +167,6 @@ class BaseStream:
     @terminal
     def take_last(self, default=None):
         """Returns Optional with the last element of the stream or a default value"""
-        from collections import deque
-
         last_item = deque(self.iterable, maxlen=1)
         return Optional.of_nullable(last_item[0] if last_item else default)
 
@@ -286,8 +286,6 @@ class BaseStream:
         In case of str:
         Concatenates the elements of the Stream, separated by the specified 'str_delimiter'
         """
-        import builtins
-
         match collection_type:
             case builtins.tuple:
                 return self.to_tuple()

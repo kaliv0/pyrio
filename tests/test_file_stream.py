@@ -18,8 +18,11 @@ from pyrio.fs import FileStream
 INPUT = Path("./tests/resources/input")
 EXPECTED = Path("./tests/resources/expected")
 
-MAPPING_SUFFIXES = [".json", ".yaml", ".xml", ".toml", ".ini"]
-DSV_SUFFIXES = [".csv", ".tsv"]
+MAPPINGS = [".json", ".yaml", ".xml", ".toml", ".ini"]
+DSVS = [".csv", ".tsv"]
+
+INIS = {".ini", ".cfg"}
+NO_OPTS = INIS.union([".toml"])
 
 
 def test_fs_requires_fs_extra(monkeypatch):
@@ -52,9 +55,11 @@ def test_path_is_dir_error():
     assert str(e.value) == f"Given path '{file_path}' is a directory"
 
 
-@pytest.mark.parametrize("suffix", MAPPING_SUFFIXES)
+@pytest.mark.parametrize("suffix", MAPPINGS)
 def test_read_files(suffix):
-    assert FileStream(_input("flat", "foo", suffix)).map(lambda x: f"{x.key}=>{x.value}").to_tuple() == (
+    assert FileStream.process(_input("flat", "foo", suffix), f_read=_prepare_f_read(suffix)).map(
+        lambda x: f"{x.key}=>{x.value}"
+    ).to_tuple() == (
         "abc=>xyz",
         "qwerty=>42",
     )
@@ -79,12 +84,130 @@ def test_pkl_alias(tmp_file_dir):
     assert FileStream(pkl).map(lambda x: f"{x.key}=>{x.value}").to_tuple() == ("abc=>xyz",)
 
 
-def test_ini_default_section_not_leaked():
-    # ConfigParser inherits [DEFAULT] into every section via items() -> load must ignore that
+def test_ini_merge_defaults():
     assert FileStream(_input("options", "default_section", ".ini")).to_dict() == {
-        "Name": "Alice",
-        "child": {"x": "1"},
+        "root": {"shared": "from_default", "Name": "Alice"},
+        "root.child": {"shared": "from_default", "x": "1"},
     }
+
+
+def test_ini_separate_defaults():
+    assert FileStream.process(
+        _input("options", "default_section", ".ini"),
+        f_read={"merge_defaults": False},
+    ).to_dict() == {
+        "DEFAULT": {"shared": "from_default"},
+        "root": {"Name": "Alice"},
+        "root.child": {"x": "1"},
+    }
+
+
+def test_ini_merge_defaults_with_section_overrides():
+    assert FileStream(_input("options", "default_override", ".ini")).to_dict() == {
+        "app": {"shared": "from_default", "timeout": "30", "Name": "Alice"},
+        "app.worker": {
+            "shared": "overridden",
+            "timeout": "30",
+            "role": "worker",
+        },
+        "other": {"shared": "from_default", "timeout": "30", "x": "1"},
+    }
+
+
+def test_ini_separate_defaults_keeps_section_own_keys():
+    assert FileStream.process(
+        _input("options", "default_override", ".ini"),
+        f_read={"merge_defaults": False},
+    ).to_dict() == {
+        "DEFAULT": {"shared": "from_default", "timeout": "30"},
+        "app": {"Name": "Alice"},
+        "app.worker": {"shared": "overridden", "role": "worker"},
+        "other": {"x": "1"},
+    }
+
+
+def test_ini_default_load_is_flat_sections_and_strings():
+    assert FileStream(_input("nested", "nested", ".ini")).to_dict() == {
+        "first": {"second": "x, y, z"},
+        "first.still-second": {"third": "42"},
+    }
+
+
+def test_ini_split_lists_flag():
+    assert FileStream.process(
+        _input("nested", "nested", ".ini"),
+        f_read={"split_lists": True},
+    ).to_dict() == {
+        "first": {"second": ["x", "y", "z"]},
+        "first.still-second": {"third": "42"},
+    }
+
+
+def test_ini_nest_sections_flag():
+    assert FileStream.process(
+        _input("nested", "nested", ".ini"),
+        f_read={"nest_sections": True},
+    ).to_dict() == {
+        "first": {
+            "second": "x, y, z",
+            "still-second": {"third": "42"},
+        },
+    }
+
+
+def test_ini_unwrap_root_flag():
+    assert FileStream.process(
+        _input("flat", "foo", ".ini"),
+        f_read={"unwrap_root": True},
+    ).to_dict() == {
+        "abc": "xyz",
+        "qwerty": "42",
+    }
+
+
+def test_ini_dump_section_map(tmp_file_dir):
+    from pyrio.io import ini_handler
+
+    out = tmp_file_dir / "sections.ini"
+    with out.open("w") as f:
+        ini_handler.dump({"root": {"abc": "xyz"}, "other": {"k": "v"}}, f)
+    assert FileStream(out).to_dict() == {
+        "root": {"abc": "xyz"},
+        "other": {"k": "v"},
+    }
+
+
+def test_ini_dump_rejects_non_dict_section(tmp_file_dir):
+    from pyrio.io import ini_handler
+
+    with pytest.raises(TypeError, match="must map to a dict"):
+        with (tmp_file_dir / "bad.ini").open("w") as f:
+            ini_handler.dump({"root": "not-a-dict"}, f)
+
+
+def test_ini_dump_nest_sections(tmp_file_dir):
+    from pyrio.io import ini_handler
+
+    out = tmp_file_dir / "nested_dump.ini"
+    with out.open("w") as f:
+        ini_handler.dump(
+            {"first": {"second": ["x", "y"], "still-second": {"third": "42"}}},
+            f,
+            nest_sections=True,
+        )
+    text = out.read_text()
+    assert "[first]" in text
+    assert "[first.still-second]" in text
+    assert "second = x, y" in text
+
+
+def test_ini_dump_join_lists_false(tmp_file_dir):
+    from pyrio.io import ini_handler
+
+    out = tmp_file_dir / "no_join.ini"
+    with out.open("w") as f:
+        ini_handler.dump({"root": {"v": ["a", "b"]}}, f, join_lists=False)
+    assert "['a', 'b']" in out.read_text() or '["a", "b"]' in out.read_text()
 
 
 def test_read_xml_custom_root():
@@ -102,7 +225,7 @@ def test_read_xml_include_root():
     ).to_list() == ["root=my-root: inner_records={'abc': 'xyz', 'qwerty': '42'}"]
 
 
-@pytest.mark.parametrize("suffix", DSV_SUFFIXES)
+@pytest.mark.parametrize("suffix", DSVS)
 def test_dsv(suffix):
     assert FileStream(str(INPUT / "dsv" / f"bar{suffix}")).map(
         lambda x: f"fizz: {x['fizz']}, buzz: {x['buzz']}"
@@ -136,17 +259,19 @@ def test_read_plain_and_query():
     }
 
 
-@pytest.mark.parametrize("suffix", MAPPING_SUFFIXES)
+@pytest.mark.parametrize("suffix", MAPPINGS)
 def test_nested(suffix):
-    assert FileStream(_input("nested", "nested", suffix)).map(lambda x: x.value).flat_map(
+    assert FileStream.process(_input("nested", "nested", suffix), f_read=_prepare_f_read(suffix)).map(
+        lambda x: x.value
+    ).flat_map(
         lambda x: Stream(x).filter(lambda y: y.key == "second").flat_map(lambda z: z.value).to_tuple()
     ).to_list() == ["x", "y", "z"]
 
 
-@pytest.mark.parametrize("suffix", MAPPING_SUFFIXES)
+@pytest.mark.parametrize("suffix", MAPPINGS)
 def test_nested_dict(suffix):
     assert (
-        FileStream(_input("nested", "nested_dicts", suffix))
+        FileStream.process(_input("nested", "nested_dicts", suffix), f_read=_prepare_f_read(suffix))
         .filter(lambda outer: "user" not in outer.key)
         .map(
             lambda outer: (
@@ -168,10 +293,10 @@ def test_nested_dict(suffix):
     ) == ["johnny@bravo.cash", "ziggy@psycho.au"]
 
 
-@pytest.mark.parametrize("suffix", MAPPING_SUFFIXES)
+@pytest.mark.parametrize("suffix", MAPPINGS)
 def test_nested_filter_keys(suffix):
     assert (
-        FileStream(_input("nested", "nested", suffix))
+        FileStream.process(_input("nested", "nested", suffix), f_read=_prepare_f_read(suffix))
         .filter(lambda x: x.key == "first")
         .map(lambda x: x.key)
         .to_list()
@@ -336,42 +461,30 @@ def test_save_toml_default_null_handler(tmp_file_dir, json_dict):
     assert tmp_file_path.read_text() == (EXPECTED / "null" / "test_default_null_handler.toml").read_text()
 
 
-@pytest.mark.parametrize(
-    "file_path, indent",
-    [("test.json", 2), ("test.yaml", 2), ("test.xml", 4)],
-)
-def test_save(tmp_file_dir, file_path, indent, json_dict):
+@pytest.mark.parametrize("suffix", [".json", ".yaml", ".xml"])
+def test_save(tmp_file_dir, suffix, json_dict):
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
+    file_path = f"test{suffix}"
     tmp_file_path = tmp_file_dir / file_path
+
     FileStream(_input("nested", "nested", ".json")).prepend(in_memory_dict).save(
         tmp_file_path,
-        f_open={"encoding": "utf-8"},
-        f_write={"indent": indent},
+        f_open=_prepare_f_open(suffix),
+        f_write=_prepare_f_write(suffix),
     )
     assert tmp_file_path.read_text() == (EXPECTED / "save" / file_path).read_text()
 
 
-@pytest.mark.parametrize(
-    "file_path, indent",
-    [
-        ("test_null_handler.json", 2),
-        ("test_null_handler.yaml", 2),
-        ("test_null_handler.xml", 4),
-        ("test_null_handler.toml", None),
-        ("test_null_handler.ini", None),
-    ],
-)
-def test_save_handle_null(tmp_file_dir, file_path, indent, json_dict):
+@pytest.mark.parametrize("suffix", MAPPINGS)
+def test_save_handle_null(tmp_file_dir, suffix, json_dict):
     in_memory_dict = Stream(json_dict).filter(lambda x: len(x.key) < 6).to_tuple()
+    file_path = f"test_null_handler{suffix}"
     tmp_file_path = tmp_file_dir / file_path
-
-    f_write = {"indent": indent} if indent is not None else {}
-    f_open = {} if file_path.endswith((".toml", ".ini")) else {"encoding": "utf-8"}
 
     FileStream(_input("nested", "nested", ".json")).prepend(in_memory_dict).save(
         tmp_file_path,
-        f_open=f_open,
-        f_write=f_write,
+        f_open=_prepare_f_open(suffix),
+        f_write=_prepare_f_write(suffix, **{"wrap_root": True} if suffix == ".ini" else {}),
         null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
     )
     assert tmp_file_path.read_text() == (EXPECTED / "null" / file_path).read_text()
@@ -383,6 +496,7 @@ def test_save_ini(tmp_file_dir, json_dict):
 
     FileStream(_input("nested", "nested", ".json")).prepend(in_memory_dict).save(
         tmp_file_path,
+        f_write=_prepare_f_write(".ini", wrap_root=True),
         null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
     )
     assert tmp_file_path.read_text() == (EXPECTED / "save" / "test.ini").read_text()
@@ -396,7 +510,7 @@ def test_save_custom_xml_root(tmp_file_dir, json_dict):
 
     FileStream(_input("nested", "nested", ".json")).prepend(in_memory_dict).save(
         tmp_file_path,
-        f_write={"indent": 4},
+        f_write=_prepare_f_write(".xml"),
         null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
         xml_root="my-root",
     )
@@ -460,50 +574,50 @@ def test_update_file(tmp_file_dir):
         FileStream(tmp_file_path)
         .map(lambda x: DictItem(x.key, ", ".join((str(y) for y in x.value)) if x.value else x.value))
         .save(
-            f_write={"indent": 2},
+            f_write=_prepare_f_write(".json"),
             null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
         )
     )
     assert tmp_file_path.read_text() == (EXPECTED / "update" / "updated.json").read_text()
 
 
-@pytest.mark.parametrize("suffix", MAPPING_SUFFIXES)
+@pytest.mark.parametrize("suffix", MAPPINGS)
 def test_update_filter_keys(tmp_file_dir, suffix):
     tmp_file_path = tmp_file_dir / f"foo{suffix}"
     shutil.copyfile(_input("flat", "foo", suffix), tmp_file_path)
-
-    f_open = {} if suffix == ".toml" else {"encoding": "utf-8"}
-    f_write = {} if suffix == ".toml" else {"indent": 2}
-
-    FileStream(tmp_file_path).filter(lambda x: x.key == "abc").save(
-        tmp_file_path, f_open=f_open, f_write=f_write
+    f_read = _prepare_f_read(suffix)
+    (
+        FileStream.process(tmp_file_path, f_read=f_read)
+        .filter(lambda x: x.key == "abc")
+        .save(
+            tmp_file_path,
+            f_open=_prepare_f_open(suffix),
+            f_write=_prepare_f_write(suffix, **{"wrap_root": True} if suffix == ".ini" else {}),
+        )
     )
-    assert FileStream(tmp_file_path).map(lambda x: x.key).to_list() == ["abc"]
+    assert FileStream.process(tmp_file_path, f_read=f_read).map(lambda x: x.key).to_list() == ["abc"]
 
 
-@pytest.mark.parametrize("suffix", MAPPING_SUFFIXES)
+@pytest.mark.parametrize("suffix", MAPPINGS)
 def test_filter_update_file(tmp_file_dir, suffix):
     file_name = f"filtered{suffix}"
     tmp_file_path = tmp_file_dir / file_name
     shutil.copyfile(_input("nested", "test", suffix), tmp_file_path)
     (
-        FileStream(tmp_file_path)
+        FileStream.process(tmp_file_path, f_read=_prepare_f_read(suffix))
         .filter(lambda x: isinstance(x.value, str))
         .reverse(comparator=lambda x: x.key)
-        .save()
+        .save(f_write=_prepare_f_write(suffix, **{"wrap_root": True} if suffix == ".ini" else {}))
     )
     assert tmp_file_path.read_text() == (EXPECTED / "update" / file_name).read_text()
 
 
-@pytest.mark.parametrize("suffix", MAPPING_SUFFIXES)
+@pytest.mark.parametrize("suffix", MAPPINGS)
 def test_round_trip_mapping(tmp_file_dir, suffix):
     src = _input("flat", "foo", suffix)
     tmp = tmp_file_dir / f"round{suffix}"
 
-    f_open = {} if suffix == ".toml" else {"encoding": "utf-8"}
-    f_write = {} if suffix == ".toml" else {"indent": 2}
-
-    FileStream(src).save(tmp, f_open=f_open, f_write=f_write)
+    FileStream(src).save(tmp, f_open=_prepare_f_open(suffix), f_write=_prepare_f_write(suffix))
     assert (
         FileStream(tmp).map(lambda x: (x.key, str(x.value))).to_list()
         == FileStream(src).map(lambda x: (x.key, str(x.value))).to_list()
@@ -515,10 +629,7 @@ def test_round_trip_unicode(tmp_file_dir, suffix):
     src = _input("options", "unicode", suffix)
     tmp = tmp_file_dir / f"unicode{suffix}"
 
-    f_open = {} if suffix == ".toml" else {"encoding": "utf-8"}
-    f_write = {} if suffix == ".toml" else {"indent": 2}
-
-    FileStream(src).save(tmp, f_open=f_open, f_write=f_write)
+    FileStream(src).save(tmp, f_open=_prepare_f_open(suffix), f_write=_prepare_f_write(suffix))
     assert FileStream(tmp).to_dict() == FileStream(src).to_dict()
 
 
@@ -539,7 +650,7 @@ def test_round_trip_plain(tmp_file_dir):
     )
 
 
-@pytest.mark.parametrize("suffix", DSV_SUFFIXES)
+@pytest.mark.parametrize("suffix", DSVS)
 def test_save_csv(tmp_file_dir, suffix):
     file_path = f"test{suffix}"
     tmp_file_path = tmp_file_dir / file_path
@@ -649,7 +760,7 @@ def test_combine_files_into_csv(tmp_file_dir):
 def test_convert_csv_to_mapping(tmp_file_dir, suffix):
     tmp_file_path = tmp_file_dir / f"bar{suffix}"
     FileStream(str(INPUT / "dsv" / "bar.csv")).map(lambda r: DictItem(r["fizz"], {"buzz": r["buzz"]})).save(
-        tmp_file_path, f_write={"indent": 2}
+        tmp_file_path, f_write=_prepare_f_write(suffix)
     )
     assert tmp_file_path.read_text() == (EXPECTED / "convert" / f"bar{suffix}").read_text()
 
@@ -1128,6 +1239,28 @@ def test_wrap_scalars(tmp_file_dir, suffix, write, value):
     path = tmp_file_dir / f"scalar{suffix}"
     write(path, value)
     assert FileStream(path).to_list() == [value]
+
+
+def _prepare_f_read(suffix, **kwargs):
+    if suffix in INIS:
+        return {
+            "merge_defaults": False,
+            "nest_sections": True,
+            "split_lists": True,
+            "unwrap_root": True,
+            **kwargs,
+        }
+    return kwargs
+
+
+def _prepare_f_open(suffix):
+    return {} if suffix in NO_OPTS else {"encoding": "utf-8"}
+
+
+def _prepare_f_write(suffix, **kwargs):
+    if suffix in NO_OPTS:
+        return kwargs
+    return {"indent": 4 if suffix == ".xml" else 2, **kwargs}
 
 
 def _input(subdir, name, suffix):

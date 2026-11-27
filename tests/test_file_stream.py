@@ -21,9 +21,6 @@ EXPECTED = Path("./tests/resources/expected")
 MAPPINGS = [".json", ".yaml", ".xml", ".toml", ".ini"]
 DSVS = [".csv", ".tsv"]
 
-INIS = {".ini", ".cfg"}
-NO_OPTS = INIS.union([".toml"])
-
 
 def test_fs_requires_fs_extra(monkeypatch):
     monkeypatch.setitem(sys.modules, "aldict", None)
@@ -490,7 +487,7 @@ def test_save_handle_null(tmp_file_dir, suffix, json_dict):
     FileStream(_build_input_path("nested", "nested", ".json")).prepend(in_memory_dict).save(
         tmp_file_path,
         f_open=_prepare_f_open(suffix),
-        f_write=_prepare_f_write(suffix, **{"wrap_root": True} if suffix == ".ini" else {}),
+        f_write=_prepare_f_write(suffix, wrap_root=True),
         null_handler=lambda x: DictItem(x.key, "Unknown") if x.value is None else x,
     )
     assert tmp_file_path.read_text() == (EXPECTED / "null" / file_path).read_text()
@@ -598,7 +595,7 @@ def test_update_filter_keys(tmp_file_dir, suffix):
         .save(
             tmp_file_path,
             f_open=_prepare_f_open(suffix),
-            f_write=_prepare_f_write(suffix, **{"wrap_root": True} if suffix == ".ini" else {}),
+            f_write=_prepare_f_write(suffix, wrap_root=True),
         )
     )
     assert FileStream.process(tmp_file_path, f_read=f_read).map(lambda x: x.key).to_list() == ["abc"]
@@ -613,7 +610,7 @@ def test_filter_update_file(tmp_file_dir, suffix):
         FileStream.process(tmp_file_path, f_read=_prepare_f_read(suffix))
         .filter(lambda x: isinstance(x.value, str))
         .reverse(comparator=lambda x: x.key)
-        .save(f_write=_prepare_f_write(suffix, **{"wrap_root": True} if suffix == ".ini" else {}))
+        .save(f_write=_prepare_f_write(suffix, wrap_root=True))
     )
     assert tmp_file_path.read_text() == (EXPECTED / "update" / file_name).read_text()
 
@@ -1252,7 +1249,7 @@ def test_wrap_scalars(tmp_file_dir, suffix, write, value):
 
 
 def _prepare_f_read(suffix, **kwargs):
-    if suffix in INIS:
+    if suffix in {".ini", ".cfg"}:
         return {
             "merge_defaults": False,
             "nest_sections": True,
@@ -1264,13 +1261,19 @@ def _prepare_f_read(suffix, **kwargs):
 
 
 def _prepare_f_open(suffix):
-    return {} if suffix in NO_OPTS else {"encoding": "utf-8"}
+    return {} if suffix in {".ini", ".cfg", ".toml"} else {"encoding": "utf-8"}
 
 
-def _prepare_f_write(suffix, **kwargs):
-    if suffix in NO_OPTS:
-        return kwargs
-    return {"indent": 4 if suffix == ".xml" else 2, **kwargs}
+def _prepare_f_write(suffix, wrap_root=False, **kwargs):
+    match suffix:
+        case ".toml":
+            return kwargs
+        case ".ini" | ".cfg":
+            return {"wrap_root": True, **kwargs} if wrap_root else kwargs
+        case ".xml":
+            return {"indent": 4, **kwargs}
+        case _:
+            return {"indent": 2, **kwargs}
 
 
 def _build_input_path(subdir, name, suffix):

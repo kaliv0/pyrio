@@ -776,6 +776,13 @@ def test_compare_with_custom_key(Foo):
     assert Stream([fizz, buzz]).compare_with(Stream([buzz]), comparator) is False
 
 
+def test_compare_with_does_not_close_sized_peer():
+    other = Stream([1, 2, 3])
+    assert Stream([1, 2, 3]).compare_with(other)
+    assert other._is_consumed is False
+    assert other.map(lambda x: x * 10).to_list() == [10, 20, 30]
+
+
 def test_quantify():
     assert Stream([2, 3, 4, 5, 6]).quantify(predicate=lambda x: x % 2 == 0) == 3
 
@@ -791,12 +798,29 @@ def test_find_first():
 
 def test_find_first_with_predicate():
     assert Stream.of(1, 2, 3, 4).find_first(lambda x: x % 2 == 0).get() == 2
+    assert Stream.of(0, None, 1).find_first(lambda x: x is not None and x != 0).get() == 1
+    assert Stream.of(1, 2, 3, 4).find_first(lambda x: x > 10).is_empty()
 
 
 def test_find_first_in_empty_stream():
     result = Stream.empty().find_first()
     assert isinstance(result, Optional)
     assert result.is_empty()
+
+
+@pytest.mark.parametrize(
+    "elements",
+    [
+        (0, None, 1),
+        ("", "a"),
+        (False, True),
+        (None, 1),
+        (1, 2, 3),
+        (),
+    ],
+)
+def test_find_first_without_predicate_matches_take_first(elements):
+    assert Stream.of(*elements).find_first() == Stream.of(*elements).take_first()
 
 
 # ### match ###

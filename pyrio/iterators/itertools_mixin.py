@@ -156,8 +156,8 @@ class ItertoolsMixin:
     # ### ###
     def sliding_window(self, n):
         """Collects data into overlapping fixed-length chunks or blocks"""
-        if n < 0:
-            raise ValueError("Window size cannot be negative")
+        if n < 1:
+            raise ValueError("Window size must be at least 1")
         self.iterable = self._sliding_window(self.iterable, n)
         return self
 
@@ -165,8 +165,9 @@ class ItertoolsMixin:
     def _sliding_window(iterable, n):
         import collections
 
-        window = collections.deque(it.islice(iterable, n - 1), maxlen=n)
-        for x in it.islice(iterable, n - 1, len(iterable)):
+        iterator = iter(iterable)
+        window = collections.deque(it.islice(iterator, n - 1), maxlen=n)
+        for x in iterator:
             window.append(x)
             yield tuple(window)
 
@@ -191,6 +192,7 @@ class ItertoolsMixin:
 
     def round_robin(self):
         """Visits input iterables in a cycle until each is exhausted"""
+        self._ensure_sized()
         self.iterable = self._round_robin(self.iterable)
         return self
 
@@ -213,6 +215,7 @@ class ItertoolsMixin:
 
     def subslices(self):
         """Returns all contiguous non-empty sub-slices"""
+        self._ensure_sized()
         slices = it.starmap(slice, it.combinations(range(len(self.iterable) + 1), 2))
         self.iterable = map(operator.getitem, it.repeat(self.iterable), slices)  # noqa
         return self

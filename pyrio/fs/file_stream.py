@@ -1,5 +1,7 @@
 import importlib
+import os
 import shutil
+import tempfile
 from collections.abc import Mapping
 from contextlib import contextmanager
 from pathlib import Path
@@ -10,9 +12,6 @@ from pyrio.decorators import handle_consumed, pre_call, terminal
 from pyrio.exceptions import NoneTypeError, UnknownSuffixError, UnsupportedFormatError
 from pyrio.streams import BaseStream, Stream
 from pyrio.utils import DictItem
-
-TEMP_PATH = "{file_path}.tmp"
-
 
 DSV_CONFIG = {
     ".csv": {
@@ -285,21 +284,19 @@ class FileStream(BaseStream):
         One of: 'dict' (default), 'list', 'tuple', 'raw' (exactly one element),
         or a callable receiving this stream and returning the payload.
         """
-        path, tmp_path = self._prepare_file_paths(file_path)
+        path = self._prepare_file_path(file_path)
 
         f_open = f_open or {}
         f_write = f_write or {}
 
         if (suffix := path.suffix) in DSV_CONFIG:
-            self._write_dsv(path, tmp_path, f_open, f_write, null_handler)
+            self._write_dsv(path, f_open, f_write, null_handler)
         elif suffix in MAPPING_WRITE_CONFIG:
-            self._write_mapping(
-                path, tmp_path, f_open, f_write, null_handler, materialize=materialize, **kwargs
-            )
+            self._write_mapping(path, f_open, f_write, null_handler, materialize=materialize, **kwargs)
         else:
-            self._write_plain(path, tmp_path, f_open, f_write)
+            self._write_plain(path, f_open, f_write)
 
-    def _write_dsv(self, path, tmp_path, f_open, f_write, null_handler=None):
+    def _write_dsv(self, path, f_open, f_write, null_handler=None):
         import csv
 
         if null_handler:
@@ -312,14 +309,12 @@ class FileStream(BaseStream):
             "fieldnames": output[0].keys() if output else (),
             **f_write,
         }
-        with self._atomic_write(path, tmp_path, f_open) as f:  # noqa
+        with self._atomic_write(path, f_open) as f:  # noqa
             writer = csv.DictWriter(f, **f_write)
             writer.writeheader()
             writer.writerows(output)
 
-    def _write_mapping(
-        self, path, tmp_path, f_open, f_write, null_handler=None, materialize="dict", **kwargs
-    ):
+    def _write_mapping(self, path, f_open, f_write, null_handler=None, materialize="dict", **kwargs):
         config = MAPPING_WRITE_CONFIG[path.suffix]
         if existing_null_handler := null_handler or config.get("default_null_handler"):
             self.map(existing_null_handler)  # noqa
@@ -329,7 +324,7 @@ class FileStream(BaseStream):
         f_open = {"mode": config["write_mode"], **f_open}
 
         dump = getattr(importlib.import_module(config["import_mod"]), config["callable"])
-        with self._atomic_write(path, tmp_path, f_open) as f:  # noqa
+        with self._atomic_write(path, f_open) as f:  # noqa
             dump(output, f, **f_write, **extra)
 
     def _materialize(self, materialize):
@@ -348,7 +343,7 @@ class FileStream(BaseStream):
             f"Unsupported materialize={materialize!r}; expected 'dict', 'list', 'tuple', 'raw', or callable"
         )
 
-    def _write_plain(self, path, tmp_path, f_open, f_write):
+    def _write_plain(self, path, f_open, f_write):
         f_open = {"mode": "w", **f_open}
 
         output = self.to_string(f_write.get("delimiter", "\n"))
@@ -357,7 +352,7 @@ class FileStream(BaseStream):
         if header or footer:
             output = f"{header}{output}{footer}"
 
-        with self._atomic_write(path, tmp_path, f_open) as f:  # noqa
+        with self._atomic_write(path, f_open) as f:  # noqa
             f.write(output)
 
     # ### helpers ###
@@ -370,28 +365,34 @@ class FileStream(BaseStream):
             raise IsADirectoryError(f"Given path '{file_path}' is a directory")
         return path
 
-    def _prepare_file_paths(self, file_path):
+    def _prepare_file_path(self, file_path):
         if file_path is None:
             file_path = self._file_path
-        path = self._get_file_path(file_path, read_mode=False)
-        tmp_path = Path(TEMP_PATH.format(file_path=path))
-        if tmp_path.exists():
-            # So sorry Montessori...
-            tmp_path.unlink(missing_ok=True)
-        return path, tmp_path
+        return self._get_file_path(file_path, read_mode=False)
 
     @contextmanager
-    def _atomic_write(self, path, tmp_path, f_open):
+    def _atomic_write(self, path, f_open):
+        tmp_path = self._prepare_tmp_path(path)
+        replaced = False
         try:
             if f_open["mode"] == "a" and path.exists():
-                tmp_path = shutil.copyfile(path, tmp_path)
+                shutil.copyfile(path, tmp_path)
 
             with open(tmp_path, **f_open) as f:
                 yield f
-            shutil.move(tmp_path, path)
-        except (IOError, Exception) as e:
-            tmp_path.unlink(missing_ok=True)
-            raise e
+
+            os.replace(tmp_path, path)
+            replaced = True
+        finally:
+            if not replaced:
+                tmp_path.unlink(missing_ok=True)
+
+    def _prepare_tmp_path(self, path):
+        fd, tmp_name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+        # NB: following atomicwrites pattern =>
+        # discard raw fd (usually binary mode) and reopen with real open() kwargs (inside _atomic_write)
+        os.close(fd)
+        return Path(tmp_name)
 
     def __repr__(self):
         try:

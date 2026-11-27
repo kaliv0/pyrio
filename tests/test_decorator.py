@@ -6,8 +6,9 @@ from types import FunctionType
 from pytest_check import check
 
 from pyrio.decorators import is_terminal
+from pyrio.fs import FileStream
 from pyrio.iterators import ItertoolsMixin
-from pyrio.streams import BaseStream, FileStream, Stream
+from pyrio.streams import BaseStream, Stream
 
 
 ### keep in-check @terminal decorated methods ###

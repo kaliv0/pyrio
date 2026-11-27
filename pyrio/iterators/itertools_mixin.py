@@ -32,12 +32,10 @@ class ItertoolsMixin:
     def _integrate(self, it_func, **kwargs):
         # itetools API's are a complete mess - let's try to tackle it here
         match it_func.__name__:
-            # handle functions that take no kwargs
             case "islice" | "repeat" | "tee" | "chain":
                 self.iterable = it_func(self.iterable, *kwargs.values())
-            case "dropwhile" | "filterfalse" | "starmap" | "takewhile" | "islice" | "repeat":
+            case "dropwhile" | "filterfalse" | "starmap" | "takewhile":
                 self.iterable = it_func(*kwargs.values(), self.iterable)
-            # mixed
             case "product" | "zip_longest":
                 self.iterable = it_func(*self.iterable, **kwargs)
             case _:

@@ -89,7 +89,11 @@ class BaseStream:
     @terminal
     def len(self):
         """Returns the count of elements in the stream"""
-        return len(tuple(self.iterable))
+        try:
+            return len(self.iterable)
+        except TypeError:
+            # len(tuple(self.iterable)) is 2x faster but costs O(n) extra memory
+            return sum(1 for _ in self.iterable)
 
     @terminal
     def sum(self):

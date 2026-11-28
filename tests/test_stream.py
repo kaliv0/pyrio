@@ -397,8 +397,15 @@ def test_distinct_with_selector_for_multiple_properties(Bar):
     ).to_list() == [fizz, buzz, foo, bar, baz]
 
 
-def test_len():
-    assert Stream([1, 2, 3, 4]).filter(lambda x: x % 2 == 0).len() == 2
+def test_len_sized_collection():
+    # hits len(self.iterable) fast path
+    assert Stream([1, 2, 3, 4]).len() == 4
+    assert Stream.of(1, 2, 3).len() == 3
+
+
+def test_len_after_intermediate_ops():
+    # hits sum(1 for _) fallback
+    assert Stream.of(1, 2, 3, 4, 5).map(lambda x: x).filter(lambda x: x > 2).len() == 3
 
 
 def test_len_empty_collection():

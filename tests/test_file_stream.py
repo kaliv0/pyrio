@@ -5,6 +5,7 @@ import pickle
 import shutil
 import sys
 import tomllib
+from collections import UserDict
 from decimal import Decimal
 from pathlib import Path
 
@@ -14,6 +15,7 @@ import yaml
 from pyrio import DictItem, Stream
 from pyrio.exceptions import IllegalStateError, NoneTypeError, UnsupportedFormatError
 from pyrio.fs import FileStream
+from pyrio.io import ini_handler
 
 INPUT = Path("./tests/resources/input")
 EXPECTED = Path("./tests/resources/expected")
@@ -187,8 +189,6 @@ def test_ini_extra_keys_on_process():
 
 
 def test_ini_dump_section_map(tmp_file_dir):
-    from pyrio.io import ini_handler
-
     out = tmp_file_dir / "sections.ini"
     with out.open("w") as f:
         ini_handler.dump({"root": {"abc": "xyz"}, "other": {"k": "v"}}, f)
@@ -199,16 +199,12 @@ def test_ini_dump_section_map(tmp_file_dir):
 
 
 def test_ini_dump_rejects_non_dict_section(tmp_file_dir):
-    from pyrio.io import ini_handler
-
     with pytest.raises(TypeError, match="must map to a dict"):
         with (tmp_file_dir / "bad.ini").open("w") as f:
             ini_handler.dump({"root": "not-a-dict"}, f)
 
 
 def test_ini_dump_nest_sections(tmp_file_dir):
-    from pyrio.io import ini_handler
-
     out = tmp_file_dir / "nested_dump.ini"
     with out.open("w") as f:
         ini_handler.dump(
@@ -223,8 +219,6 @@ def test_ini_dump_nest_sections(tmp_file_dir):
 
 
 def test_ini_dump_join_lists_false(tmp_file_dir):
-    from pyrio.io import ini_handler
-
     out = tmp_file_dir / "no_join.ini"
     with out.open("w") as f:
         ini_handler.dump({"root": {"v": ["a", "b"]}}, f, join_lists=False)
@@ -702,6 +696,13 @@ def test_save_csv(tmp_file_dir, suffix):
     tmp_file_path = tmp_file_dir / file_path
     FileStream(str(INPUT / "dsv" / "bar.csv")).save(tmp_file_path)
     assert tmp_file_path.read_text() == (EXPECTED / "save" / file_path).read_text()
+
+
+def test_row_as_dict():
+    row = {"a": "1"}
+    assert FileStream._row_as_dict(row) is row
+    assert FileStream._row_as_dict(UserDict(row)) == row
+    assert FileStream._row_as_dict((DictItem("a", "1"), DictItem("b", "2"))) == {"a": "1", "b": "2"}
 
 
 def test_save_convert_to_csv(tmp_file_dir):

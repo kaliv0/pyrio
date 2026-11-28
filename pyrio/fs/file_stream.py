@@ -1,9 +1,11 @@
+import csv
 import importlib
 import os
 import shutil
 import tempfile
 from collections.abc import Mapping
 from contextlib import contextmanager
+from itertools import chain
 from pathlib import Path
 
 from aldict import AliasDict
@@ -201,15 +203,13 @@ class FileStream(BaseStream):
 
     @staticmethod
     def _normalize_format(fmt):
-        import itertools
-
         if not (isinstance(fmt, str) and (name := fmt.strip().lower())):
             raise UnsupportedFormatError(f"Invalid format: {fmt!r}")
 
         if not name.startswith("."):
             name = f".{name}"
 
-        if name not in itertools.chain(DSV_CONFIG, MAPPING_READ_CONFIG, PLAIN_FORMATS):
+        if name not in chain(DSV_CONFIG, MAPPING_READ_CONFIG, PLAIN_FORMATS):
             raise UnsupportedFormatError(f"Unsupported format: {fmt!r}")
         return name
 
@@ -225,8 +225,6 @@ class FileStream(BaseStream):
 
     @classmethod
     def _read_dsv(cls, path, suffix, f_open, f_read):
-        import csv
-
         f_open = {"newline": "", **f_open}
         f_read = {"delimiter": DSV_CONFIG[suffix]["delimiter"], **f_read}
         try:
@@ -299,11 +297,9 @@ class FileStream(BaseStream):
             self._write_plain(path, f_open, f_write)
 
     def _write_dsv(self, path, f_open, f_write, null_handler=None):
-        import csv
-
         if null_handler:
             self.map(null_handler)
-        output = self.map(lambda x: Stream(x).to_dict()).to_tuple()
+        output = self.map(self._row_as_dict).to_tuple()
 
         f_open = {"mode": "w", **f_open}
         f_write = {
@@ -315,6 +311,14 @@ class FileStream(BaseStream):
             writer = csv.DictWriter(f, **f_write)
             writer.writeheader()
             writer.writerows(output)
+
+    @staticmethod
+    def _row_as_dict(row):
+        if isinstance(row, dict):
+            return row
+        if isinstance(row, Mapping):
+            return dict(row)
+        return Stream(row).to_dict()
 
     def _write_mapping(self, path, f_open, f_write, null_handler=None, materialize="dict", **kwargs):
         config = MAPPING_WRITE_CONFIG[path.suffix]

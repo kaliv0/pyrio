@@ -1,4 +1,6 @@
+import collections
 from collections.abc import Iterable
+from itertools import islice
 
 from pyrio.decorators import map_dict_items
 
@@ -97,26 +99,16 @@ class StreamGenerator:
     @staticmethod
     def skip(iterable, count):
         """Skips first n elements and yields the rest"""
-        for i in iterable:
-            if count > 0:
-                count -= 1
-            else:
-                yield i
+        return islice(iterable, count, None)
 
     @staticmethod
     def limit(iterable, count):
         """Yields at most n elements"""
-        for i in iterable:
-            if count == 0:
-                break
-            yield i
-            count -= 1
+        return islice(iterable, count)
 
     @staticmethod
     def tail(iterable, count):
         """Yields the last n elements"""
-        import collections
-
         for i in collections.deque(iterable, maxlen=count):
             yield i
 

@@ -9,9 +9,12 @@ class DictItem:
     key_of = attrgetter("key")
     value_of = attrgetter("value")
 
+    __slots__ = ("_key", "_value", "_mapped")
+
     def __init__(self, key, value):
         self._key = key
         self._value = value
+        self._mapped = None
 
     @property
     def key(self):
@@ -19,7 +22,13 @@ class DictItem:
 
     @property
     def value(self):
-        return self._map(self._value)
+        """Mapped view of the stored value (nested dicts represented as cached DictItem trees)."""
+        if not isinstance(self._value, dict):
+            return self._value
+
+        if self._mapped is None:
+            self._mapped = self._map(self._value)
+        return self._mapped
 
     def with_key(self, key):
         """Return a new DictItem with the same value and a different key."""
@@ -32,7 +41,7 @@ class DictItem:
     @staticmethod
     def replace_null(default):
         """Return a handler that replaces None values with given default."""
-        return lambda item: item.with_value(default) if item.value is None else item
+        return lambda item: item.with_value(default) if item._value is None else item
 
     def entries(self):
         """

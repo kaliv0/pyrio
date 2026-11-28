@@ -166,6 +166,26 @@ def test_ini_unwrap_root_flag():
     }
 
 
+def test_ini_extra_keys_on_process():
+    assert FileStream.process(
+        _build_input_path("nested", "nested", ".ini"),
+        nest_sections=True,
+        split_lists=True,
+    ).to_dict() == {
+        "first": {
+            "second": ["x", "y", "z"],
+            "still-second": {"third": "42"},
+        },
+    }
+    assert FileStream.process(
+        _build_input_path("flat", "foo", ".ini"),
+        unwrap_root=True,
+    ).to_dict() == {
+        "abc": "xyz",
+        "qwerty": "42",
+    }
+
+
 def test_ini_dump_section_map(tmp_file_dir):
     from pyrio.io import ini_handler
 
@@ -209,6 +229,29 @@ def test_ini_dump_join_lists_false(tmp_file_dir):
     with out.open("w") as f:
         ini_handler.dump({"root": {"v": ["a", "b"]}}, f, join_lists=False)
     assert "['a', 'b']" in out.read_text() or '["a", "b"]' in out.read_text()
+
+
+def test_ini_extra_keys_on_save(tmp_file_dir):
+    nested_out = tmp_file_dir / "nested.ini"
+    FileStream(_build_input_path("nested", "nested", ".json")).save(
+        nested_out,
+        nest_sections=True,
+    )
+    nested_text = nested_out.read_text()
+    assert "[first]" in nested_text
+    assert "[first.still-second]" in nested_text
+    assert "second = x, y, z" in nested_text
+
+    wrapped_out = tmp_file_dir / "wrapped.ini"
+    FileStream(_build_input_path("flat", "foo", ".json")).save(
+        wrapped_out,
+        wrap_root=True,
+    )
+    assert "[root]" in wrapped_out.read_text()
+    assert FileStream.process(wrapped_out, unwrap_root=True).to_dict() == {
+        "abc": "xyz",
+        "qwerty": "42",
+    }
 
 
 def test_read_xml_custom_root():

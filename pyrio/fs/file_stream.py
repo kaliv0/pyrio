@@ -56,6 +56,7 @@ MAPPING_READ_CONFIG = AliasDict(
             "callable": "load",
             "read_mode": "r",
             "error": "ConfigParserError",
+            "extra_keys": ("merge_defaults", "nest_sections", "split_lists", "unwrap_root"),
         },
         ".pickle": {
             "import_mod": "pickle",
@@ -96,6 +97,7 @@ MAPPING_WRITE_CONFIG = AliasDict(
             "import_mod": "pyrio.io.ini_handler",
             "callable": "dump",
             "write_mode": "w",
+            "extra_keys": ("nest_sections", "join_lists", "wrap_root"),
         },
         ".pickle": {
             "import_mod": "pickle",

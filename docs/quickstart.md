@@ -581,7 +581,7 @@ FileStream.process("path/to/mislabeled.toml", default_to_plain=True).to_list()
 
 - reading a file with <i>process()</i> method
   - use extra <i>f_open</i> options (for the underlying <i>open file</i> function)
-  - <i>f_read</i> (to be passed to the corresponding library function that is loading the file content e.g. tomllib, json)
+  - <i>f_read</i> (options for the format loader - usually forwarded to the underlying library, e.g. tomllib/json - some formats also accept pyrio-specific options, see XML / INI below)
   - <i>format</i> forces a file reader (bare or dotted, e.g. <i>'yaml'</i> / <i>'.yaml'</i>) regardless of path suffix (sniffing is skipped) - on failure raises unless <i>default_to_plain=True</i>
 
 ```python
@@ -610,6 +610,24 @@ FileStream.process("path/to/custom_root.xml", include_root=True).map(
     lambda x: f"root={x.key}: inner_records={str(x.value)}"
 ).to_list()
 # ["root=custom-root: inner_records={'abc': 'xyz', 'qwerty': '42'}"]
+```
+
+INI defaults to a flat ConfigParser shape (section names as keys, string values, DEFAULT keys merged into sections).
+<br>Opt into pyrio sugar via <i>f_read</i> or as keyword args to <i>process()</i>:
+  - <i>merge_defaults</i> (default <i>True</i>) - <i>False</i> keeps section-only keys and adds a <i>"DEFAULT"</i> entry when present
+  - <i>nest_sections</i> (default <i>False</i>) - dotted <i>[a.b]</i> sections become nested dicts
+  - <i>split_lists</i> (default <i>False</i>) - comma-separated values become lists
+  - <i>unwrap_root</i> (default <i>False</i>) - if the only top-level key is <i>"root"</i>, unwrap it
+
+```python
+FileStream.process(
+    "path/to/nested.ini",
+    f_read={"nest_sections": True, "split_lists": True},
+).to_dict()
+# {"first": {"second": ["x", "y", "z"], "still-second": {"third": "42"}}}
+
+FileStream.process("path/to/foo.ini", unwrap_root=True).to_dict()
+# {"abc": "xyz", "qwerty": "42"}
 ```
 
 ---
@@ -644,7 +662,7 @@ NB: useful for writing <i>.toml</i> files which don't allow None values
 - passing advanced <i>file open</i> and <i>write</i> options
   <br>similarly to the <i>process</i> method you could provide
   - <i>f_open</i> (for the underlying <i>open</i> function)
-  - <i>f_write</i> (passed to the corresponding library that will 'dump' the contents of the stream e.g. tomli-w, pyyaml)
+  - <i>f_write</i> (options for the format dumper - usually forwarded to the underlying library, e.g. tomli-w/pyyaml - some formats also accept pyrio-specific options, see XML / INI / plain text below)
 
 ```python
 FileStream("path/to/file.json").concat(in_memory_dict).save(
@@ -703,6 +721,20 @@ FileStream("path/to/file.json").concat(in_memory_dict).save(
     f_write={"indent": 4},
     xml_root="my-custom-root",
 )
+```
+
+When saving <i>.ini</i>/<i>.cfg</i>, pass sugar via <i>f_write</i> or as keyword args to <i>save()</i>:
+  - <i>nest_sections</i> (default <i>False</i>) - nested dicts become dotted sections
+  - <i>join_lists</i> (default <i>True</i>) - lists become <i>"a, b"</i> strings
+  - <i>wrap_root</i> (default <i>False</i>) - wrap the payload under a <i>[root]</i> section (useful for top-level scalars)
+
+```python
+FileStream("path/to/nested.json").save(
+    "path/to/out.ini",
+    nest_sections=True,
+)
+
+FileStream("path/to/flat.json").save("path/to/out.ini", wrap_root=True)
 ```
 
 - control how the stream is turned into the object passed to mapping dumpers with <i>materialize</i>
